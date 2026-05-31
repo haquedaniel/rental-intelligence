@@ -1,0 +1,58 @@
+source_system: beds24
+properties:
+- property_id: 330389
+  name: La Peskerezh
+  property_type: house
+  currency: EUR
+  city: Plozévet
+  country: FR
+  postcode: '29710'
+  check_in_start: '17:00'
+  check_out_end: '11:00'
+  rooms:
+  - room_id: 685219
+    property_id: 330389
+    name: Grande maison de famille avec piscine
+    room_type: double
+    qty: 1
+    max_people: 12
+    min_stay: 2
+    max_stay: 365
+    rack_rate: 230
+    cleaning_fee: 120
+    security_deposit: 1500
+    include_in_reports: true
+- property_id: 331524
+  name: Le Clos de la Voilerie
+  property_type: aparthotel
+  currency: EUR
+  city: Plouhinec
+  country: FR
+  postcode: '29780'
+  check_in_start: '16:00'
+  check_out_end: '10:00'
+  rooms:
+  - room_id: 687116
+    property_id: 331524
+    name: 5 · Sous les toits, face à la mer
+    room_type: double
+    qty: 1
+    max_people: 3
+    min_stay: 2
+    max_stay: 365
+    rack_rate: 80
+    cleaning_fee: 0
+    security_deposit: 0
+    include_in_reports: true
+  - room_id: 687189
+    property_id: 331524
+    name: Un balcon sur la mer
+    room_type: double
+    qty: 1
+    max_people: 5
+    min_stay: 2
+    max_stay: 365
+    rack_rate: 80
+    cleaning_fee: 0
+    security_deposit: 0
+    include_in_reports: true

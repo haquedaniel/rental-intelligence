@@ -1,0 +1,29 @@
+client_id: daniel_aurore
+client_name: Daniel & Aurore
+timezone: Europe/Paris
+currency: EUR
+
+portfolios:
+  - portfolio_id: peskerezh
+    name: La Peskerezh
+    source:
+      system: beds24
+      property_id: 330389
+    listings:
+      - listing_id: peskerezh_house
+        name: Grande maison de famille avec piscine
+        source_room_id: 685219
+
+  - portfolio_id: voilerie
+    name: Le Clos de la Voilerie
+    source:
+      system: beds24
+      property_id: 331524
+    listings:
+      - listing_id: apt5
+        name: Le Refuge sous les Toits
+        source_room_id: 687116
+
+      - listing_id: apt4
+        name: Un Balcon sur la Mer
+        source_room_id: 687189

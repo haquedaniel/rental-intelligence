@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# Contains raw API data / guest data
+outputs/raw/*
+!outputs/raw/.gitkeep
+
+outputs/processed/*
+!outputs/processed/.gitkeep
+
+# Local auth responses
+beds24_auth_response.json
