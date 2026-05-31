@@ -10,6 +10,7 @@ import yaml
 from dotenv import load_dotenv
 
 from rental_intel.ingest.beds24 import Beds24Client
+from rental_intel.normalize.revenue import parse_revenue
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -62,16 +63,9 @@ def normalize_booking(
     nights = (departure - arrival).days
 
     invoice_items = booking.get("invoiceItems") or []
-
-    # Beds24 subtypes observed so far:
-    # 1 = room charge for direct bookings
-    # 15 = cleaning fee
-    # 3 = tourist tax
-    room_charge_direct = invoice_total(invoice_items, subtype=1)
-    cleaning_fee = invoice_total(invoice_items, subtype=15)
-    tourist_tax = invoice_total(invoice_items, subtype=3)
-
     total_invoice_items = invoice_total(invoice_items)
+
+    revenue = parse_revenue(booking)
 
     price = float(booking.get("price") or 0)
     commission = float(booking.get("commission") or 0)
@@ -116,11 +110,14 @@ def normalize_booking(
         "commission": commission,
         "tax": tax,
         "invoice_total": total_invoice_items,
-        "room_charge_direct": room_charge_direct,
-        "cleaning_fee": cleaning_fee,
-        "tourist_tax": tourist_tax,
-        "estimated_host_payout": price - commission,
-        "raw_rate_description": booking.get("rateDescription"),
+        "gross_booking_value": revenue["gross_booking_value"],
+        "accommodation_revenue": revenue["accommodation_revenue"],
+        "cleaning_fee": revenue["cleaning_fee"],
+        "tourist_tax": revenue["tourist_tax"],
+        "channel_commission": revenue["channel_commission"],
+        "host_payout": revenue["host_payout"],
+        "adr_accommodation": round(revenue["accommodation_revenue"] / nights, 2) if nights else 0,
+        "adr_host_payout": round(revenue["host_payout"] / nights, 2) if nights else 0,
     }
 
 
@@ -171,7 +168,20 @@ def main() -> None:
 
         print()
         print("Basic revenue check:")
-        cols = ["listing_id", "arrival", "departure", "nights", "channel", "price_total", "commission", "cleaning_fee", "tourist_tax"]
+        cols = [
+            "listing_id",
+            "arrival",
+            "departure",
+            "nights",
+            "channel",
+            "gross_booking_value",
+            "accommodation_revenue",
+            "cleaning_fee",
+            "tourist_tax",
+            "channel_commission",
+            "host_payout",
+            "adr_accommodation",
+        ]        
         print(df[cols].to_string(index=False))
 
 
