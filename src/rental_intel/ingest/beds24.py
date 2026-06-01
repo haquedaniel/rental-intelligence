@@ -1,47 +1,79 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, Dict, Optional
 
 import requests
 
 
-BASE_URL = "https://beds24.com/api/v2"
-
-
 class Beds24Client:
-    def __init__(self, token: Optional[str] = None) -> None:
-        self.token = token or os.getenv("BEDS24_TOKEN")
+    def __init__(self) -> None:
+        self.base_url = "https://beds24.com/api/v2"
+
+        self.token = os.getenv("BEDS24_TOKEN")
         if not self.token:
-            raise ValueError("Missing BEDS24_TOKEN. Export it or put it in .env.")
+            raise RuntimeError("Missing BEDS24_TOKEN environment variable")
 
-    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        url = f"{BASE_URL}{path}"
-        response = requests.get(
-            url,
-            headers={
-                "accept": "application/json",
-                "token": self.token,
-            },
-            params=params or {},
-            timeout=30,
-        )
+        self.headers = {
+            "accept": "application/json",
+            "token": self.token,
+        }
 
-        try:
-            data = response.json()
-        except ValueError as exc:
-            raise RuntimeError(f"Beds24 returned non-JSON response: {response.text[:500]}") from exc
+    def get(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        max_retries: int = 3,
+    ) -> Dict[str, Any]:
+        url = f"{self.base_url}{path}"
 
-        if response.status_code >= 400 or data.get("success") is False:
-            raise RuntimeError(f"Beds24 API error {response.status_code}: {data}")
+        for attempt in range(max_retries + 1):
+            response = requests.get(url, headers=self.headers, params=params)
 
-        return data
+            try:
+                data = response.json()
+            except ValueError:
+                data = response.text
 
-    def get_properties(self, include_all_rooms: bool = True) -> Dict[str, Any]:
-        return self.get(
-            "/properties",
-            params={"includeAllRooms": str(include_all_rooms).lower()},
-        )
+            if response.status_code == 429:
+                reset_seconds = response.headers.get("X-FiveMinCreditLimit-ResetsIn")
+                wait_seconds = int(reset_seconds) + 5 if reset_seconds else 305
+
+                if attempt < max_retries:
+                    print(
+                        f"Beds24 credit limit hit. Waiting {wait_seconds}s before retry..."
+                    )
+                    time.sleep(wait_seconds)
+                    continue
+
+            if response.status_code >= 400:
+                raise RuntimeError(f"Beds24 API error {response.status_code}: {data}")
+
+            if isinstance(data, dict) and data.get("success") is False:
+                raise RuntimeError(f"Beds24 API returned error: {data}")
+
+            return data
+
+        raise RuntimeError("Beds24 API request failed after retries.")
+
+    def get_properties(
+        self,
+        include_all_rooms: bool = True,
+        include_price_rules: bool = False,
+        include_offers: bool = False,
+    ) -> Dict[str, Any]:
+        params = {
+            "includeAllRooms": str(include_all_rooms).lower(),
+        }
+
+        if include_price_rules:
+            params["includePriceRules"] = "true"
+
+        if include_offers:
+            params["includeOffers"] = "true"
+
+        return self.get("/properties", params=params)
 
     def get_bookings(
         self,
@@ -102,7 +134,7 @@ class Beds24Client:
             params["page"] = page
 
         return self.get("/bookings", params=params)
-    
+
     def get_offers(
         self,
         property_id: Optional[int] = None,
@@ -129,3 +161,17 @@ class Beds24Client:
             params["roomId"] = room_id
 
         return self.get("/inventory/rooms/offers", params=params)
+
+    def get_room_availability(
+        self,
+        room_id: int,
+        from_date: str,
+        to_date: str,
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {
+            "roomId": room_id,
+            "from": from_date,
+            "to": to_date,
+        }
+
+        return self.get("/inventory/rooms/availability", params=params)

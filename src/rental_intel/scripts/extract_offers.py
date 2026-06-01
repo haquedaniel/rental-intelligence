@@ -22,6 +22,8 @@ PRICE_SCENARIOS = [
     {"scenario": "7n_2a", "nights": 7, "num_adults": 2, "num_children": 0},
 ]
 
+PRICE_SCENARIOS = []
+
 MIN_STAY_TEST_NIGHTS = [1, 2, 3, 4, 5, 6, 7]
 
 
@@ -197,8 +199,8 @@ def main() -> None:
     load_dotenv(override=True)
 
     client_id = "daniel_aurore"
-    horizon_days = 60
-    sleep_seconds = 0.35
+    horizon_days = 14
+    sleep_seconds = 3.2
 
     config = load_client_config(client_id)
     room_mapping = build_room_mapping(config)

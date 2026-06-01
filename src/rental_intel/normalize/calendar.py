@@ -46,6 +46,9 @@ def expand_reservations_to_daily(reservations: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     for _, booking in reservations.iterrows():
+        status = str(booking.get("status") or "").lower()
+        if status == "cancelled":
+            continue
         arrival = pd.to_datetime(booking["arrival"]).date()
         departure = pd.to_datetime(booking["departure"]).date()
         nights = int(booking["nights"])
