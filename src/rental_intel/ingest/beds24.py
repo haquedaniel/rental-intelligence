@@ -47,8 +47,18 @@ class Beds24Client:
         self,
         property_id: Optional[int] = None,
         room_id: Optional[int] = None,
+        arrival_from: Optional[str] = None,
+        arrival_to: Optional[str] = None,
+        departure_from: Optional[str] = None,
+        departure_to: Optional[str] = None,
+        booking_time_from: Optional[str] = None,
+        booking_time_to: Optional[str] = None,
+        modified_from: Optional[str] = None,
+        modified_to: Optional[str] = None,
+        statuses: Optional[list[str]] = None,
         include_invoice_items: bool = True,
         include_guests: bool = True,
+        page: Optional[int] = None,
     ) -> Dict[str, Any]:
         params: Dict[str, Any] = {
             "includeInvoiceItems": str(include_invoice_items).lower(),
@@ -61,4 +71,61 @@ class Beds24Client:
         if room_id is not None:
             params["roomId"] = room_id
 
+        if arrival_from:
+            params["arrivalFrom"] = arrival_from
+
+        if arrival_to:
+            params["arrivalTo"] = arrival_to
+
+        if departure_from:
+            params["departureFrom"] = departure_from
+
+        if departure_to:
+            params["departureTo"] = departure_to
+
+        if booking_time_from:
+            params["bookingTimeFrom"] = booking_time_from
+
+        if booking_time_to:
+            params["bookingTimeTo"] = booking_time_to
+
+        if modified_from:
+            params["modifiedFrom"] = modified_from
+
+        if modified_to:
+            params["modifiedTo"] = modified_to
+
+        if statuses:
+            params["status"] = statuses
+
+        if page is not None:
+            params["page"] = page
+
         return self.get("/bookings", params=params)
+    
+    def get_offers(
+        self,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        arrival: Optional[str] = None,
+        departure: Optional[str] = None,
+        num_adults: int = 2,
+        num_children: int = 0,
+    ) -> Dict[str, Any]:
+        if not arrival or not departure:
+            raise ValueError("arrival and departure are required")
+
+        params: Dict[str, Any] = {
+            "arrival": arrival,
+            "departure": departure,
+            "numAdults": num_adults,
+            "numChildren": num_children,
+        }
+
+        if property_id is not None:
+            params["propertyId"] = property_id
+
+        if room_id is not None:
+            params["roomId"] = room_id
+
+        return self.get("/inventory/rooms/offers", params=params)

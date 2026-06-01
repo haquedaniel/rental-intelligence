@@ -1,0 +1,14 @@
+[project]
+name = "rental-intelligence"
+version = "0.1.0"
+description = "Beds24-first rental intelligence and recommendation engine"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "python-dotenv",
+    "PyYAML",
+    "pandas",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

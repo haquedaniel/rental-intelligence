@@ -100,6 +100,10 @@ def parse_revenue(booking: Dict[str, Any]) -> Dict[str, float]:
         host_payout = round(gross_booking_value - channel_commission, 2)
 
     else:
+
+        # TODO(revenue): Booking.com parsing is not yet validated.
+        # Current fallback may treat price as accommodation revenue even if it includes
+        # cleaning fee or tourist tax. Revisit after collecting more Booking.com examples.      
         # Booking.com and others may not have full breakdown yet.
         # For now, use the cleanest visible fields and refine once we inspect more examples.
         accommodation_revenue = direct_room_charge or gross_booking_value

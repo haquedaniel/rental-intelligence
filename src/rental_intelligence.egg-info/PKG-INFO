@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: rental-intelligence
+Version: 0.1.0
+Summary: Beds24-first rental intelligence and recommendation engine
+Requires-Python: >=3.10
+Requires-Dist: requests
+Requires-Dist: python-dotenv
+Requires-Dist: PyYAML
+Requires-Dist: pandas

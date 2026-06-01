@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Discover Beds24",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "rental_intel.scripts.discover_beds24",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Extract Bookings",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "rental_intel.scripts.extract_bookings",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from rental_intel.ingest.beds24 import Beds24Client
 from rental_intel.normalize.revenue import parse_revenue
+from rental_intel.normalize.calendar import expand_reservations_to_daily
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -122,7 +123,7 @@ def normalize_booking(
 
 
 def main() -> None:
-    load_dotenv()
+    load_dotenv(override=True)
 
     client_id = "daniel_aurore"
     config = load_client_config(client_id)
@@ -140,6 +141,9 @@ def main() -> None:
         property_id = int(source["property_id"])
         response = beds24.get_bookings(
             property_id=property_id,
+            arrival_from="2026-01-01",
+            arrival_to="2026-12-31",
+            statuses=["confirmed", "new", "request", "cancelled"],
             include_invoice_items=True,
             include_guests=True,
         )
@@ -160,6 +164,13 @@ def main() -> None:
     out_path = ROOT / "outputs" / "processed" / "normalized_reservations.csv"
     df.to_csv(out_path, index=False)
     print(f"Wrote normalized reservations to {out_path}")
+    
+    daily_df = expand_reservations_to_daily(df)
+
+    daily_out_path = ROOT / "outputs" / "processed" / "daily_calendar.csv"
+    daily_df.to_csv(daily_out_path, index=False)
+
+    print(f"Wrote daily calendar to {daily_out_path}")
 
     if not df.empty:
         print()
@@ -183,6 +194,19 @@ def main() -> None:
             "adr_accommodation",
         ]        
         print(df[cols].to_string(index=False))
+
+        if not daily_df.empty:
+            print()
+            print("Booked nights by listing/month:")
+            print(
+                daily_df.groupby(["listing_id", "year_month"], dropna=False)
+                .agg(
+                    booked_nights=("is_booked", "sum"),
+                    accommodation_revenue=("accommodation_revenue_allocated", "sum"),
+                    host_payout=("host_payout_allocated", "sum"),
+                )
+                .round(2)
+            )
 
 
 if __name__ == "__main__":

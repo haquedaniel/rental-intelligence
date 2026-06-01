@@ -13,3 +13,9 @@ outputs/processed/*
 
 # Local auth responses
 beds24_auth_response.json
+
+# Manual/private reservation exports
+data/manual/*
+!data/manual/.gitkeep
+!data/manual/reservations/
+!data/manual/reservations/.gitkeep

@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+
+<meta name="viewport" content="width=device-width, initial-scale=1"><META name="description" content="Secure online booking page for Le Clos de la Voilerie"><META name="keywords" content="Le Clos de la Voilerie, secure online booking, reservation calendar, book now, booking engine, booking button, booking widget, channel manager, property management, OTA distribution"><link rel="shortcut icon" href="/favicon2.ico" /><title>Secure Online Booking</title>
+<script type="text/javascript" src="include/jquery/jquery-1.12.4.min.js"></script>
+<script>
+jQuery.ajaxPrefilter( function( s ) {
+    if ( s.crossDomain ) {
+        s.contents.script = false;
+    }
+} );
+</script>
+<script src="include/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<link rel="stylesheet" type="text/css" href="include/bootstrap/3.3.4/css/bootstrap.min.css" />
+
+<script src="include/moment/2.29.4/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="include/bootstrap/eonasdan/bootstrap-datetimepicker_4.7.14a.js"></script>
+
+<link href="include/bootstrap/bootstrap-switch-master/dist/css/bootstrap3/bootstrap-switch.css" rel="stylesheet">
+<script src="include/bootstrap/bootstrap-switch-master/dist/js/bootstrap-switch.js"></script>
+<link rel="stylesheet" href="include/booking3.css" />
+<style type='text/css'>
+.plist_tagblock {background-color: #ffffff;}
+a {color: #008acc;}
+.fakelink {color: #008acc;}
+.colorbody {background-color: #f4f4f4; font-family:arial,helvetica,sans-serif; font-size:14px; }
+.atcolor{color: #424242; background-color: #f4f4f4;}
+.border{border: 1px solid #dfdfdf;}
+.bt{border-top: 1px solid #dfdfdf;}
+.br{border-right: 1px solid #dfdfdf;}
+.bb{border-bottom: 1px solid #dfdfdf;}
+.bl{border-left: 1px solid #dfdfdf;}
+.border2{border: 3px solid #dfdfdf;}
+.bt2{border-top: 3px solid #dfdfdf;}
+.br2{border-right: 3px solid #dfdfdf;}
+.bb2{border-bottom: 3px solid #dfdfdf;}
+.bl2{border-left: 3px solid #dfdfdf;}
+.monthcalendar {border-color: #dfdfdf;}
+.monthcalendar td {border-color: #dfdfdf;}
+.at_datenotavailable {background-color: #f2dede; color: #a94442;}
+.at_dateavailable {background-color: #f2f2f2; color: #424242;}
+.at_daterequest {background-color: #dddddd; color: #777777;}
+.datenotavail {background-color: #f2dede; color: #a94442;}
+.dateavail {background-color: #f2f2f2; color: #424242;}
+.daterequest {background-color: #dddddd; color: #777777;}
+.warnnotavail {background-color: #f2dede; color: #a94442;}
+.at_pricestay {color: #222222;}
+.datestay {color: #222222;}
+.at_headstay{color: #222222;}
+.setsplitdates1 .dateavail.prevdateavail {background: linear-gradient(-45deg, #f2f2f2, #f2f2f2 50%, #f2f2f2 50%)}
+.setsplitdates1 .dateavail.prevdatenotavail {background: linear-gradient(-45deg, #f2f2f2, #f2f2f2 50%, #f2dede 50%)}
+.setsplitdates1 .dateavail.prevdaterequest {background: linear-gradient(-45deg, #f2f2f2, #f2f2f2 50%, #dddddd 50%)}
+.setsplitdates1 .datenotavail.prevdateavail {background: linear-gradient(-45deg, #f2dede, #f2dede 50%, #f2f2f2 50%)}
+.setsplitdates1 .datenotavail.prevdatenotavail {background: linear-gradient(-45deg, #f2dede, #f2dede 50%, #f2dede 50%)}
+.setsplitdates1 .datenotavail.prevdaterequest {background: linear-gradient(-45deg, #f2dede, #f2dede 50%, #dddddd 50%)}
+.setsplitdates1 .daterequest.prevdateavail {background: linear-gradient(-45deg, #dddddd, #dddddd 50%, #f2f2f2 50%)}
+.setsplitdates1 .daterequest.prevdatenotavail {background: linear-gradient(-45deg, #dddddd, #dddddd 50%, #f2dede 50%)}
+.setsplitdates1 .daterequest.prevdaterequest {background: linear-gradient(-45deg, #dddddd, #dddddd 50%, #dddddd 50%)}
+.setborderstyle1 #b24scroller {box-shadow: 0 1px 6px 0  #dfdfdf, 1px 1px 1px 0px #dfdfdf}
+.setborderstyle1 #b24bookshoppingcart {box-shadow: 0 1px 6px 0  #dfdfdf, 1px 1px 1px 0px #dfdfdf}
+.setborderstyle1 .b24panel-room {box-shadow: 0 1px 6px 0  #dfdfdf, 1px 1px 1px 0px #dfdfdf}
+.setborderstyle1 .b24panel-prop {box-shadow: 0 1px 6px 0  #dfdfdf, 1px 1px 1px 0px #dfdfdf}
+.colorbookingform, .b24panel {color:#424242; background-color:#ffffff;}
+.colorbookingstripto {color:#424242; background-color:#ffffff;}
+.colorstripfrom {background-color: #ffffff}
+.colorbookingstrip a {color: #424242; font-weight:normal;}
+.colorbookingstrip {
+	background-color: #ffffff;
+	background: linear-gradient(to bottom, #ffffff, #ffffff);
+	background: -webkit-gradient(linear, left top, left bottom, from(#ffffff), to(#ffffff));
+	background: -moz-linear-gradient(top, #ffffff, #ffffff);
+	background: -webkit-linear-gradient(top,  #ffffff, #ffffff);
+	background: -o-linear-gradient(top, #ffffff, #ffffff);
+	background: linear-gradient(top,  #ffffff, #ffffff);
+	filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr="#ffffff", endColorstr="#ffffff");
+	color: #424242;
+	}.button, .buttondis {color:#ffffff; background: #008acc;
+	border: none;
+	}.button:hover{
+ background: #00608e;
+}
+.button a{
+ color: #ffffff;
+}
+
+</style>
+<!-- bookingcss -->
+<STYLE type="text/css">img.img-responsive {
+  display: none !important;
+}
+
+body {
+  background: #fbf7ef !important;
+  color: #18353a !important;
+  font-family: 'Century Gothic', 'Avenir Next', Montserrat, Raleway, Arial, sans-serif !important;
+}
+
+h1, h2, h3, h4,
+.b24title,
+.b24heading {
+  color: #18353a !important;
+  font-family: 'Century Gothic', 'Avenir Next', Montserrat, Raleway, Arial, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+a {
+  color: #2b9bad !important;
+}
+
+input,
+select,
+textarea {
+  background: #ffffff !important;
+  color: #18353a !important;
+  border: 1px solid rgba(24, 53, 58, 0.18) !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+}
+
+button,
+input[type="submit"],
+.btn,
+.b24button,
+.bookbutton {
+  background: #148c9a !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 12px 28px rgba(20, 140, 154, 0.18) !important;
+}
+
+button:hover,
+input[type="submit"]:hover,
+.btn:hover,
+.b24button:hover,
+.bookbutton:hover {
+  filter: brightness(1.04);
+}
+
+/* Hide large property/room images on the booking form */
+img.img-responsive {
+  display: none !important;
+}
+
+/* Soften panels/cards */
+.panel,
+.well,
+.b24panel,
+.b24box,
+.b24-booking-details,
+.bookingdetails,
+.reservationdetails {
+  background: #ffffff !important;
+  border: 1px solid rgba(24, 53, 58, 0.12) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 18px 44px rgba(24, 53, 58, 0.08) !important;
+}
+
+/* Price/summary area */
+table,
+td,
+th {
+  border-color: rgba(24, 53, 58, 0.10) !important;
+}
+
+th {
+  color: #18353a !important;
+}
+
+.voilerie-booking-header {
+  max-width: 1180px;
+  margin: 0 auto 32px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: rgba(251, 247, 239, 0.96);
+  border-bottom: 1px solid rgba(24, 53, 58, 0.10);
+  color: #18353a;
+  font-family: 'Century Gothic', 'Avenir Next', Montserrat, Raleway, Arial, sans-serif;
+}
+
+.voilerie-booking-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: #18353a !important;
+  text-decoration: none !important;
+}
+
+.voilerie-booking-brand img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  display: block;
+}
+
+.voilerie-booking-brand span {
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  font-weight: 600;
+}
+
+.voilerie-booking-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.voilerie-booking-nav a {
+  color: #18353a !important;
+  text-decoration: none !important;
+  opacity: 0.85;
+}
+
+.voilerie-booking-nav a:hover {
+  opacity: 1;
+  color: #2b9bad !important;
+}
+
+@media (max-width: 760px) {
+  .voilerie-booking-header {
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .voilerie-booking-brand img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .voilerie-booking-brand span {
+    font-size: 0.8rem;
+  }
+
+  .voilerie-booking-nav {
+    width: 100%;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+  }
+}
+
+/* Bigger, more readable Beds24 booking page */
+body {
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+}
+
+/* Main Beds24 content */
+body,
+table,
+td,
+th,
+input,
+select,
+textarea,
+button {
+  font-size: 17px !important;
+}
+
+/* Labels and form headings */
+label,
+.control-label,
+.b24label {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+}
+
+/* Section titles */
+h1,
+h2,
+h3,
+.b24title,
+.b24heading {
+  font-size: 1.45rem !important;
+}
+
+/* Top booking strip labels: Arrivée, Départ, Nuits, Personnes */
+.bookingstrip label,
+.bookstrip label,
+.control-label {
+  font-size: 17px !important;
+}
+
+/* Inputs in the top search bar */
+input,
+select {
+  min-height: 48px !important;
+  padding: 10px 14px !important;
+}
+
+/* Buttons */
+button,
+input[type="submit"],
+.btn,
+.b24button,
+.bookbutton {
+  font-size: 17px !important;
+  min-height: 50px !important;
+  padding: 12px 22px !important;
+}
+
+/* Calendar / availability table */
+.calendar,
+.calendar table,
+.calendar td,
+.calendar th,
+.b24calendar,
+.b24calendar table,
+.b24calendar td,
+.b24calendar th {
+  font-size: 17px !important;
+}
+
+/* Header/nav slightly larger */
+.voilerie-booking-brand span {
+  font-size: 1.05rem !important;
+}
+
+.voilerie-booking-nav {
+  font-size: 0.9rem !important;
+}
+
+/* --- Voilerie: force readable typography on Beds24 page --- */
+
+html,
+body,
+body.colorbody,
+.colorbody,
+.colorbody-fr,
+.atcolor,
+.colorbookingform,
+.colorbookingstrip,
+.colorbookingstripto,
+.b24fullcontainer,
+.b24fullcontainer .container,
+.b24panel,
+.b24panel-room,
+.panel,
+.panel-body,
+.panel-heading,
+#b24scroller,
+#formlook,
+#ajaxroomofferprop331524 {
+  font-family: 'Century Gothic', 'Avenir Next', Montserrat, Raleway, Arial, sans-serif !important;
+  font-size: 18px !important;
+  line-height: 1.55 !important;
+  color: #18353a !important;
+}
+
+/* Main booking strip: Arrivée / Départ / Nuits / Personnes */
+#b24scroller label,
+#b24scroller .control-label,
+#b24scroller input,
+#b24scroller select,
+#b24scroller .form-control,
+.b24-selector-checkin,
+.b24-selector-checkout,
+.b24-selector-numnight,
+.b24-selector-numadult {
+  font-size: 18px !important;
+  line-height: 1.35 !important;
+}
+
+/* Bigger fields */
+#b24scroller .form-control,
+#b24scroller select,
+#b24scroller input {
+  min-height: 52px !important;
+  padding: 12px 16px !important;
+}
+
+/* Apartment title */
+.at_roomnametext,
+.b24-roompanel-heading,
+.panel-heading {
+  font-size: 1.45rem !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+}
+
+/* Calendar and price table */
+.roomofferpricetable,
+.roomofferpricetable td,
+.roomofferpricetable th,
+.monthcalendar,
+.monthcalendar td,
+.monthcalendarhead,
+.monthcalendarday,
+.at_checkin,
+.at_checkout,
+.at_pricetd {
+  font-size: 17px !important;
+  line-height: 1.35 !important;
+}
+
+/* Booking button */
+.at_bookingbut,
+.button,
+.btn,
+input[type="submit"] {
+  font-size: 18px !important;
+  min-height: 54px !important;
+  padding: 12px 26px !important;
+  font-weight: 800 !important;
+}
+
+/* Header: make it less miniature */
+.voilerie-booking-header {
+  max-width: 1180px !important;
+  padding: 28px 32px !important;
+  margin-bottom: 36px !important;
+}
+
+.voilerie-booking-brand img {
+  width: 72px !important;
+  height: 72px !important;
+}
+
+.voilerie-booking-brand span {
+  font-size: 1.05rem !important;
+  letter-spacing: 0.18em !important;
+}
+
+.voilerie-booking-nav {
+  font-size: 0.95rem !important;
+}
+
+/* Optional: make the whole booking area feel less lost on big screens */
+#b24scroller-container,
+.b24fullcontainer-rooms > .container,
+.b24fullcontainer-footer > .container {
+  max-width: 1180px !important;
+}
+
+/* --- Voilerie booking page: rebalance typography --- */
+
+/* Slightly smaller, less heavy global text */
+html,
+body,
+body.colorbody,
+.colorbody,
+.colorbody-fr,
+.atcolor,
+.colorbookingform,
+.colorbookingstrip,
+.colorbookingstripto,
+.b24fullcontainer,
+.b24panel,
+.b24panel-room,
+.panel,
+.panel-body,
+.panel-heading,
+#b24scroller,
+#formlook {
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+/* Normal labels: readable but not huge */
+label,
+.control-label,
+.b24label,
+#b24scroller label,
+#b24scroller .control-label {
+  font-size: 15px !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+}
+
+/* Inputs/selects: apply only to text-like fields, NOT checkboxes */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea,
+.form-control {
+  font-size: 15px !important;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 9px 13px !important;
+  border-radius: 10px !important;
+}
+
+/* Restore checkbox / terms acceptance field */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  margin: 0 8px 0 0 !important;
+  border-radius: 3px !important;
+  background: initial !important;
+  box-shadow: none !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* If Beds24 uses a text-style field for terms, keep it compact */
+input[name*="terms"],
+input[id*="terms"],
+input[name*="condition"],
+input[id*="condition"] {
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+}
+
+/* Main page titles */
+h1,
+h2,
+h3,
+.b24title,
+.b24heading,
+.at_roomnametext,
+.b24-roompanel-heading,
+.panel-heading {
+  font-size: 1.2rem !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+}
+
+/* Booking form section headings */
+.b24panel h1,
+.b24panel h2,
+.b24panel h3,
+.panel-heading {
+  font-size: 1.15rem !important;
+}
+
+/* Calendar / price table: compact */
+.roomofferpricetable,
+.roomofferpricetable td,
+.roomofferpricetable th,
+.monthcalendar,
+.monthcalendar td,
+.monthcalendarhead,
+.monthcalendarday,
+.at_checkin,
+.at_checkout,
+.at_pricetd {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+/* Buttons: still clear, less oversized */
+button,
+input[type="submit"],
+.btn,
+.b24button,
+.bookbutton,
+.at_bookingbut,
+.button {
+  font-size: 15px !important;
+  min-height: 44px !important;
+  padding: 10px 20px !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
+}
+
+/* Confirmation button specifically */
+input[value*="Confirmer"],
+input[value*="Réserver"] {
+  font-size: 15px !important;
+  min-height: 46px !important;
+}
+
+/* Reservation details panel */
+.b24-booking-details,
+.bookingdetails,
+.reservationdetails,
+.b24panel,
+.panel {
+  font-size: 15px !important;
+}
+
+/* Header: keep branded but lighter */
+.voilerie-booking-header {
+  padding: 20px 28px !important;
+  margin-bottom: 28px !important;
+}
+
+.voilerie-booking-brand img {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+.voilerie-booking-brand span {
+  font-size: 0.9rem !important;
+}
+
+.voilerie-booking-nav {
+  font-size: 0.78rem !important;
+}
+
+/* Mobile: even more compact */
+@media (max-width: 760px) {
+  html,
+  body,
+  body.colorbody,
+  .colorbody,
+  .atcolor,
+  .colorbookingstrip,
+  .b24panel,
+  .panel,
+  table,
+  td,
+  th,
+  label,
+  .control-label,
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  .voilerie-booking-nav {
+    display: none !important;
+  }
+
+  .voilerie-booking-header {
+    padding: 18px 16px !important;
+    text-align: center !important;
+  }
+
+  .voilerie-booking-brand {
+    justify-content: center !important;
+  }
+
+  .voilerie-booking-brand img {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .voilerie-booking-brand span {
+    font-size: 0.82rem !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+  }
+}</STYLE><script src="include/js/booking2.js" ></script></head>
+<body class="colorbody colorbody-fr layout1 setsplitdates1">
+<!-- property custom body top -->
+<header class="voilerie-booking-header">
+  <a class="voilerie-booking-brand" href="https://leclosdelavoilerie.com/">
+    <img src="https://leclosdelavoilerie.com/assets/logo-voilerie.png" alt="Le Clos de la Voilerie">
+    <span>le clos de la voilerie</span>
+  </a>
+
+  <nav class="voilerie-booking-nav">
+    <a href="https://leclosdelavoilerie.com/">Retour au site</a>
+    <a href="https://leclosdelavoilerie.com/#appartements">Appartements</a>
+    <a href="https://leclosdelavoilerie.com/#contact">Contact</a>
+  </nav>
+</header>
+<div id="ajaxqueue"></div><script type="text/javascript">
+$( document ).ready(function() {
+	$("#offerlinebreak-687116-1").addClass("hidden");$("#offerlinebreak-687189-1").addClass("hidden");
+});
+
+ajaxupdateroompriceid = new Array();
+ </script>
+<div id="topofthebookingpage" class="b24fullcontainer b24fullcontainer-top">
+  <div class="container container2 atcolor">
+    <div class="pull-left">
+    <div class="dropdown b24languagedropdown">
+  <button class="btn dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+Français  <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+<li class="lang-en"><a href="?propid=331524&amp;lang=en&booking=lmdeu4cpu92qc77hn7oguh47cc">English</a></li><li class="lang-de"><a href="?propid=331524&amp;lang=de&booking=lmdeu4cpu92qc77hn7oguh47cc">Deutsch</a></li><li class="lang-fr"><a href="?propid=331524&amp;lang=fr&booking=lmdeu4cpu92qc77hn7oguh47cc">Français</a></li>  </ul>
+</div>	
+    </div>	
+		<div class="pull-right">
+		
+
+        </div>	
+    <div class="clearfix"></div>
+  </div>
+<div class="clearfix"></div>
+</div>
+
+
+<div class="b24fullcontainer b24fullcontainer-ownerrow1"><div class="container container2 atcolor">
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-owner-module b24-owner-desc1 b24-owner-167238"><div class="agencydesc1 ckedit">
+
+</div><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapsedesc1167238");
+if (s==="1") {showid("collapsedesc1167238")} else if (s==="0") {hideid("collapsedesc1167238")}
+} catch (e) {}
+})
+</script></div></div>
+</div>
+<div class="clearfix"></div>
+</div>
+
+
+<form id="formlook" method="GET"><input type="hidden" name="booking" value="lmdeu4cpu92qc77hn7oguh47cc" /><input type="hidden" name="propid" value="331524"><input type="hidden" name="width" value="960"><input type="hidden" name="page" value="book3"><input type="hidden" id="limitstart" name="limitstart" value="0"><div id="ajaxroomofferprop331524">
+
+<div id="b24scroller-fullcontainer" class="b24fullcontainer b24fullcontainer-selector">
+<div id="b24scroller-container" class="container atcolor">
+<!-- thislayout = 3 --><div class="clearfix"></div>
+<div id="b24scroller-anchor"></div> 
+<div id="b24scroller" class="colorbookingstrip b24-bookingstrip bt bb bl br">
+<div class="row">
+
+
+
+<div class="col-md-1 col-lg-1">
+</div>
+<div class="col-xs-6 col-sm-3 col-md-3 col-lg-3 b24-selector-checkin"><div id="inputcheckingroup" class="form-group"><label class="control-label" for="inputcheckin">Arrivée</label><div id="checkin" class="input-group date"><span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span><input readonly="readonly" name="checkin" id="inputcheckin" type="text" class="form-control" data-date-format="dd D MMM YYYY" value=""><input name="checkin_hide" id="checkin_hide" type="hidden" value=""></div></div><script>$("#inputcheckingroup").on("touchstart click", function(){$("#inputcheckin").data("DateTimePicker").show()});</script>	
+</div>
+
+<div class="col-xs-6 col-sm-3 col-md-3 col-lg-3 b24-selector-checkout"><div id="inputcheckoutgroup" class="form-group"><label class="control-label" for="inputcheckout">Départ</label><div id="checkout" class="input-group date"><span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span><input readonly="readonly" name="checkout" id="inputcheckout" type="text" class="form-control" data-date-format="dd D MMM YYYY" value=""><input name="checkout_hide" id="checkout_hide" type="hidden" value=""></div></div><script>$("#inputcheckoutgroup").on("touchstart click", function(){$("#inputcheckout").data("DateTimePicker").show()});</script></div>
+
+<div class="hidden-xs col-sm-3 col-md-2 col-lg-2 b24-selector-numnight"><div class="form-group"><label class="control-label" for="inputnumnight">Nuits</label><select class="form-control" id="inputnumnight" name="numnight"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option><option>33</option><option>34</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option><option>43</option><option>44</option><option>45</option><option>46</option><option>47</option><option>48</option><option>49</option><option>50</option><option>51</option><option>52</option><option>53</option><option>54</option><option>55</option><option>56</option><option>57</option><option>58</option><option>59</option><option>60</option><option>61</option><option>62</option><option>63</option><option>64</option><option>65</option><option>66</option><option>67</option><option>68</option><option>69</option><option>70</option><option>71</option><option>72</option><option>73</option><option>74</option><option>75</option><option>76</option><option>77</option><option>78</option><option>79</option><option>80</option><option>81</option><option>82</option><option>83</option><option>84</option><option>85</option><option>86</option><option>87</option><option>88</option><option>89</option><option>90</option><option>91</option><option>92</option><option>93</option><option>94</option><option>95</option><option>96</option><option>97</option><option>98</option><option>99</option><option>100</option><option>101</option><option>102</option><option>103</option><option>104</option><option>105</option><option>106</option><option>107</option><option>108</option><option>109</option><option>110</option><option>111</option><option>112</option><option>113</option><option>114</option><option>115</option><option>116</option><option>117</option><option>118</option><option>119</option><option>120</option><option>121</option><option>122</option><option>123</option><option>124</option><option>125</option><option>126</option><option>127</option><option>128</option><option>129</option><option>130</option><option>131</option><option>132</option><option>133</option><option>134</option><option>135</option><option>136</option><option>137</option><option>138</option><option>139</option><option>140</option><option>141</option><option>142</option><option>143</option><option>144</option><option>145</option><option>146</option><option>147</option><option>148</option><option>149</option><option>150</option><option>151</option><option>152</option><option>153</option><option>154</option><option>155</option><option>156</option><option>157</option><option>158</option><option>159</option><option>160</option><option>161</option><option>162</option><option>163</option><option>164</option><option>165</option><option>166</option><option>167</option><option>168</option><option>169</option><option>170</option><option>171</option><option>172</option><option>173</option><option>174</option><option>175</option><option>176</option><option>177</option><option>178</option><option>179</option><option>180</option><option>181</option><option>182</option><option>183</option><option>184</option><option>185</option><option>186</option><option>187</option><option>188</option><option>189</option><option>190</option><option>191</option><option>192</option><option>193</option><option>194</option><option>195</option><option>196</option><option>197</option><option>198</option><option>199</option><option>200</option><option>201</option><option>202</option><option>203</option><option>204</option><option>205</option><option>206</option><option>207</option><option>208</option><option>209</option><option>210</option><option>211</option><option>212</option><option>213</option><option>214</option><option>215</option><option>216</option><option>217</option><option>218</option><option>219</option><option>220</option><option>221</option><option>222</option><option>223</option><option>224</option><option>225</option><option>226</option><option>227</option><option>228</option><option>229</option><option>230</option><option>231</option><option>232</option><option>233</option><option>234</option><option>235</option><option>236</option><option>237</option><option>238</option><option>239</option><option>240</option><option>241</option><option>242</option><option>243</option><option>244</option><option>245</option><option>246</option><option>247</option><option>248</option><option>249</option><option>250</option><option>251</option><option>252</option><option>253</option><option>254</option><option>255</option><option>256</option><option>257</option><option>258</option><option>259</option><option>260</option><option>261</option><option>262</option><option>263</option><option>264</option><option>265</option><option>266</option><option>267</option><option>268</option><option>269</option><option>270</option><option>271</option><option>272</option><option>273</option><option>274</option><option>275</option><option>276</option><option>277</option><option>278</option><option>279</option><option>280</option><option>281</option><option>282</option><option>283</option><option>284</option><option>285</option><option>286</option><option>287</option><option>288</option><option>289</option><option>290</option><option>291</option><option>292</option><option>293</option><option>294</option><option>295</option><option>296</option><option>297</option><option>298</option><option>299</option><option>300</option><option>301</option><option>302</option><option>303</option><option>304</option><option>305</option><option>306</option><option>307</option><option>308</option><option>309</option><option>310</option><option>311</option><option>312</option><option>313</option><option>314</option><option>315</option><option>316</option><option>317</option><option>318</option><option>319</option><option>320</option><option>321</option><option>322</option><option>323</option><option>324</option><option>325</option><option>326</option><option>327</option><option>328</option><option>329</option><option>330</option><option>331</option><option>332</option><option>333</option><option>334</option><option>335</option><option>336</option><option>337</option><option>338</option><option>339</option><option>340</option><option>341</option><option>342</option><option>343</option><option>344</option><option>345</option><option>346</option><option>347</option><option>348</option><option>349</option><option>350</option><option>351</option><option>352</option><option>353</option><option>354</option><option>355</option><option>356</option><option>357</option><option>358</option><option>359</option><option>360</option><option>361</option><option>362</option><option>363</option><option>364</option><option>365</option></select></div></div>
+		
+<div class="col-sm-3 col-md-2 col-lg-2 b24-selector-numadult"><div class="form-group"><label class="control-label" for="inputnumadult">Personnes</label><select class="form-control multiroomdisable" id="inputnumadult" name="numadult"><option value="1">1</option><option selected value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div></div>
+<div class="col-md-1 col-lg-1">
+</div>
+			
+
+
+
+
+
+    
+</div>	
+</div>
+	
+<script type="text/javascript">
+
+$(function () {
+//eonasdan.github.io/bootstrap-datetimepicker
+//create checkin picker
+var checkindefault = new Date(2026,4,31,0,0,0);
+var checkoutdefault = new Date(2026,5,02,0,0,0);
+var checkin = $("#inputcheckin").datetimepicker({
+  ignoreReadonly: true,
+	locale: 'fr',
+	defaultDate: checkindefault,
+	minDate: new Date(2026,4,31,0,0,0)
+  });
+$("#inputcheckin").data("DateTimePicker").date(checkindefault);
+//create checkout picker
+if ($("#inputcheckout").length) {
+  $("#inputcheckout").datetimepicker({
+  ignoreReadonly: true,
+	locale: 'fr',
+	defaultDate: checkoutdefault,
+	minDate: new Date(2026,5,01,0,0,0)
+  });
+$("#inputcheckout").data("DateTimePicker").date(checkoutdefault);
+}
+//checkin changes
+$("#inputcheckin").on("dp.change",function (e) {
+	var md = new Date(e.date);
+	md.setDate(md.getDate() + 1);
+	var co = new Date(e.date);
+	var cif = co.getFullYear() + "-" + (co.getMonth() + 1) + "-" + co.getDate();
+	$("#checkin_hide").val(cif);
+	if ($("#inputcheckout").length) {
+		var nn = parseInt($("#inputnumnight").val());
+		co.setDate(co.getDate() + nn);
+		$("#inputcheckout").data("DateTimePicker").minDate(md);
+		$("#inputcheckout").data("DateTimePicker").date(co);
+		$("#inputcheckout").data("DateTimePicker").show();
+	}
+  $("#inputcheckin").data("DateTimePicker").hide();
+  if ($("#inputcheckout").length < 1) {
+		ajaxupdateroomavailability(true);
+	}
+});
+//checkin shown
+$("#inputcheckin").on("dp.show",function (e) {
+  if ($("#inputcheckout").length) {
+    $("#inputcheckout").data("DateTimePicker").hide();
+	}
+});
+//checkout changes
+if ($("#inputcheckout").length) {
+//	$("#inputcheckout").on("dp.change",function (e) {
+	$("#inputcheckout").on("dp.click, dp.hide",function (e) {
+		var ci = new Date ($("#inputcheckin").data("DateTimePicker").date());
+		var co = new Date (e.date);
+		var dif = (co.getTime()/3600000) - (ci.getTime()/3600000) + 3;
+		dif =  Math.floor(dif/24);
+		var cof = co.getFullYear() + "-" + (co.getMonth() + 1) + "-" + co.getDate();
+		$("#checkout_hide").val(cof);
+		$("#inputnumnight").val(dif);
+    $("#inputcheckout").data("DateTimePicker").hide();
+    ajaxupdateroomavailability(true);
+    });
+  }
+//num night changes
+if ($("#inputcheckout").length) {
+	$("#inputnumnight").on("change",function () {
+    var nn = parseInt($("#inputnumnight").val());
+		var co = new Date ($("#inputcheckin").data("DateTimePicker").date());
+		var t = co.getDate();
+		co.setDate(t + nn);
+    $("#inputcheckout").data("DateTimePicker").date(co);
+		
+		var cof = co.getFullYear() + "-" + (co.getMonth() + 1) + "-" + co.getDate();
+		$("#checkout_hide").val(cof);
+		
+		ajaxupdateroomavailability(true);
+    });
+  }
+//book multiple changes
+$("#multiroom").on("switchChange.bootstrapSwitch",function () {
+	if ($("#multiroom").bootstrapSwitch("state")) {
+		$("#multiroom").closest('form').submit();
+	} else {
+		$("#multiroom").closest('form').submit();
+	}
+});
+//num adult changes
+$("#inputnumadult").on("change",function () {
+  ajaxupdateroomavailability(true);
+});
+//num child changes
+$("#inputnumchild").on("change",function () {
+  ajaxupdateroomavailability(true);
+});
+});
+  
+</script>
+	
+
+	
+<script>$( document ).ready(function() {var ci = new Date ($("#inputcheckin").data("DateTimePicker").date());
+	var cif = ci.getFullYear() + "-" + (ci.getMonth() + 1) + "-" + ci.getDate();
+	$("#checkin_hide").val(cif);
+	if ($("#inputcheckout").length) {
+		var co = new Date ($("#inputcheckout").data("DateTimePicker").date());
+		var cof = co.getFullYear() + "-" + (co.getMonth() + 1) + "-" + co.getDate();
+		$("#checkout_hide").val(cof);
+	}
+});</script>
+</div>
+<div class="clearfix"></div>
+</div>
+
+<div class="b24fullcontainer b24fullcontainer-rooms">
+<div class="container atcolor">
+<div id="ajaxroomoffer687116">		
+<div id="roomid687116" class="b24room">
+<div class="panel b24panel-room atcolor border">	
+<div class="panel-heading b24-roompanel-heading colorbookingstrip bb">
+<div id="roomnametext687116" class="at_roomnametext b24inline-block">
+5 · Sous les toits, face à la mer
+</div>
+<div class="roomalert"></div>
+</div>
+<div class="panel-body b24panel">
+<div id="ajaxroomoffer1-687116" class="offer offer-o687116-1 offerid1">		
+<div class="">
+<div id="offernametext1-687116" class="at_offername">
+
+</div>
+<div class="clearfix"></div>
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-offer-module b24-offer-calpricetable b24-offer--o687116-1"><div  id="roomofferpricetable1-687116" class="ajaxroomofferpricetable table-responsive b24-pricerow"><table class="roomofferpricetable"><tbody><tr class="b24-bookingstrip bt bb bl br"><td rowspan="3" class="border bbb roomofferpricetablecalendar"><div id="roomcalendar1-687116" class="ajaxroomcalendar"><div class="roomoffercalendarmonth calendarmonth1 "><table id="roomcalendar1-687116-1" class="monthcalendar calendar1-687116"><tr><td colspan="7" class="monthcalendarhead"><span id="roomcalendarmonth1-687116-1"></span></td></tr><tr><td class="monthcalendarday day1 dayMon">Mon</td><td class="monthcalendarday day2 dayTue">Tue</td><td class="monthcalendarday day3 dayWed">Wed</td><td class="monthcalendarday day4 dayThu">Thu</td><td class="monthcalendarday day5 dayFri">Fri</td><td class="monthcalendarday day6 daySat">Sat</td><td class="monthcalendarday day7 daySun">Sun</td></tr><tr><td id="calcell1-687116-1" class="daymon">&nbsp;</td><td id="calcell1-687116-2" class="daytue">&nbsp;</td><td id="calcell1-687116-3" class="daywed">&nbsp;</td><td id="calcell1-687116-4" class="daythu">&nbsp;</td><td id="calcell1-687116-5" class="dayfri">&nbsp;</td><td id="calcell1-687116-6" class="daysat">&nbsp;</td><td id="calcell1-687116-7" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687116-8" class="daymon">&nbsp;</td><td id="calcell1-687116-9" class="daytue">&nbsp;</td><td id="calcell1-687116-10" class="daywed">&nbsp;</td><td id="calcell1-687116-11" class="daythu">&nbsp;</td><td id="calcell1-687116-12" class="dayfri">&nbsp;</td><td id="calcell1-687116-13" class="daysat">&nbsp;</td><td id="calcell1-687116-14" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687116-15" class="daymon">&nbsp;</td><td id="calcell1-687116-16" class="daytue">&nbsp;</td><td id="calcell1-687116-17" class="daywed">&nbsp;</td><td id="calcell1-687116-18" class="daythu">&nbsp;</td><td id="calcell1-687116-19" class="dayfri">&nbsp;</td><td id="calcell1-687116-20" class="daysat">&nbsp;</td><td id="calcell1-687116-21" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687116-22" class="daymon">&nbsp;</td><td id="calcell1-687116-23" class="daytue">&nbsp;</td><td id="calcell1-687116-24" class="daywed">&nbsp;</td><td id="calcell1-687116-25" class="daythu">&nbsp;</td><td id="calcell1-687116-26" class="dayfri">&nbsp;</td><td id="calcell1-687116-27" class="daysat">&nbsp;</td><td id="calcell1-687116-28" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687116-29" class="daymon">&nbsp;</td><td id="calcell1-687116-30" class="daytue">&nbsp;</td><td id="calcell1-687116-31" class="daywed">&nbsp;</td><td id="calcell1-687116-32" class="daythu">&nbsp;</td><td id="calcell1-687116-33" class="dayfri">&nbsp;</td><td id="calcell1-687116-34" class="daysat">&nbsp;</td><td id="calcell1-687116-35" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687116-36" class="daymon">&nbsp;</td><td id="calcell1-687116-37" class="daytue">&nbsp;</td><td id="calcell1-687116-38" class="daywed">&nbsp;</td><td id="calcell1-687116-39" class="daythu">&nbsp;</td><td id="calcell1-687116-40" class="dayfri">&nbsp;</td><td id="calcell1-687116-41" class="daysat">&nbsp;</td><td id="calcell1-687116-42" class="daysun">&nbsp;</td></tr></table></div></div><script type="text/javascript">$("#roomcalendar1-687116").data("propid","331524");$("#roomcalendar1-687116").data("roomid","687116");$("#roomcalendar1-687116").data("offerid","1");$("#roomcalendar1-687116").data("count","1");$("#roomcalendar1-687116").data("firstday","1");</script></td><td class="border colorbookingstrip at_checkin">Arrivée</td><td id="pthead1-687116-1" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-1" class="hidden">Départ</div></td><td id="pthead1-687116-2" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-2" class="hidden">Départ</div></td><td id="pthead1-687116-3" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-3" class="hidden">Départ</div></td><td id="pthead1-687116-4" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-4" class="hidden">Départ</div></td><td id="pthead1-687116-5" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-5" class="hidden">Départ</div></td><td id="pthead1-687116-6" class="border rrr colorbookingstrip at_checkout"><div id="ptheadcheckout1-687116-6" class="hidden">Départ</div></td></tr><tr><td id="ptdate1-687116-0" class="border">&nbsp;</td><td id="ptdate1-687116-1" class="border">&nbsp;</td><td id="ptdate1-687116-2" class="border">&nbsp;</td><td id="ptdate1-687116-3" class="border">&nbsp;</td><td id="ptdate1-687116-4" class="border">&nbsp;</td><td id="ptdate1-687116-5" class="border">&nbsp;</td><td id="ptdate1-687116-6" class="border rrr">&nbsp;</td></tr><tr class="b24-priceline"><td id="ptval1-687116-0" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-1" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-2" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-3" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-4" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-5" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687116-6" class="border bbb rrr at_pricetd">&nbsp;</td></tr></tbody></table>	</div><script type="text/javascript">$("#roomofferpricetable1-687116").data("roomid","687116");$("#roomofferpricetable1-687116").data("offerid","1");$("#roomofferpricetable1-687116").data("numcols","7");</script><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapsecalpricetable-o687116-1");
+if (s==="1") {showid("collapsecalpricetable-o687116-1")} else if (s==="0") {hideid("collapsecalpricetable-o687116-1")}
+} catch (e) {}
+})
+</script></div></div>
+<div class="clearfix"></div>
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-offer-module b24-offer-select b24-offer--o687116-1"><div class="multiroomhide">
+<div id="warn-roomprice-1-687116" class="hidden at_offerwarndiv alert alert-danger text-center b24-roomwarn"></div>
+<div id="roomprice-1-687116" class="hidden">
+<div id="price-roomprice-1-687116" class="text-right at_roomofferprice"></div>
+<div class="b24-roombuttondiv">
+<input type="submit" class="btn pull-right btn-lg button at_bookingbut" name="br1-687116" id="brbut1-687116" value="Réserver">    
+<div class="clearfix"></div>    
+</div>   
+</div>
+<div id="enquire-roomprice-1-687116" class="hidden b24roomenquire">
+<a href="?numadult=2&amp;numchild=0&amp;firstnight=2026-05-31&amp;numnight=2&amp;multiroom=0&amp;width=960&amp;limitstart=0&amp;propid=331524&amp;version=3&amp;page=enquire&amp;enquireid=687116&booking=lmdeu4cpu92qc77hn7oguh47cc">Poser une question
+</a>
+</div>	 
+</div>	
+<script>$( document ).ready(function() {ajaxupdateroompriceid.push("roomprice-1-687116");
+});</script><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapseselect-o687116-1");
+if (s==="1") {showid("collapseselect-o687116-1")} else if (s==="0") {hideid("collapseselect-o687116-1")}
+} catch (e) {}
+})
+</script></div></div>
+</div>	
+<hr id="offerlinebreak-687116-1" class="bb">
+</div>
+
+<script type="text/javascript">$("#ajaxroomoffer1-687116").data("avail", {"20260531":"1","20260601":"1","20260602":"1","20260603":"1","20260604":"1","20260605":"1","20260606":"1","20260607":"1","20260608":"1","20260609":"1","20260610":"1","20260611":"1","20260612":"1","20260620":"1","20260621":"1","20260626":"1","20260627":"1","20260628":"1","20260629":"1","20260630":"1","20260701":"1","20260702":"1","20260703":"1","20260704":"1","20260705":"1","20260706":"1","20260707":"1","20260803":"1","20260804":"1","20260816":"1","20260817":"1","20260818":"1","20260819":"1","20260820":"1","20260821":"1","20260822":"1","20260823":"1","20260824":"1","20260825":"1","20260826":"1","20260827":"1","20260828":"1","20260829":"1","20260830":"1","20260831":"1","20260901":"1","20260902":"1","20260903":"1","20260904":"1","20260905":"1","20260906":"1","20260907":"1","20260908":"1","20260909":"1","20260910":"1","20260911":"1","20260912":"1","20260913":"1","20260917":"1","20260918":"1","20260919":"1","20260920":"1","20260921":"1","20260922":"1","20260923":"1","20260924":"1","20260925":"1","20260926":"1","20260927":"1","20260928":"1","20260929":"1","20260930":"1","20261001":"1","20261002":"1","20261003":"1","20261004":"1","20261005":"1","20261006":"1","20261007":"1","20261008":"1","20261009":"1","20261010":"1","20261011":"1","20261012":"1","20261013":"1","20261014":"1","20261015":"1","20261016":"1","20261017":"1","20261018":"1","20261025":"1","20261026":"1","20261027":"1","20261028":"1","20261029":"1","20261030":"1","20261031":"1","20261101":"1","20261102":"1","20261103":"1","20261104":"1","20261105":"1","20261106":"1","20261107":"1","20261108":"1","20261109":"1","20261110":"1","20261111":"1","20261112":"1","20261113":"1","20261114":"1","20261115":"1","20261116":"1","20261117":"1","20261118":"1","20261119":"1","20261120":"1","20261121":"1","20261122":"1","20261123":"1","20261124":"1","20261125":"1","20261126":"1","20261127":"1","20261128":"1","20261129":"1","20261130":"1","20261201":"1","20261202":"1","20261203":"1","20261204":"1","20261205":"1","20261206":"1","20261207":"1","20261208":"1","20261209":"1","20261210":"1","20261211":"1","20261212":"1","20261213":"1","20261214":"1","20261215":"1","20261216":"1","20261217":"1","20261218":"1","20261219":"1","20261220":"1","20261221":"1","20261222":"1","20261223":"1","20261224":"1","20261225":"1","20261226":"1","20261227":"1","20261228":"1","20261229":"1","20261230":"1","20261231":"1","20270101":"1","20270102":"1","20270103":"1","20270104":"1","20270105":"1","20270106":"1","20270107":"1","20270108":"1","20270109":"1","20270110":"1","20270111":"1","20270112":"1","20270113":"1","20270114":"1","20270115":"1","20270116":"1","20270117":"1","20270118":"1","20270119":"1","20270120":"1","20270121":"1","20270122":"1","20270123":"1","20270124":"1","20270125":"1","20270126":"1","20270127":"1","20270128":"1","20270129":"1","20270130":"1","20270131":"1","20270201":"1","20270202":"1","20270203":"1","20270204":"1","20270205":"1","20270206":"1","20270207":"1","20270208":"1","20270209":"1","20270210":"1","20270211":"1","20270212":"1","20270213":"1","20270214":"1","20270215":"1","20270216":"1","20270217":"1","20270218":"1","20270219":"1","20270220":"1","20270221":"1","20270222":"1","20270223":"1","20270224":"1","20270225":"1","20270226":"1","20270227":"1","20270228":"1","20270301":"1","20270302":"1","20270303":"1","20270304":"1","20270305":"1","20270306":"1","20270307":"1","20270308":"1","20270309":"1","20270310":"1","20270311":"1","20270312":"1","20270313":"1","20270314":"1","20270315":"1","20270316":"1","20270317":"1","20270318":"1","20270319":"1","20270320":"1","20270321":"1","20270322":"1","20270323":"1","20270324":"1","20270325":"1","20270326":"1","20270327":"1","20270328":"1","20270329":"1","20270330":"1","20270331":"1","20270401":"1","20270402":"1","20270403":"1","20270404":"1","20270405":"1","20270406":"1","20270407":"1","20270408":"1","20270409":"1","20270410":"1","20270411":"1","20270412":"1","20270413":"1","20270414":"1","20270415":"1","20270416":"1","20270417":"1","20270418":"1","20270419":"1","20270420":"1","20270421":"1","20270422":"1","20270423":"1","20270424":"1","20270425":"1","20270426":"1","20270427":"1","20270428":"1","20270429":"1","20270430":"1","20270501":"1","20270502":"1","20270503":"1","20270504":"1","20270505":"1","20270506":"1","20270507":"1","20270508":"1","20270509":"1","20270510":"1","20270511":"1","20270512":"1","20270513":"1","20270514":"1","20270515":"1","20270516":"1","20270517":"1","20270518":"1","20270519":"1","20270520":"1","20270521":"1","20270522":"1","20270523":"1","20270524":"1","20270525":"1","20270526":"1","20270527":"1","20270528":"1","20270529":"1","20270530":"1"});</script>
+
+
+
+	
+<div id="ajaxroomnooffer687116" class="hidden">Pas de disponibilité</div>
+</div>
+</div>
+</div>
+</div>
+<div id="ajaxroomoffer687189">		
+<div id="roomid687189" class="b24room">
+<div class="panel b24panel-room atcolor border">	
+<div class="panel-heading b24-roompanel-heading colorbookingstrip bb">
+<div id="roomnametext687189" class="at_roomnametext b24inline-block">
+Un balcon sur la mer
+</div>
+<div class="roomalert"></div>
+</div>
+<div class="panel-body b24panel">
+<div id="ajaxroomoffer1-687189" class="offer offer-o687189-1 offerid1">		
+<div class="">
+<div id="offernametext1-687189" class="at_offername">
+
+</div>
+<div class="clearfix"></div>
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-offer-module b24-offer-calpricetable b24-offer--o687189-1"><div  id="roomofferpricetable1-687189" class="ajaxroomofferpricetable table-responsive b24-pricerow"><table class="roomofferpricetable"><tbody><tr class="b24-bookingstrip bt bb bl br"><td rowspan="3" class="border bbb roomofferpricetablecalendar"><div id="roomcalendar1-687189" class="ajaxroomcalendar"><div class="roomoffercalendarmonth calendarmonth1 "><table id="roomcalendar1-687189-1" class="monthcalendar calendar1-687189"><tr><td colspan="7" class="monthcalendarhead"><span id="roomcalendarmonth1-687189-1"></span></td></tr><tr><td class="monthcalendarday day1 dayMon">Mon</td><td class="monthcalendarday day2 dayTue">Tue</td><td class="monthcalendarday day3 dayWed">Wed</td><td class="monthcalendarday day4 dayThu">Thu</td><td class="monthcalendarday day5 dayFri">Fri</td><td class="monthcalendarday day6 daySat">Sat</td><td class="monthcalendarday day7 daySun">Sun</td></tr><tr><td id="calcell1-687189-1" class="daymon">&nbsp;</td><td id="calcell1-687189-2" class="daytue">&nbsp;</td><td id="calcell1-687189-3" class="daywed">&nbsp;</td><td id="calcell1-687189-4" class="daythu">&nbsp;</td><td id="calcell1-687189-5" class="dayfri">&nbsp;</td><td id="calcell1-687189-6" class="daysat">&nbsp;</td><td id="calcell1-687189-7" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687189-8" class="daymon">&nbsp;</td><td id="calcell1-687189-9" class="daytue">&nbsp;</td><td id="calcell1-687189-10" class="daywed">&nbsp;</td><td id="calcell1-687189-11" class="daythu">&nbsp;</td><td id="calcell1-687189-12" class="dayfri">&nbsp;</td><td id="calcell1-687189-13" class="daysat">&nbsp;</td><td id="calcell1-687189-14" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687189-15" class="daymon">&nbsp;</td><td id="calcell1-687189-16" class="daytue">&nbsp;</td><td id="calcell1-687189-17" class="daywed">&nbsp;</td><td id="calcell1-687189-18" class="daythu">&nbsp;</td><td id="calcell1-687189-19" class="dayfri">&nbsp;</td><td id="calcell1-687189-20" class="daysat">&nbsp;</td><td id="calcell1-687189-21" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687189-22" class="daymon">&nbsp;</td><td id="calcell1-687189-23" class="daytue">&nbsp;</td><td id="calcell1-687189-24" class="daywed">&nbsp;</td><td id="calcell1-687189-25" class="daythu">&nbsp;</td><td id="calcell1-687189-26" class="dayfri">&nbsp;</td><td id="calcell1-687189-27" class="daysat">&nbsp;</td><td id="calcell1-687189-28" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687189-29" class="daymon">&nbsp;</td><td id="calcell1-687189-30" class="daytue">&nbsp;</td><td id="calcell1-687189-31" class="daywed">&nbsp;</td><td id="calcell1-687189-32" class="daythu">&nbsp;</td><td id="calcell1-687189-33" class="dayfri">&nbsp;</td><td id="calcell1-687189-34" class="daysat">&nbsp;</td><td id="calcell1-687189-35" class="daysun">&nbsp;</td></tr><tr><td id="calcell1-687189-36" class="daymon">&nbsp;</td><td id="calcell1-687189-37" class="daytue">&nbsp;</td><td id="calcell1-687189-38" class="daywed">&nbsp;</td><td id="calcell1-687189-39" class="daythu">&nbsp;</td><td id="calcell1-687189-40" class="dayfri">&nbsp;</td><td id="calcell1-687189-41" class="daysat">&nbsp;</td><td id="calcell1-687189-42" class="daysun">&nbsp;</td></tr></table></div></div><script type="text/javascript">$("#roomcalendar1-687189").data("propid","331524");$("#roomcalendar1-687189").data("roomid","687189");$("#roomcalendar1-687189").data("offerid","1");$("#roomcalendar1-687189").data("count","1");$("#roomcalendar1-687189").data("firstday","1");</script></td><td class="border colorbookingstrip at_checkin">Arrivée</td><td id="pthead1-687189-1" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-1" class="hidden">Départ</div></td><td id="pthead1-687189-2" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-2" class="hidden">Départ</div></td><td id="pthead1-687189-3" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-3" class="hidden">Départ</div></td><td id="pthead1-687189-4" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-4" class="hidden">Départ</div></td><td id="pthead1-687189-5" class="border colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-5" class="hidden">Départ</div></td><td id="pthead1-687189-6" class="border rrr colorbookingstrip at_checkout"><div id="ptheadcheckout1-687189-6" class="hidden">Départ</div></td></tr><tr><td id="ptdate1-687189-0" class="border">&nbsp;</td><td id="ptdate1-687189-1" class="border">&nbsp;</td><td id="ptdate1-687189-2" class="border">&nbsp;</td><td id="ptdate1-687189-3" class="border">&nbsp;</td><td id="ptdate1-687189-4" class="border">&nbsp;</td><td id="ptdate1-687189-5" class="border">&nbsp;</td><td id="ptdate1-687189-6" class="border rrr">&nbsp;</td></tr><tr class="b24-priceline"><td id="ptval1-687189-0" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-1" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-2" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-3" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-4" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-5" class="border bbb at_pricetd">&nbsp;</td><td id="ptval1-687189-6" class="border bbb rrr at_pricetd">&nbsp;</td></tr></tbody></table>	</div><script type="text/javascript">$("#roomofferpricetable1-687189").data("roomid","687189");$("#roomofferpricetable1-687189").data("offerid","1");$("#roomofferpricetable1-687189").data("numcols","7");</script><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapsecalpricetable-o687189-1");
+if (s==="1") {showid("collapsecalpricetable-o687189-1")} else if (s==="0") {hideid("collapsecalpricetable-o687189-1")}
+} catch (e) {}
+})
+</script></div></div>
+<div class="clearfix"></div>
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-offer-module b24-offer-select b24-offer--o687189-1"><div class="multiroomhide">
+<div id="warn-roomprice-1-687189" class="hidden at_offerwarndiv alert alert-danger text-center b24-roomwarn"></div>
+<div id="roomprice-1-687189" class="hidden">
+<div id="price-roomprice-1-687189" class="text-right at_roomofferprice"></div>
+<div class="b24-roombuttondiv">
+<input type="submit" class="btn pull-right btn-lg button at_bookingbut" name="br1-687189" id="brbut1-687189" value="Réserver">    
+<div class="clearfix"></div>    
+</div>   
+</div>
+<div id="enquire-roomprice-1-687189" class="hidden b24roomenquire">
+<a href="?numadult=2&amp;numchild=0&amp;firstnight=2026-05-31&amp;numnight=2&amp;multiroom=0&amp;width=960&amp;limitstart=0&amp;propid=331524&amp;version=3&amp;page=enquire&amp;enquireid=687189&booking=lmdeu4cpu92qc77hn7oguh47cc">Poser une question
+</a>
+</div>	 
+</div>	
+<script>$( document ).ready(function() {ajaxupdateroompriceid.push("roomprice-1-687189");
+});</script><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapseselect-o687189-1");
+if (s==="1") {showid("collapseselect-o687189-1")} else if (s==="0") {hideid("collapseselect-o687189-1")}
+} catch (e) {}
+})
+</script></div></div>
+</div>	
+<hr id="offerlinebreak-687189-1" class="bb">
+</div>
+
+<script type="text/javascript">$("#ajaxroomoffer1-687189").data("avail", {"20260531":"1","20260601":"1","20260602":"1","20260603":"1","20260604":"1","20260605":"1","20260606":"1","20260607":"1","20260608":"1","20260609":"1","20260610":"1","20260611":"1","20260612":"1","20260613":"1","20260614":"1","20260615":"1","20260616":"1","20260617":"1","20260618":"1","20260619":"1","20260620":"1","20260621":"1","20260622":"1","20260623":"1","20260624":"1","20260625":"1","20260626":"1","20260627":"1","20260628":"1","20260629":"1","20260630":"1","20260701":"1","20260702":"1","20260703":"1","20260704":"1","20260705":"1","20260706":"1","20260707":"1","20260807":"1","20260808":"1","20260809":"1","20260813":"1","20260814":"1","20260815":"1","20260816":"1","20260817":"1","20260818":"1","20260819":"1","20260820":"1","20260821":"1","20260822":"1","20260823":"1","20260824":"1","20260825":"1","20260826":"1","20260827":"1","20260828":"1","20260829":"1","20260830":"1","20260831":"1","20260901":"1","20260902":"1","20260903":"1","20260904":"1","20260905":"1","20260906":"1","20260907":"1","20260908":"1","20260909":"1","20260910":"1","20260911":"1","20260912":"1","20260913":"1","20260914":"1","20260915":"1","20260916":"1","20260917":"1","20260918":"1","20260919":"1","20260920":"1","20260921":"1","20260922":"1","20260923":"1","20260924":"1","20260925":"1","20260926":"1","20260927":"1","20260928":"1","20260929":"1","20260930":"1","20261001":"1","20261002":"1","20261003":"1","20261004":"1","20261005":"1","20261006":"1","20261007":"1","20261008":"1","20261009":"1","20261010":"1","20261011":"1","20261012":"1","20261013":"1","20261014":"1","20261015":"1","20261016":"1","20261017":"1","20261018":"1","20261019":"1","20261020":"1","20261021":"1","20261022":"1","20261023":"1","20261024":"1","20261025":"1","20261026":"1","20261027":"1","20261028":"1","20261029":"1","20261030":"1","20261031":"1","20261101":"1","20261102":"1","20261103":"1","20261104":"1","20261105":"1","20261106":"1","20261107":"1","20261108":"1","20261109":"1","20261110":"1","20261111":"1","20261112":"1","20261113":"1","20261114":"1","20261115":"1","20261116":"1","20261117":"1","20261118":"1","20261119":"1","20261120":"1","20261121":"1","20261122":"1","20261123":"1","20261124":"1","20261125":"1","20261126":"1","20261127":"1","20261128":"1","20261129":"1","20261130":"1","20261201":"1","20261202":"1","20261203":"1","20261204":"1","20261205":"1","20261206":"1","20261207":"1","20261208":"1","20261209":"1","20261210":"1","20261211":"1","20261212":"1","20261213":"1","20261214":"1","20261215":"1","20261216":"1","20261217":"1","20261218":"1","20261219":"1","20261220":"1","20261221":"1","20261222":"1","20261223":"1","20261224":"1","20261225":"1","20261226":"1","20261227":"1","20261228":"1","20261229":"1","20261230":"1","20261231":"1","20270101":"1","20270102":"1","20270103":"1","20270104":"1","20270105":"1","20270106":"1","20270107":"1","20270108":"1","20270109":"1","20270110":"1","20270111":"1","20270112":"1","20270113":"1","20270114":"1","20270115":"1","20270116":"1","20270117":"1","20270118":"1","20270119":"1","20270120":"1","20270121":"1","20270122":"1","20270123":"1","20270124":"1","20270125":"1","20270126":"1","20270127":"1","20270128":"1","20270129":"1","20270130":"1","20270131":"1","20270201":"1","20270202":"1","20270203":"1","20270204":"1","20270205":"1","20270206":"1","20270207":"1","20270208":"1","20270209":"1","20270210":"1","20270211":"1","20270212":"1","20270213":"1","20270214":"1","20270215":"1","20270216":"1","20270217":"1","20270218":"1","20270219":"1","20270220":"1","20270221":"1","20270222":"1","20270223":"1","20270224":"1","20270225":"1","20270226":"1","20270227":"1","20270228":"1","20270301":"1","20270302":"1","20270303":"1","20270304":"1","20270305":"1","20270306":"1","20270307":"1","20270308":"1","20270309":"1","20270310":"1","20270311":"1","20270312":"1","20270313":"1","20270314":"1","20270315":"1","20270316":"1","20270317":"1","20270318":"1","20270319":"1","20270320":"1","20270321":"1","20270322":"1","20270323":"1","20270324":"1","20270325":"1","20270326":"1","20270327":"1","20270328":"1","20270329":"1","20270330":"1","20270331":"1","20270401":"1","20270402":"1","20270403":"1","20270404":"1","20270405":"1","20270406":"1","20270407":"1","20270408":"1","20270409":"1","20270410":"1","20270411":"1","20270412":"1","20270413":"1","20270414":"1","20270415":"1","20270416":"1","20270417":"1","20270418":"1","20270419":"1","20270420":"1","20270421":"1","20270422":"1","20270423":"1","20270424":"1","20270425":"1","20270426":"1","20270427":"1","20270428":"1","20270429":"1","20270430":"1","20270501":"1","20270502":"1","20270503":"1","20270504":"1","20270505":"1","20270506":"1","20270507":"1","20270508":"1","20270509":"1","20270510":"1","20270511":"1","20270512":"1","20270513":"1","20270514":"1","20270515":"1","20270516":"1","20270517":"1","20270518":"1","20270519":"1","20270520":"1","20270521":"1","20270522":"1","20270523":"1","20270524":"1","20270525":"1","20270526":"1","20270527":"1","20270528":"1","20270529":"1","20270530":"1"});</script>
+
+
+
+	
+<div id="ajaxroomnooffer687189" class="hidden">Pas de disponibilité</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="notavailableforselection" class="alert alert-danger text-center hidden">
+Pas de disponibilité pour votre choix
+</div>
+
+</div>
+
+<div class="clearfix"></div>
+
+<div class="container atcolor">
+
+</div>
+<div class="clearfix"></div>
+
+</div>
+
+
+
+</div></form>
+
+<div class="b24fullcontainer b24fullcontainer-ownerrow11"><div class="container container2 atcolor">
+<div class="row">
+<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 b24-module b24-owner-module b24-owner-desc2 b24-owner-167238"><div class="agencydesc2 ckedit">
+
+</div><script>
+$( document ).ready(function() {
+try {
+var s = sessionStorage.getItem("showcollapsedesc2167238");
+if (s==="1") {showid("collapsedesc2167238")} else if (s==="0") {hideid("collapsedesc2167238")}
+} catch (e) {}
+})
+</script></div></div>
+</div>
+<div class="clearfix"></div>
+</div>
+
+
+
+<div class="b24fullcontainer b24fullcontainer-footer">
+  <div class="container container2 atcolor">
+
+<footer>
+<div class="pull-left hidden-md hidden-lg">
+    <a  href="#topofthebookingpage" class="btn btn-default btn-sm pull-left button">
+  	<span class="glyphicon glyphicon-arrow-up"></span>Up
+	</a>
+ </div>
+<div class="clearfix"></div>		
+<div class="book_poweredby pull-right"><a target="_blank" href="https://beds24.com">powered by Beds24.com</a></div>
+</footer>
+<div class="clearfix"></div>
+</div>	
+</div>
+<script type="text/javascript">
+function showid (id) {
+$('#'+id).removeClass('hidden hidden-lg hidden-md hidden-sm hidden-xs');
+$('#'+id).children().first().removeClass('hidden hidden-lg hidden-md hidden-sm hidden-xs');
+$('#'+id).parent().children().first().addClass('hidden');
+sessionStorage.setItem("show"+id, "1");
+}
+function hideid (id) {
+$('#'+id).addClass('hidden');
+$('#'+id).parent().children().first().removeClass('hidden hidden-lg hidden-md hidden-sm hidden-xs');
+sessionStorage.setItem("show"+id, "0");
+}
+function displayroomprice(id,data,s) {
+var res = JSON.parse(data);
+var arrayLength = res.length;
+res.splice(1,res.length-1);
+res[0].id = id;
+displayroomprices(JSON.stringify(res),s);
+}
+function clearshoppingcart() {
+$("#shoppingcarttable").empty();
+$("#b24bookshoppingcart").addClass("hide");
+}
+function removefromshoppingcart(id) {
+$("#shoppingcarttr"+id).remove();
+if ($("#shoppingcarttable tr").length < 1) {
+$("#b24bookshoppingcart").addClass("hide");
+}
+}	
+function addtoshoppingcart(id,room,rate,price,numadult,numchild) {
+var h = '<tr id="shoppingcarttr'+id+'">';
+h = h + '<td width="50%">';
+h = h + room;
+h = h +  '<p>' + rate + '</p>';
+h = h + '</td>';
+h = h + '<td >';
+for (var i = 0; i<numadult; i++) {
+h = h + '<span class="glyphicon glyphicon-user adulticon" aria-hidden="true"></span>';
+}
+for (var i = 0; i<numchild; i++) {
+h = h + '<span class="glyphicon glyphicon-user childicon" aria-hidden="true"></span>';   
+}
+h = h + '</td>';
+h = h + '<td class="text-right">';
+h = h + price;
+h = h + '</td>';
+h = h + '</tr>';
+$("#shoppingcarttable").append(h);
+$("#b24bookshoppingcart").removeClass("hide");
+}
+function storeselect(k,v) {
+sessionStorage.setItem("select_"+k, v);
+}
+function displayroomprices(data,allowsort) {
+var tripteasebestprice = 9999999999;
+var res = JSON.parse(data);
+var arrayLength = res.length;
+for (var i = 0; i < arrayLength; i++) 
+{
+if (res[i].roomprice>0 && res[i].roomprice<tripteasebestprice){
+if (typeof tripteaserooms!=='undefined'){
+fLen = tripteaserooms.length;
+for (var ii = 0; ii < fLen; ii++) {
+if (tripteaserooms[ii]==res[i].roomid) {
+tripteasebestprice=res[i].roomprice;
+break;
+} 
+}
+}
+}
+if (res[i].ratetype==1||res[i].ratetype==5) {
+$("#brbut"+res[i].offerid+"-"+res[i].roomid).val("Demander");
+} else {
+$("#brbut"+res[i].offerid+"-"+res[i].roomid).val("Réserver");
+}
+var fromtxt = "";
+if (typeof res[i].roomsavail !== 'undefined') 
+{
+var v = parseInt(res[i].roomsavail);
+if (v>0) 
+{
+$("#selectors"+res[i].id).removeClass("hidden");
+} 
+else 
+{
+$("#selectors"+res[i].id).addClass("hidden");
+}
+$("#sr"+res[i].id+" > option").each(function(i, obj) 
+{
+if ($(obj).val() > v ) 
+{
+$(obj).attr('disabled','disabled');   
+$(obj).addClass("hidden");   
+} 
+else 
+{
+$(obj).removeAttr('disabled');   
+$(obj).removeClass("hidden");   
+}
+});
+if (typeof res[i].from !== 'undefined') 
+{
+if (res[i].from.length > 0)
+{
+$("#from-"+res[i].id).html(res[i].from);
+if (typeof $("#sr"+res[i].id).val() === 'undefined' && $("#naa1-"+res[i].id).val() == 0)
+{
+$("#from-"+res[i].id).removeClass("hidden");
+}
+else if ($("#sr"+res[i].id).val() == 0)
+{
+$("#from-"+res[i].id).removeClass("hidden");
+}
+else
+{
+$("#from-"+res[i].id).addClass("hidden");
+}
+}
+}
+}
+if (typeof res[i].adultsavail !== 'undefined') 
+{
+var v = parseInt(res[i].adultsavail);
+$(".selector-naa"+res[i].id+" > option").each(function(i, obj) 
+{
+if ($(obj).val() > v ) 
+{
+$(obj).attr('disabled','disabled');   
+$(obj).addClass("hidden");   
+} 
+else 
+{
+$(obj).removeAttr('disabled');   
+$(obj).removeClass("hidden");   
+}
+});
+}
+if (typeof res[i].childsavail !== 'undefined') 
+{
+var v = parseInt(res[i].childsavail);
+$(".selector-ncc"+res[i].id+" > option").each(function(i, obj) 
+{
+if ($(obj).val() > v ) 
+{
+$(obj).attr('disabled','disabled');   
+$(obj).addClass("hidden");   
+} 
+else 
+{
+$(obj).removeAttr('disabled');   
+$(obj).removeClass("hidden");   
+}
+});
+}
+if (res[i].enquire == 1) 
+{
+$("#enquire-"+res[i].id).removeClass("hidden");
+} 
+else 
+{
+$("#enquire-"+res[i].id).addClass("hidden");	
+}
+if (res[i].roomprice > 0) 
+{
+$("#price-"+res[i].id).html(res[i].roompricedisplay);
+$("#price-"+res[i].id).removeClass("hidden");
+$("#"+res[i].id).removeClass("hidden");
+$("#selectors"+res[i].id).removeClass("hidden");
+} 
+else 
+{
+$("#price-"+res[i].id).addClass("hidden");
+$("#"+res[i].id).addClass("hidden");
+$("#selectors"+res[i].id).addClass("hidden");
+}
+if (res[i].warn.length < 1) 
+{
+$("#warn-"+res[i].id).addClass("hidden");
+} 
+else 
+{
+$("#warn-"+res[i].id).html(res[i].warn);
+$("#warn-"+res[i].id).removeClass("hidden");
+}
+var nr = res[i].roomnum;
+if (typeof nr !== "undefined")
+{
+removefromshoppingcart(res[i].id);
+}
+if (res[i].roomprice > 0)
+{
+n = -1;
+if (typeof $("#sr"+res[i].offerid+'-'+res[i].roomid).val() !== 'undefined') {
+var n = $("#sr"+res[i].offerid+'-'+res[i].roomid).val();
+}	else if (typeof $("#naa1-"+res[i].offerid+'-'+res[i].roomid).val() !== 'undefined') {
+var n = $("#naa1-"+res[i].offerid+'-'+res[i].roomid).val();
+}
+if (typeof nr !== "undefined" && nr>=1 && nr<=n)
+{
+var r = $("#roomnametext"+res[i].roomid).html();
+if (typeof r === "undefined")
+{
+r = sessionStorage.getItem("roomnametext"+res[i].roomid);
+if (r==null) {r = '';}
+}
+else
+{
+sessionStorage.setItem("roomnametext"+res[i].roomid, r);
+}
+var o = $("#offernametext"+res[i].id).html();
+if (typeof o === "undefined")
+{
+o = sessionStorage.getItem("offernametext"+res[i].roomid);
+if (o==null) {o = '';}
+}
+else
+{
+sessionStorage.setItem("offernametext"+res[i].roomid, o);
+}
+var a = $("#naa"+res[i].id).val();
+if (typeof a === "undefined")
+{
+a = res[i].numadult;
+if (a == null)
+{
+a = 1;
+}
+}
+var c = $("#ncc"+res[i].id).val();
+if (typeof c === "undefined")
+{
+c = res[i].numchild;
+if (c == null)
+{
+c = 0;
+}
+}
+addtoshoppingcart(res[i].id,r,o,res[i].roompricedisplay,a,c);
+}
+}
+}
+if (allowsort) {
+sortrooms(data);
+}
+drawpricetables(data);
+displaymultibookbutton();
+if (tripteasebestprice<9999999999 && typeof tripteaseupdateprice==="function"){tripteaseupdateprice(tripteasebestprice)}
+}
+function sortrooms(data) {
+var res = JSON.parse(data);
+var arrayLength = res.length;
+var offernone = {};
+var o = [];
+var rooms = [];
+var numavail = 0;
+var a = [];
+for (var i = 0; i < arrayLength; i++) {
+var sort = res[i].sort;
+var roomid = res[i].roomid;
+var offerid = res[i].offerid;
+if (typeof offernone[roomid] === 'undefined') {offernone[roomid] = 0}
+if (res[i].hide == 1) {
+$("#ajaxroomoffer" + offerid + "-" + roomid).addClass("hidden");
+a.push("#ajaxroomoffer" + offerid + "-" + roomid);
+} else if (a.indexOf("#ajaxroomoffer" + offerid + "-" + roomid) < 0){
+$("#ajaxroomoffer" + offerid + "-" + roomid).removeClass("hidden");  
+offernone[roomid] = 1;
+}
+if (rooms.indexOf(roomid)<0)
+{
+if (sort < 0) {
+$("#roomid" + roomid).addClass("hidden");
+} else {
+++numavail;
+$("#roomid" + roomid).removeClass("hidden");
+if (typeof sort !== 'undefined') {var oo = {roomid:roomid, sort:sort};o.push(oo);}
+}
+rooms.push(roomid);
+}
+}
+if (numavail > 0) {
+$("#notavailableforselection").addClass("hidden");
+} else {
+$("#notavailableforselection").removeClass("hidden");
+}
+$.each(offernone, function(k,v) {
+if (v < 1) {
+$("#ajaxroomnooffer" + k).removeClass("hidden");
+} else {
+$("#ajaxroomnooffer" + k).addClass("hidden");  
+}
+});
+o.sort(function(a, b){return a.sort-b.sort})
+var arrayLength = o.length;
+for (var i = 1; i < arrayLength; i++) {
+var r1 = o[i-1];
+var r2 = o[i];
+$("#roomid" + r2.roomid).insertAfter("#roomid" + r1.roomid);
+$('div').scrollPosReaload();
+$('span').scrollPosReaload();
+}
+}
+function displaymultibookbutton() {
+var gotprice = false;
+if (0) {
+if (!$("#b24bookshoppingcart").hasClass("hide")) {
+gotprice = true;
+} else {
+$(".ajaxroomprice").each(function(i, obj) {
+if ($(obj).is(":visible")) {
+gotprice = true;
+}
+});
+}
+if (gotprice)	{
+$(".multiplebookbutton").removeClass("hidden");
+$(".multiplebookbuttondisable").addClass("hidden");
+}
+else {
+$(".multiplebookbuttondisable").removeClass("hidden");
+$(".multiplebookbutton").addClass("hidden");
+}
+}
+$(window).trigger("scroll");
+}
+function ajaxupdateroomavailability(doall)
+{
+var ci = $("#checkin_hide").val();
+var co = $("#checkout_hide").val(); 
+var g = new Array();
+var gs = new Array();
+if (0) 
+{
+$(".ajaxroomwarn").each(function(i, obj) 
+{
+if ($(obj).is(":visible") || doall) 
+{
+var id = obj.id.substring(5);
+var nr = parseInt($("#sr" + id).val());
+if (isNaN(nr)) {nr=0;}
+var ggs = id + "_" +nr;
+if (gs.indexOf(ggs) < 0) {
+var gg = {id:id, nr:nr}; 
+g.push(gg);
+gs.push(ggs);
+}
+}
+$(".ajaxroomprice").each(function(i, obj) 
+{
+if ($(obj).is(":visible") || doall) 
+{
+var id = obj.id.substring(6);
+var na = parseInt($("#naa" + id).val());
+if (!isNaN(na))
+{
+if (isNaN(na)) {na=0;}
+var nc = parseInt($("#ncc" + id).val());
+if (isNaN(nc)) {nc=0;}
+var ggs = id + "__" + na + "_" + nc;
+if (gs.indexOf(ggs) < 0) {
+var gg = {id:id, na:na, nc:nc}; 
+g.push(gg);
+gs.push(ggs);
+}
+}
+}
+});
+//shoping cart
+if (typeof addedtocartfromprevpage !== 'undefined')
+{
+$.each(addedtocartfromprevpage, function(i, obj) {
+ggs = obj.id + "__" + obj.na + "_" + obj.nc;
+if (gs.indexOf(ggs) < 0) {
+var gg = obj; 
+g.push(gg);
+gs.push(ggs);
+}
+})
+}
+});
+var d = new Date();
+var or = JSON.stringify(g);
+getroomprices(ci,co,na,nc,or,0,1);
+}
+else 
+{
+var na = $("#inputnumadult").val();
+var nc = $("#inputnumchild").val();
+var or = JSON.stringify(ajaxupdateroompriceid);
+var pt = 7;
+getroomprices(ci,co,na,nc,or,pt,1);
+$(".ajaxroomofferqtyselect").each(function(i, obj) {
+$(obj).val(0);
+});
+}
+drawcalendars();
+if (typeof tripteaseupdate==="function"){tripteaseupdate(ci,co,na,nc);}
+}
+function getUrlParameters() {
+var a = window.location.search.substr(1).split('&');
+if (a == "") return {};
+var b = {};
+for (var i = 0; i < a.length; ++i) {
+var p=a[i].split('=', 2);
+if (p.length == 1)
+b[p[0]] = "";
+else
+b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+}
+return b;
+}
+var urlparam = getUrlParameters();
+var doingajax = 0;
+var doingpostajax = 0;
+function getroomprice(ro,ci,co,na,nc,of,nr,id) {
+var la = "fr";
+var cu = "";
+var p = "ro="+ro+"&ci="+ci+"&co="+co+"&na="+na+"&nc="+nc+"&of="+of+"&nr="+nr+"&la="+la+"&cu="+cu;
+var data = getstoredroomprice (p);
+if (data) {
+displayroomprice(id,data,0);
+return;
+}
+if (doingajax <= 0 && ci!='1970-1-1') {
+doingajax = 1;
+$.ajax("api/ajax/getroomprice.php?"+p).done(function(data){storeroomprice(p,data);displayroomprice(id,data,0);checkqueue(id,p,data)});
+} else {
+$("body").data(id.replace(/-/g,"--"),p);
+}
+}
+function checkqueue(id,p,data) {
+$.each($("body").data(), function(i, e) {
+if (e == p) {
+displayroomprice(i,data,0);
+}
+});
+}
+function getroomprices(ci,co,na,nc,or,pt,s) {
+var la = "fr";
+var cu = "";
+var p = "ci="+ci+"&co="+co+"&na="+na+"&nc="+nc+"&pt="+pt+"&or="+or+"&la="+la+"&cu="+cu;
+var pp = "ci="+ci+"&co="+co+"&na="+na+"&nc="+nc+"&pt="+pt+"&la="+la+"&cu="+cu;
+var data = getstoredroomprice (p);
+if (data) {
+displayroomprices(data,s);
+return;
+}
+if (doingpostajax <= 0 && ci!='1970-1-1') {
+doingpostajax = 1;
+$.post("api/ajax/getroomprice.php?"+pp, "or="+or).done(function(data){storeroomprice(p,data);displayroomprices(data,s)});
+}
+}
+function storeroomprice (p,data) {
+$("body").data(p,data);
+sessionStorage.setItem("data_"+p, data);
+doingajax = 0;
+}
+function getstoredroomprice (p) {
+data = $("body").data(p);
+if (typeof data === 'undefined') {
+	data = sessionStorage.getItem("data_"+p);
+	if (data == null) {
+		return false;
+	}
+}
+return data;
+}
+setInterval (function () {if (doingajax > 0) doingajax--;if (doingpostajax > 0) doingpostajax--;}, 500);
+var monthnames = ["January","February","March","April","May","June","July","August","September","October","November","December"];function drawcalendars ()
+{
+var ci = new Date ($("#inputcheckin").data("DateTimePicker").date());
+if ($("#inputcheckout").length) {
+var co = new Date ($("#inputcheckout").data("DateTimePicker").date());
+} else {
+var co = new Date(ci.getDate()+1);
+}
+var y1 = ci.getFullYear();
+var y2 = y1;
+var m1 = ci.getMonth();
+var m2 = m1 + 2;
+if (m1 <= 0) {
+m1 = 12;
+--y1;
+}
+if (m2 >= 13) {
+m2 = 1;
+++y2;
+}
+var c1 = y1 + '-' + ('0' + m1).slice(-2) + '-' +  ('0' + ci.getDate()).slice(-2);
+var c2 = y2 + '-' + ('0' + m2).slice(-2) + '-' +  ('0' + ci.getDate()).slice(-2);
+if (c1 < '2026-05-31') {
+$(".b24backonemonth").addClass("hidden");
+} else {
+$(".b24backonemonth").on("click", function() {checkin(c1)});
+$(".b24backonemonth").removeClass("hidden");
+}
+$(".b24forwardonemonth").on("click", function() {checkin(c2)});
+$(".ajaxroomcalendar").each(function(i, obj) {
+var propid = $(obj).data("propid");
+var roomid = $(obj).data("roomid");
+var offerid = $(obj).data("offerid");
+var count = $(obj).data("count");
+var firstday = parseInt($(obj).data("firstday"));
+var numcell = 42;
+var numcells = count * numcell;
+if (roomid > 0) {
+var orid = roomid;
+if (offerid > 0) {
+orid = offerid + '-' + orid;
+}
+} else {
+var orid = 'prop' + propid;
+}
+var c = 0;
+for (var j=1; j<=numcells; j++) {
+i = j % numcell;
+if (j==1)
+{
+var dd = new Date(ci.getTime());
+dd.setDate(1);
+}
+else if (i==1)
+{
+dd = new Date(dd.getFullYear(), dd.getMonth()+1, 1);	
+}
+if (i==1)
+{
+var dw = dd.getDay();
+dw = dw + firstday - 2;
+if (dw < 0)
+dw = dw + 7;
+if (dw >= 7)
+dw = dw - 7;
+var ldd = new Date(dd.getFullYear(), dd.getMonth()+1, 0);	
+var ld = ldd.getDate();
+c++;
+$('#roomcalendarmonth' + orid + '-' + c).html(monthnames[dd.getMonth()] + ' ' + dd.getFullYear());
+}
+var d = i - dw;
+if (d < 1)
+{
+d = '';
+cleardatecellstyle('#calcell' + orid + '-' + j);
+}
+else if (d > ld)
+{
+d = '';
+cleardatecellstyle('#calcell' + orid + '-' + j);
+}
+else
+{
+var ddd = new Date(dd.getFullYear(), dd.getMonth(), d);	
+setdatecellstyle (ddd, '#ajaxroomoffer' + orid, '#calcell' + orid + '-' + j, ci, co);
+}
+$('#calcell' + orid + '-' + j).html(d);
+}
+});
+}
+function cleardatecellstyle (cellid) {
+$(cellid).removeClass('dateavail');
+$(cellid).removeClass('daterequest');
+$(cellid).removeClass('datenotavail');
+$(cellid).removeClass('datenci');
+$(cellid).removeClass('datenco');
+$(cellid).removeClass('datepast');    
+$(cellid).removeClass('datestay');    
+$(cellid).removeClass('prevdateavail');
+$(cellid).removeClass('prevdaterequest');
+$(cellid).removeClass('prevdatenotavail');
+$(cellid).removeClass('prevdatestay');
+$(cellid).data("date", '');
+$(cellid).off("click");
+}
+function setdatecellstyle (ddorig, dataid, cellid, ci, co) {
+var dd = new Date(ddorig.getTime());
+var mm = dd.getMonth() + 1;
+var d = dd.getDate();
+var aa = dd.getFullYear() + ('0' + mm).slice(-2) + ('0' + d).slice(-2);
+var aaa = dd.getFullYear() + '-' + ('0' + mm).slice(-2) + '-' +  ('0' + d).slice(-2);
+var a = 0;
+if (typeof $(dataid).data("avail")[aa] !== 'undefined') {a = $(dataid).data("avail")[aa];}
+var ret = '';
+
+if ((a%4) == 1)
+{
+$(cellid).addClass('dateavail');
+$(cellid).removeClass('daterequest');
+$(cellid).removeClass('datenotavail');
+$(cellid).data("date", aaa);
+$(cellid).on("click", function() {checkin($(this).data("date"))});
+ret = 'Disponible';
+}
+else if ((a%4) == 2)
+{
+$(cellid).removeClass('dateavail');
+$(cellid).addClass('daterequest');
+$(cellid).removeClass('datenotavail');
+$(cellid).data("date", aaa);
+$(cellid).on("click", function() {checkin($(this).data("date"))});
+ret = 'Demander';
+}
+else
+{
+$(cellid).removeClass('dateavail');
+$(cellid).removeClass('daterequest');
+$(cellid).addClass('datenotavail');
+$(cellid).data("date", aaa);
+$(cellid).off("click");
+ret = '- - - - - -';
+}
+if (a>4 && a<8)
+{
+$(cellid).addClass('datenci');
+}
+else
+{
+$(cellid).removeClass('datenci');
+}
+if (a>8 && a<16)
+{
+$(cellid).addClass('datenco');
+}
+else
+{
+$(cellid).removeClass('datenco');
+}
+var now = new Date();
+now.setHours(0,0,0,0);
+var okforstripe = true;
+if (dd < now)
+{
+$(cellid).addClass('datepast');    
+okforstripe = false;
+}
+else
+{
+$(cellid).removeClass('datepast');    
+}
+if (dd.getTime()==ci.getTime() || (dd>ci && dd<co))
+{
+$(cellid).addClass('datestay');    
+}
+else
+{
+$(cellid).removeClass('datestay');    
+}
+$(cellid).removeClass('prevdateavail');
+$(cellid).removeClass('prevdaterequest');
+$(cellid).removeClass('prevdatenotavail');
+$(cellid).removeClass('prevdatestay');
+if (okforstripe)
+{
+if (dd.getTime()==co.getTime() || (dd>ci && dd<co))
+{
+$(cellid).addClass('prevdatestay');    
+}
+dd.setDate(dd.getDate() - 1);
+var mm = dd.getMonth() + 1;
+var d = dd.getDate();
+var aa = dd.getFullYear() + ('0' + mm).slice(-2) + ('0' + d).slice(-2);
+var b = 0;
+if (typeof $(dataid).data("avail")[aa] !== 'undefined')
+b = $(dataid).data("avail")[aa];
+if ((a%4) != (b%4))
+{
+if ((b%4) == 1)
+{
+$(cellid).addClass('prevdateavail');
+}
+else if ((b%4) == 2)
+{
+$(cellid).addClass('prevdaterequest');
+}
+else
+{
+$(cellid).addClass('prevdatenotavail');
+}
+}
+}
+return ret;
+}
+function drawpricetables (data)
+{
+var res = JSON.parse(data);
+$(".ajaxroomofferpricetable").each(function(i, obj) {
+var roomid = $(obj).data("roomid");
+var offerid = $(obj).data("offerid");
+var numcols = $(obj).data("numcols");
+var orid = roomid; 
+if (offerid > 0) {
+orid = offerid + '-' + orid;
+}
+var dat = false;
+for (var i = 0; i < res.length; i++) {
+if (res[i].roomid == roomid) {
+if (offerid<1 || offerid==res[i].offerid) {
+dat = res[i];
+break;
+}
+}
+}
+var ci = new Date ($("#inputcheckin").data("DateTimePicker").date());
+if ($("#inputcheckout").length) {
+var co = new Date ($("#inputcheckout").data("DateTimePicker").date());
+} else {
+var co = new Date(ci.getDate()+1);
+}
+var dd = new Date(ci.getTime());
+for (var j=0; j<numcols; j++) {
+var da = dd.getDate(); 
+var la = "fr";
+if (la == 'ja') {var d = monthnames[dd.getMonth()] + ' ' + da + '日';} else {var d = da + ' ' + monthnames[dd.getMonth()];}
+var mm = dd.getMonth() + 1;
+var aaa = dd.getFullYear() + '-' + ('0' + mm).slice(-2) + '-' +  ('0' + da).slice(-2);
+var ret = setdatecellstyle (dd, '#ajaxroomoffer' + orid, '#ptval' + orid + '-' + j, ci, co);
+var v = '&nbsp;';
+if (typeof dat['displayval'] != 'undefined') {
+if (typeof dat['displayval'][String(aaa)] != 'undefined') v = dat['displayval'][String(aaa)];
+} else {
+v = ret;
+}
+$('#ptdate' + orid + '-' + j).html(d);
+$('#ptval' + orid + '-' + j).html(v);
+if (dd.getTime() == co.getTime()) {
+$('#ptheadcheckout' + orid + '-' + j).removeClass('hidden');
+} else if (j>=1) {
+$('#ptheadcheckout' + orid + '-' + j).addClass('hidden');		
+}
+dd.setDate(dd.getDate() + 1);
+}
+});
+}
+function checkin (d)
+{
+$('#checkin_hide').val(d);
+$('#checkin_hide').closest('form').submit();
+}
+;(function($)
+{
+$.fn.scrollPosReaload = function(){
+try  
+{
+var posReader = sessionStorage.getItem("posStorage");
+if (posReader) 
+{
+$(window).scrollTop(posReader);
+}
+$(this).click(function(e) 
+{
+sessionStorage.setItem("posStorage",$(window).scrollTop());});
+return true;
+} catch(e) {
+return false;
+}
+return false;
+}
+$(document).ready(function() {
+$('div').scrollPosReaload();
+$('span').scrollPosReaload();
+});
+}(jQuery));
+$(document).ready(function() {
+ajaxupdateroomavailability(true);}); 
+</script>  
+
+<div class="hide" data-businessId="0"></div></body>
+</html>

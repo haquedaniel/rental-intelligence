@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def main() -> None:
-    load_dotenv()
+    load_dotenv(override=True)
 
     client = Beds24Client()
     response = client.get_properties(include_all_rooms=True)
