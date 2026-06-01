@@ -44,8 +44,13 @@ def build_monthly_metrics(daily_calendar: pd.DataFrame) -> pd.DataFrame:
         )
         .agg(
             booked_nights=("date", "count"),
+            gross_booking_value=("gross_booking_value_allocated", "sum"),
             accommodation_revenue=("accommodation_revenue_allocated", "sum"),
+            cleaning_fee=("cleaning_fee_allocated", "sum"),
+            tourist_tax=("tourist_tax_allocated", "sum"),
+            channel_commission=("channel_commission_allocated", "sum"),
             host_payout=("host_payout_allocated", "sum"),
+            host_payout_minus_cleaning=("host_payout_minus_cleaning_allocated", "sum"),
         )
         .reset_index()
     )
@@ -67,7 +72,17 @@ def build_monthly_metrics(daily_calendar: pd.DataFrame) -> pd.DataFrame:
         grouped["host_payout"] / grouped["booked_nights"]
     ).round(2)
 
-    grouped["accommodation_revenue"] = grouped["accommodation_revenue"].round(2)
-    grouped["host_payout"] = grouped["host_payout"].round(2)
+    money_cols = [
+        "gross_booking_value",
+        "accommodation_revenue",
+        "cleaning_fee",
+        "tourist_tax",
+        "channel_commission",
+        "host_payout",
+        "host_payout_minus_cleaning",
+    ]
+
+    for col in money_cols:
+        grouped[col] = grouped[col].round(2)
 
     return grouped.sort_values(["portfolio_id", "listing_id", "year_month"])

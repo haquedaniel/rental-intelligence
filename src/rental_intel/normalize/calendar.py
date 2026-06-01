@@ -56,8 +56,24 @@ def expand_reservations_to_daily(reservations: pd.DataFrame) -> pd.DataFrame:
         if nights <= 0:
             continue
 
+        gross_booking_value_allocations = allocate_amount_across_nights(
+            booking.get("gross_booking_value", 0),
+            nights,
+        )
         accommodation_allocations = allocate_amount_across_nights(
             booking.get("accommodation_revenue", 0),
+            nights,
+        )
+        cleaning_fee_allocations = allocate_amount_across_nights(
+            booking.get("cleaning_fee", 0),
+            nights,
+        )
+        tourist_tax_allocations = allocate_amount_across_nights(
+            booking.get("tourist_tax", 0),
+            nights,
+        )
+        channel_commission_allocations = allocate_amount_across_nights(
+            booking.get("channel_commission", 0),
             nights,
         )
         host_payout_allocations = allocate_amount_across_nights(
@@ -91,8 +107,17 @@ def expand_reservations_to_daily(reservations: pd.DataFrame) -> pd.DataFrame:
                     "num_child": booking.get("num_child"),
                     "guest_country": booking.get("guest_country"),
                     "guest_language": booking.get("guest_language"),
+                    "gross_booking_value_allocated": gross_booking_value_allocations[night_index],
                     "accommodation_revenue_allocated": accommodation_allocations[night_index],
+                    "cleaning_fee_allocated": cleaning_fee_allocations[night_index],
+                    "tourist_tax_allocated": tourist_tax_allocations[night_index],
+                    "channel_commission_allocated": channel_commission_allocations[night_index],
                     "host_payout_allocated": host_payout_allocations[night_index],
+                    "host_payout_minus_cleaning_allocated": round(
+                        host_payout_allocations[night_index]
+                        - cleaning_fee_allocations[night_index],
+                        2,
+                    ),
                 }
             )
             current += timedelta(days=1)
