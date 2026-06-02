@@ -394,6 +394,7 @@ def build_price_protection_recommendations(
 
 
 def main() -> None:
+    gap_offers = load_optional_csv("gap_offers.csv")
     monthly = load_csv("monthly_metrics.csv")
     availability = load_csv("inventory_availability.csv")
     offers = load_csv("future_offers.csv")
@@ -405,7 +406,10 @@ def main() -> None:
     gaps = find_available_runs(availability, max_gap_days=7)
 
     recs: List[Dict[str, Any]] = []
-    recs.extend(build_orphan_night_recommendations(gaps, offers_lu, meta))
+    if not gap_offers.empty:
+        recs.extend(build_gap_offer_recommendations(gap_offers, meta))
+    else:
+        recs.extend(build_orphan_night_recommendations(gaps, offers_lu, meta))
     recs.extend(build_short_gap_restriction_recommendations(gaps, diagnostics, meta))
     recs.extend(build_occupancy_risk_recommendations(monthly, meta))
     recs.extend(build_price_protection_recommendations(monthly, meta))
@@ -449,6 +453,91 @@ def main() -> None:
     ]
     print(recommendations[cols].to_string(index=False))
 
+
+
+
+def load_optional_csv(name: str) -> pd.DataFrame:
+    path = ROOT / "outputs" / "processed" / name
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path)
+
+
+
+def build_gap_offer_recommendations(
+    gap_offers: pd.DataFrame,
+    meta: dict[str, dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    recs: List[Dict[str, Any]] = []
+
+    if gap_offers.empty:
+        return recs
+
+    today = date.today()
+
+    for _, row in gap_offers.iterrows():
+        listing_id = str(row["listing_id"])
+        gap_start = str(row["gap_start"])
+        gap_end = str(row["gap_end"])
+        gap_nights = int(row["gap_nights"])
+        bookable = bool(row["bookable"])
+
+        arrival_date = pd.to_datetime(gap_start).date()
+        days_until = (arrival_date - today).days
+
+        if bookable:
+            continue
+
+        if gap_nights == 1:
+            priority = "high" if days_until <= 7 else "medium"
+
+            rec = {
+                "recommendation_id": make_recommendation_id(
+                    "orphan_night_premium", listing_id, gap_start, gap_end
+                ),
+                "category": "orphan_night_premium",
+                "priority": priority,
+                "period_start": gap_start,
+                "period_end": gap_end,
+                "problem": "Single available orphan night is not currently bookable.",
+                "evidence": (
+                    f"{listing_id} has a 1-night gap from {gap_start} to {gap_end}. "
+                    f"The exact 1-night stay is not bookable. Days until arrival: {days_until}."
+                ),
+                "suggested_action": (
+                    "Consider opening this single night with a premium 1-night calendar override."
+                ),
+                "suggested_price": None,
+                "confidence": "high",
+                "actionable_in_beds24": True,
+            }
+            recs.append(add_common_fields(rec, meta, listing_id))
+
+        elif gap_nights in {2, 3}:
+            rec = {
+                "recommendation_id": make_recommendation_id(
+                    "short_gap_restriction", listing_id, gap_start, gap_end
+                ),
+                "category": "short_gap_restriction",
+                "priority": "high",
+                "period_start": gap_start,
+                "period_end": gap_end,
+                "problem": f"{gap_nights}-night available gap is not currently bookable.",
+                "evidence": (
+                    f"{listing_id} has a {gap_nights}-night available gap from "
+                    f"{gap_start} to {gap_end}, but Beds24 offers returned no bookable offer."
+                ),
+                "suggested_action": (
+                    f"Consider a temporary calendar override allowing {gap_nights}-night stays "
+                    f"for this gap, with an appropriate tactical price."
+                ),
+                "suggested_price": None,
+                "confidence": "high",
+                "actionable_in_beds24": True,
+            }
+            recs.append(add_common_fields(rec, meta, listing_id))
+
+    return recs
 
 if __name__ == "__main__":
     main()

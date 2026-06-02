@@ -41,6 +41,8 @@ def main() -> None:
     reports_dir = ROOT / "outputs" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
+    forward = load_csv("forward_position.csv")
+
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     lines: list[str] = []
@@ -116,6 +118,28 @@ def main() -> None:
                 f"| {fmt_money(row['host_payout'])} "
                 f"| {fmt_money(row['adr_accommodation'])} |"
             )
+
+        lines.append("")
+        lines.append("## Forward position")
+        lines.append("")
+
+        if forward.empty:
+            lines.append("No forward position available.")
+        else:
+            lines.append("| Portfolio | Listing | Horizon | Booked | Open | Occ. | Open % | Secured payout |")
+            lines.append("|---|---|---:|---:|---:|---:|---:|---:|")
+
+            for _, row in forward.iterrows():
+                lines.append(
+                    f"| {row['portfolio_id']} "
+                    f"| {row['listing_id']} "
+                    f"| {int(row['horizon_days'])}d "
+                    f"| {int(row['booked_nights'])} "
+                    f"| {int(row['open_nights'])} "
+                    f"| {fmt_pct(row['occupancy_pct'])} "
+                    f"| {fmt_pct(row['open_pct'])} "
+                    f"| {fmt_money(row['secured_host_payout'])} |"
+                )
 
     lines.append("")
     lines.append("## Recommendations")
