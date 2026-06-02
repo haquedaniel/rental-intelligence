@@ -54,6 +54,8 @@ forward = load_csv("forward_position.csv")
 recommendations = load_csv("recommendations.csv")
 gap_offers = load_csv("gap_offers.csv")
 quality = load_csv("data_quality_issues.csv")
+profitability = load_csv("monthly_profitability.csv")
+portfolio_profitability = load_csv("portfolio_profitability.csv")
 
 
 st.title("🏡 Rental Intelligence Cockpit")
@@ -393,26 +395,114 @@ with tabs[4]:
 
     st.markdown("### Financial monthly table")
 
-    st.dataframe(
-        clean_display_df(
-            financial[
-                [
-                    "portfolio_id",
-                    "listing_id",
-                    "year_month",
-                    "gross_booking_value",
-                    "accommodation_revenue",
-                    "cleaning_fee",
-                    "tourist_tax",
-                    "channel_commission",
-                    "host_payout",
-                    "payout_less_cleaning",
+    if profitability.empty:
+        st.warning("No profitability data found. Run build_profitability first.")
+    else:
+        filtered_profitability = profitability[
+            profitability["listing_id"].astype(str).isin(selected_listings)
+            & profitability["portfolio_id"].astype(str).isin(selected_portfolios)
+        ].copy()
+
+        st.markdown("### Estimated operating profit")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig = px.bar(
+                filtered_profitability,
+                x="year_month",
+                y="estimated_operating_profit",
+                color="listing_id",
+                title="Estimated operating profit",
+                barmode="group",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            fig = px.bar(
+                filtered_profitability,
+                x="year_month",
+                y="booking_associated_costs",
+                color="listing_id",
+                title="Booking-associated costs",
+                barmode="group",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.dataframe(
+            clean_display_df(
+                filtered_profitability[
+                    [
+                        "portfolio_id",
+                        "listing_id",
+                        "year_month",
+                        "host_payout",
+                        "cleaning_fee",
+                        "host_payout_minus_cleaning",
+                        "booking_associated_costs",
+                        "fixed_allocated_costs",
+                        "estimated_operating_profit",
+                    ]
                 ]
-            ]
-        ),
-        use_container_width=True,
-        hide_index=True,
-    )
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+
+    st.markdown("### Portfolio / investor cash view")
+
+    if portfolio_profitability.empty:
+        st.warning("No portfolio profitability data found. Run build_portfolio_profitability first.")
+    else:
+        filtered_portfolio_profitability = portfolio_profitability[
+            portfolio_profitability["portfolio_id"].astype(str).isin(selected_portfolios)
+        ].copy()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig = px.bar(
+                filtered_portfolio_profitability,
+                x="year_month",
+                y="estimated_portfolio_cash_result",
+                color="portfolio_id",
+                title="Estimated portfolio cash result",
+                barmode="group",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            fig = px.bar(
+                filtered_portfolio_profitability,
+                x="year_month",
+                y="long_term_rent_net",
+                color="portfolio_id",
+                title="Long-term rent net contribution",
+                barmode="group",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.dataframe(
+            clean_display_df(
+                filtered_portfolio_profitability[
+                    [
+                        "portfolio_id",
+                        "year_month",
+                        "short_term_operating_profit",
+                        "long_term_rent_gross",
+                        "long_term_rent_adjustments",
+                        "long_term_rent_net",
+                        "fixed_costs_long_term_units",
+                        "fixed_costs_vacant_units",
+                        "estimated_portfolio_cash_result",
+                    ]
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
 # ---------------------------------------------------------------------

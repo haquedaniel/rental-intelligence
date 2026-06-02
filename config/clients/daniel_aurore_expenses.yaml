@@ -1,0 +1,633 @@
+expense_rules:
+- rule_id: concierge_voilerie_ota_until_sep_2026
+  category: concierge
+  cost_family: booking_associated
+  calculation_type: percentage_of_host_payout_minus_cleaning
+  percentage: 25
+  applies_to:
+    portfolio_ids:
+    - voilerie
+    listing_ids:
+    - apt4
+    - apt5
+    include_channels:
+    - airbnb
+    - booking
+    exclude_channels:
+    - direct
+    start_date: 2026-01-01
+    end_date: 2026-08-31
+- rule_id: concierge_peskerezh_ota_until_sep_2026
+  category: concierge
+  cost_family: booking_associated
+  calculation_type: percentage_of_host_payout_minus_cleaning
+  percentage: 25
+  applies_to:
+    portfolio_ids:
+    - peskerezh
+    include_channels:
+    - airbnb
+    - booking
+    exclude_channels:
+    - direct
+    start_date: 2026-01-01
+    end_date: 2026-08-31
+- rule_id: cleaning_actual_apt4
+  category: cleaning_actual_cost
+  cost_family: booking_associated
+  calculation_type: fixed_per_booking
+  amount: 85
+  applies_to:
+    listing_ids:
+    - apt4
+    include_channels:
+    - airbnb
+    - booking
+    - direct
+    start_date: 2026-01-01
+    end_date: null
+- rule_id: cleaning_actual_apt5
+  category: cleaning_actual_cost
+  cost_family: booking_associated
+  calculation_type: fixed_per_booking
+  amount: 65
+  applies_to:
+    listing_ids:
+    - apt5
+    include_channels:
+    - airbnb
+    - booking
+    - direct
+    start_date: 2026-01-01
+    end_date: null
+- rule_id: cleaning_actual_peskerezh
+  category: cleaning_actual_cost
+  cost_family: booking_associated
+  calculation_type: fixed_per_booking
+  amount: 120
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    include_channels:
+    - airbnb
+    - booking
+    - direct
+    start_date: 2026-01-01
+    end_date: null
+- rule_id: electricity_usage_all
+  category: electricity_usage
+  cost_family: booking_associated
+  calculation_type: fixed_per_night
+  amount: 4
+  applies_to:
+    portfolio_ids:
+    - voilerie
+    - peskerezh
+    include_channels:
+    - airbnb
+    - booking
+    - direct
+    start_date: 2026-01-01
+    end_date: null
+- rule_id: loan_peskerezh_house_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 500
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_lot8_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 158
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot8
+    portfolio_ids:
+    - peskerezh
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_apt2_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 350
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_apt4_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 226
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_apt5_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 145
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_lot6_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 207
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: loan_lot7_2026
+  category: loan_payment
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 321
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot7
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: copro_apt2_2026
+  category: copro_charges
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 93
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: copro_apt4_2026
+  category: copro_charges
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 62
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: copro_apt5_2026
+  category: copro_charges
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 40
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: copro_lot6_2026
+  category: copro_charges
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 57
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: copro_lot7_2026
+  category: copro_charges
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 47
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot7
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_apt2_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_apt4_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_apt5_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_lot6_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_lot7_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot7
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_lot8_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot8
+    portfolio_ids:
+    - peskerezh
+  allocation_method: split_evenly_across_listings
+- rule_id: cfe_peskerezh_house_2026
+  category: cfe
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 20
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: insurance_pno_lot6_2026
+  category: insurance_pno
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 31.71
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: home_insurance_apt2_2026
+  category: home_insurance
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 31.71
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: home_insurance_apt4_2026
+  category: home_insurance
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 31.71
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: home_insurance_apt5_2026
+  category: home_insurance
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 31.71
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: home_insurance_peskerezh_house_2026
+  category: home_insurance
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 48.23
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: garden_apt2_2026
+  category: garden
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 12
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: garden_lot7_2026
+  category: garden
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 12
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot7
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_apt2_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_apt4_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_apt5_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_lot6_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_peskerezh_house_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: accounting_lot8_2026
+  category: accounting
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 25
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot8
+    portfolio_ids:
+    - peskerezh
+  allocation_method: split_evenly_across_listings
+- rule_id: property_tax_apt2_2026
+  category: property_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 35
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: property_tax_apt4_2026
+  category: property_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 35
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: property_tax_apt5_2026
+  category: property_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 35
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: property_tax_lot6_2026
+  category: property_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 35
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot6
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: property_tax_peskerezh_house_2026
+  category: property_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 50
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: housing_tax_apt5_2026
+  category: housing_tax
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 35
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: electricity_subscription_apt2_2026
+  category: electricity_subscription
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 16
+  applies_to:
+    listing_ids:
+    - apt2
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: electricity_subscription_apt4_2026
+  category: electricity_subscription
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 16
+  applies_to:
+    listing_ids:
+    - apt4
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: electricity_subscription_apt5_2026
+  category: electricity_subscription
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 16
+  applies_to:
+    listing_ids:
+    - apt5
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+- rule_id: electricity_subscription_lot7_2026
+  category: electricity_subscription
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 16
+  applies_to:
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+    unit_ids:
+    - lot7
+    portfolio_ids:
+    - voilerie
+  allocation_method: split_evenly_across_listings
+- rule_id: electricity_subscription_peskerezh_house_2026
+  category: electricity_subscription
+  cost_family: fixed_period
+  calculation_type: fixed_monthly
+  amount: 16
+  applies_to:
+    listing_ids:
+    - peskerezh_house
+    start_date: 2026-01-01
+    end_date: 2026-12-31
+  allocation_method: split_evenly_across_listings
+units:
+- unit_id: lot6
+  portfolio_id: voilerie
+  name: Lot 6 - location longue durée
+  unit_type: long_term_rental
+  active_in_short_term_cockpit: false
+- unit_id: lot7
+  portfolio_id: voilerie
+  name: Lot 7 - vacant
+  unit_type: vacant_unit
+  active_in_short_term_cockpit: false
+- unit_id: lot8
+  portfolio_id: peskerezh
+  name: La Peskerezh - sous-appartement
+  unit_type: long_term_rental
+  active_in_short_term_cockpit: false
+long_term_income:
+- income_id: rent_lot6_2026
+  portfolio_id: voilerie
+  unit_id: lot6
+  category: long_term_rent
+  amount_monthly: 850
+  start_date: '2026-01-01'
+  end_date: null
+  notes: Includes charges, excludes electricity.
+- income_id: rent_lot8_2026
+  portfolio_id: peskerezh
+  unit_id: lot8
+  category: long_term_rent
+  amount_monthly: 500
+  start_date: '2026-01-01'
+  end_date: null
+  notes: Includes charges and electricity.
+- income_id: rent_lot8_electricity_included_2026
+  portfolio_id: peskerezh
+  unit_id: lot8
+  category: long_term_electricity_included
+  amount_monthly: -50
+  start_date: '2026-01-01'
+  end_date: null
+  notes: Estimated electricity included in the €500 rent.
