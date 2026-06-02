@@ -12,13 +12,56 @@ class Beds24Client:
         self.base_url = "https://beds24.com/api/v2"
 
         self.token = os.getenv("BEDS24_TOKEN")
-        if not self.token:
-            raise RuntimeError("Missing BEDS24_TOKEN environment variable")
+        self.refresh_token = os.getenv("BEDS24_REFRESH_TOKEN")
 
-        self.headers = {
+        if not self.token and not self.refresh_token:
+            raise RuntimeError(
+                "Missing Beds24 credentials. Set BEDS24_TOKEN or BEDS24_REFRESH_TOKEN."
+            )
+
+        if not self.token and self.refresh_token:
+            self.refresh_access_token()
+
+        self.headers = self._headers()
+
+    def _headers(self) -> Dict[str, str]:
+        if not self.token:
+            raise RuntimeError("Missing Beds24 access token")
+        return {
             "accept": "application/json",
             "token": self.token,
         }
+
+    def refresh_access_token(self) -> None:
+        if not self.refresh_token:
+            raise RuntimeError(
+                "BEDS24 token expired and no BEDS24_REFRESH_TOKEN is available."
+            )
+
+        response = requests.get(
+            f"{self.base_url}/authentication/token",
+            headers={
+                "accept": "application/json",
+                "refreshToken": self.refresh_token,
+            },
+        )
+
+        try:
+            data = response.json()
+        except ValueError:
+            raise RuntimeError(
+                f"Could not parse Beds24 token refresh response: {response.text}"
+            )
+
+        if response.status_code >= 400 or "token" not in data:
+            raise RuntimeError(
+                f"Beds24 token refresh failed {response.status_code}: {data}"
+            )
+
+        self.token = data["token"]
+        self.headers = self._headers()
+
+        print("Refreshed Beds24 access token.")
 
     def get(
         self,
@@ -28,6 +71,8 @@ class Beds24Client:
     ) -> Dict[str, Any]:
         url = f"{self.base_url}{path}"
 
+        token_refreshed = False
+
         for attempt in range(max_retries + 1):
             response = requests.get(url, headers=self.headers, params=params)
 
@@ -35,6 +80,12 @@ class Beds24Client:
                 data = response.json()
             except ValueError:
                 data = response.text
+
+            if response.status_code == 401 and not token_refreshed:
+                print("Beds24 token invalid. Refreshing token and retrying...")
+                self.refresh_access_token()
+                token_refreshed = True
+                continue
 
             if response.status_code == 429:
                 reset_seconds = response.headers.get("X-FiveMinCreditLimit-ResetsIn")
@@ -51,6 +102,13 @@ class Beds24Client:
                 raise RuntimeError(f"Beds24 API error {response.status_code}: {data}")
 
             if isinstance(data, dict) and data.get("success") is False:
+                # Some Beds24 errors may be HTTP 200 with success=false.
+                if data.get("code") == 401 and not token_refreshed:
+                    print("Beds24 token invalid. Refreshing token and retrying...")
+                    self.refresh_access_token()
+                    token_refreshed = True
+                    continue
+
                 raise RuntimeError(f"Beds24 API returned error: {data}")
 
             return data

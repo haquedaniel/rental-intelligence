@@ -123,8 +123,7 @@ def normalize_booking(
 
 
 def main() -> None:
-    load_dotenv(override=True)
-
+    load_dotenv(ROOT / ".env", override=True)
     client_id = "daniel_aurore"
     config = load_client_config(client_id)
     room_mapping = build_room_mapping(config)

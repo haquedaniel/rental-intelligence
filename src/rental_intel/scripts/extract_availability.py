@@ -42,7 +42,7 @@ def iter_listings(config: Dict[str, Any]):
 
 
 def main() -> None:
-    load_dotenv(override=True)
+    load_dotenv(ROOT / ".env", override=True)
 
     client_id = "daniel_aurore"
     horizon_days = 120
