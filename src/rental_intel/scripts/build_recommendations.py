@@ -11,7 +11,12 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def money(value: Any) -> float:
-    return round(float(value or 0), 2)
+    try:
+        if pd.isna(value):
+            return 0.0
+        return round(float(value), 2)
+    except Exception:
+        return 0.0
 
 
 def make_recommendation_id(category: str, listing_id: str, start: str, end: str = "") -> str:
@@ -406,6 +411,14 @@ def main() -> None:
     recs.extend(build_price_protection_recommendations(monthly, meta))
 
     recommendations = pd.DataFrame(recs)
+
+    priority_order = {"high": 1, "medium": 2, "low": 3}
+
+    if not recommendations.empty:
+        recommendations["priority_sort"] = recommendations["priority"].map(priority_order).fillna(99)
+        recommendations = recommendations.sort_values(
+            ["priority_sort", "category", "listing_id", "period_start"]
+        ).drop(columns=["priority_sort"])
 
     out_path = ROOT / "outputs" / "processed" / "recommendations.csv"
     recommendations.to_csv(out_path, index=False)
