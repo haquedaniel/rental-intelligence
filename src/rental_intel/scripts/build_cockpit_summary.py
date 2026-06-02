@@ -45,6 +45,8 @@ def main() -> None:
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+    quality = load_csv("data_quality_issues.csv")
+
     lines: list[str] = []
     lines.append("# Rental Intelligence Cockpit")
     lines.append("")
@@ -171,6 +173,26 @@ def main() -> None:
 
             lines.append("")
 
+
+    lines.append("")
+    lines.append("## Data quality")
+    lines.append("")
+
+    if quality.empty:
+        lines.append("✅ No data quality issues detected.")
+    else:
+        lines.append("| Severity | Category | Issue | Count |")
+        lines.append("|---|---|---|---:|")
+        for _, row in quality.iterrows():
+            count = row.get("affected_count")
+            count_text = "—" if pd.isna(count) else str(int(count))
+            lines.append(
+                f"| {row['severity']} "
+                f"| {row['category']} "
+                f"| {row['issue']} "
+                f"| {count_text} |"
+            )
+
     lines.append("## Notes")
     lines.append("")
     lines.append("- Cancelled bookings are excluded from daily/monthly occupancy and revenue metrics.")
@@ -183,6 +205,15 @@ def main() -> None:
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Wrote cockpit summary to {out_path}")
+
+
+def fmt_text(value) -> str:
+    if pd.isna(value):
+        return "—"
+    text = str(value)
+    if text.lower() == "nan":
+        return "—"
+    return text
 
 
 if __name__ == "__main__":
