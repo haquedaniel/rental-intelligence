@@ -51,6 +51,45 @@ def invoice_total(items: List[Dict[str, Any]], subtype: Optional[int] = None) ->
     return total
 
 
+def parse_legacy_invoice_items(booking: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Beds24 manual/legacy imports may have booking.price = 0 but valid invoiceItems.
+
+    For our legacy imports, both accommodation and cleaning were stored as subType 7,
+    so we identify them by description rather than subtype.
+    """
+    accommodation = 0.0
+    cleaning = 0.0
+    tourist_tax = 0.0
+    channel_commission = 0.0
+
+    for item in booking.get("invoiceItems") or []:
+        if item.get("type") != "charge":
+            continue
+
+        amount = float(item.get("lineTotal") or item.get("amount") or 0)
+        desc = str(item.get("description") or "").lower()
+
+        if "cleaning" in desc or "ménage" in desc or "menage" in desc:
+            cleaning += amount
+        elif "tourist" in desc or "taxe" in desc or "séjour" in desc or "sejour" in desc:
+            tourist_tax += amount
+        elif "commission" in desc:
+            channel_commission += amount
+        else:
+            accommodation += amount
+
+    gross = accommodation + cleaning + tourist_tax + channel_commission
+
+    return {
+        "gross_booking_value": round(gross, 2),
+        "accommodation_revenue": round(accommodation, 2),
+        "cleaning_fee": round(cleaning, 2),
+        "tourist_tax": round(tourist_tax, 2),
+        "channel_commission": round(channel_commission, 2),
+        "host_payout": round(gross - channel_commission, 2),
+    }
+
 def normalize_booking(
     booking: Dict[str, Any],
     client_id: str,
@@ -71,6 +110,13 @@ def normalize_booking(
     price = float(booking.get("price") or 0)
     commission = float(booking.get("commission") or 0)
     tax = float(booking.get("tax") or 0)
+
+    # Legacy/manual Beds24 imports may have price = 0 but valid invoiceItems.
+    # In that case, override the normal parser with invoice-item-derived revenue.
+    legacy_invoice_revenue = parse_legacy_invoice_items(booking)
+
+    if price == 0 and legacy_invoice_revenue["gross_booking_value"] > 0:
+        revenue = legacy_invoice_revenue
 
     channel = booking.get("channel") or booking.get("apiSource") or booking.get("referer")
 

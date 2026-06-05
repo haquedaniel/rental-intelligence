@@ -70,11 +70,38 @@ def build_listing_month_financials() -> pd.DataFrame:
 
     df = profitability.copy()
 
+    reservations = load_csv("normalized_reservations.csv")
+
+    if not reservations.empty:
+        active = reservations[
+            reservations["status"].astype(str).str.lower().isin(["new", "confirmed", "request"])
+        ].copy()
+
+        active["year_month"] = pd.to_datetime(active["arrival"]).dt.strftime("%Y-%m")
+
+        cleaning_by_arrival_month = (
+            active.groupby(["portfolio_id", "listing_id", "year_month"], dropna=False)["cleaning_fee"]
+            .sum()
+            .reset_index()
+            .rename(columns={"cleaning_fee": "cleaning_fee_charged_arrival_month"})
+        )
+
+        df = df.merge(
+            cleaning_by_arrival_month,
+            on=["portfolio_id", "listing_id", "year_month"],
+            how="left",
+        )
+    else:
+        df["cleaning_fee_charged_arrival_month"] = 0.0
+
     # Rename booking / revenue concepts into clearer business terms.
-    df["cleaning_fee_charged"] = safe_col(df, "cleaning_fee")
+    df["cleaning_fee_charged"] = safe_col(df, "cleaning_fee_charged_arrival_month")
     df["actual_cleaning_cost"] = safe_col(df, "cleaning_actual_cost")
     df["concierge_fee"] = safe_col(df, "concierge")
     df["electricity_usage_cost"] = safe_col(df, "electricity_usage")
+    df["cleaning_margin"] = (
+        df["cleaning_fee_charged"] - df["actual_cleaning_cost"]
+    ).round(2)
 
     booking_known = [
         "cleaning_actual_cost",
@@ -167,6 +194,7 @@ def build_listing_month_financials() -> pd.DataFrame:
 
         # Booking-associated costs
         "actual_cleaning_cost",
+        "cleaning_margin",
         "concierge_fee",
         "electricity_usage_cost",
         "other_booking_costs",

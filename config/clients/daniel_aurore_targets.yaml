@@ -1,0 +1,84 @@
+monthly_targets:
+  - year_month: 2026-01
+    targets:
+      peskerezh_house: 390
+      apt2: 600
+      apt4: 525
+      apt5: 450
+
+  - year_month: 2026-02
+    targets:
+      peskerezh_house: 390
+      apt2: 600
+      apt4: 525
+      apt5: 450
+
+  - year_month: 2026-03
+    targets:
+      peskerezh_house: 390
+      apt2: 600
+      apt4: 525
+      apt5: 450
+
+  - year_month: 2026-04
+    targets:
+      peskerezh_house: 2700
+      apt2: 1350
+      apt4: 1200
+      apt5: 900
+
+  - year_month: 2026-05
+    targets:
+      peskerezh_house: 2880
+      apt2: 1350
+      apt4: 1200
+      apt5: 900
+
+  - year_month: 2026-06
+    targets:
+      peskerezh_house: 4500
+      apt2: 1350
+      apt4: 1200
+      apt5: 900
+
+  - year_month: 2026-07
+    targets:
+      peskerezh_house: 6600
+      apt2: 3565
+      apt4: 3150
+      apt5: 2550
+
+  - year_month: 2026-08
+    targets:
+      peskerezh_house: 6600
+      apt2: 3565
+      apt4: 3150
+      apt5: 2550
+
+  - year_month: 2026-09
+    targets:
+      peskerezh_house: 2850
+      apt2: 2280
+      apt4: 2040
+      apt5: 1560
+
+  - year_month: 2026-10
+    targets:
+      peskerezh_house: 153
+      apt2: 720
+      apt4: 630
+      apt5: 540
+
+  - year_month: 2026-11
+    targets:
+      peskerezh_house: 153
+      apt2: 720
+      apt4: 630
+      apt5: 540
+
+  - year_month: 2026-12
+    targets:
+      peskerezh_house: 660
+      apt2: 600
+      apt4: 525
+      apt5: 450

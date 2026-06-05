@@ -10,6 +10,34 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 
+MONTHS_2026 = [f"2026-{m:02d}" for m in range(1, 13)]
+
+LISTING_META_FALLBACK = {
+    "peskerezh_house": {
+        "client_id": "daniel_aurore",
+        "portfolio_id": "peskerezh",
+        "portfolio_name": "La Peskerezh",
+        "listing_name": "Grande maison de famille avec piscine",
+    },
+    "apt2": {
+        "client_id": "daniel_aurore",
+        "portfolio_id": "voilerie",
+        "portfolio_name": "Le Clos de la Voilerie",
+        "listing_name": "Un Jardin sur la Mer",
+    },
+    "apt4": {
+        "client_id": "daniel_aurore",
+        "portfolio_id": "voilerie",
+        "portfolio_name": "Le Clos de la Voilerie",
+        "listing_name": "Un Balcon sur la Mer",
+    },
+    "apt5": {
+        "client_id": "daniel_aurore",
+        "portfolio_id": "voilerie",
+        "portfolio_name": "Le Clos de la Voilerie",
+        "listing_name": "Le Refuge sous les Toits",
+    },
+}
 
 def load_csv(name: str) -> pd.DataFrame:
     path = ROOT / "outputs" / "processed" / name
@@ -85,6 +113,7 @@ def rule_applies_to_booking(rule: dict[str, Any], booking: pd.Series) -> bool:
 
 def calculate_booking_expense(rule: dict[str, Any], booking: pd.Series) -> float:
     calc_type = rule.get("calculation_type")
+
     amount = float(rule.get("amount") or 0)
     percentage = float(rule.get("percentage") or 0) / 100
 
@@ -107,6 +136,9 @@ def calculate_booking_expense(rule: dict[str, Any], booking: pd.Series) -> float
 
     if calc_type == "percentage_of_accommodation_revenue":
         return round(accommodation * percentage, 2)
+    
+    if calc_type == "equal_to_cleaning_fee_charged":
+        return round(cleaning_fee, 2)
 
     raise ValueError(f"Unsupported booking expense calculation_type: {calc_type}")
 
@@ -177,6 +209,151 @@ def rule_applies_to_month(rule: dict[str, Any], portfolio_id: str, listing_id: s
 
     return True
 
+def listing_ids_from_fixed_rules(rules: list[dict[str, Any]]) -> set[str]:
+    listing_ids: set[str] = set()
+
+    for rule in rules:
+        if rule.get("cost_family") != "fixed_period":
+            continue
+
+        applies = rule.get("applies_to", {}) or {}
+
+        # Unit-level costs, like lot6/lot7/lot8, are handled in portfolio profitability.
+        if applies.get("unit_ids"):
+            continue
+
+        for listing_id in applies.get("listing_ids") or []:
+            listing_ids.add(str(listing_id))
+
+    return listing_ids
+
+
+def build_complete_monthly_base(
+    monthly: pd.DataFrame,
+    rules: list[dict[str, Any]],
+) -> pd.DataFrame:
+    """
+    Ensure monthly profitability has one row per active STR listing per month,
+    even when there are no bookings.
+
+    This is necessary because fixed costs exist even when revenue is zero.
+    """
+    monthly = monthly.copy()
+
+    if monthly.empty:
+        existing_listing_ids: set[str] = set()
+    else:
+        existing_listing_ids = set(monthly["listing_id"].dropna().astype(str).unique())
+
+    fixed_listing_ids = listing_ids_from_fixed_rules(rules)
+
+    listing_ids = sorted(existing_listing_ids | fixed_listing_ids)
+
+    required_rows: list[dict[str, Any]] = []
+
+    for listing_id in listing_ids:
+        meta = LISTING_META_FALLBACK.get(listing_id, {})
+
+        # If listing appears in monthly data, prefer real metadata from there.
+        existing = monthly[monthly["listing_id"].astype(str) == listing_id]
+        if not existing.empty:
+            first = existing.iloc[0]
+            meta = {
+                "client_id": first.get("client_id"),
+                "portfolio_id": first.get("portfolio_id"),
+                "portfolio_name": first.get("portfolio_name"),
+                "listing_name": first.get("listing_name"),
+            } | meta
+
+            # Prefer non-empty real values over fallback.
+            for key in ["client_id", "portfolio_id", "portfolio_name", "listing_name"]:
+                if pd.notna(first.get(key)) and str(first.get(key)) != "":
+                    meta[key] = first.get(key)
+
+        if not meta:
+            # Unknown listing; skip rather than creating bad nan rows.
+            continue
+
+        for ym in MONTHS_2026:
+            year, month = ym.split("-")
+            required_rows.append(
+                {
+                    "client_id": meta.get("client_id"),
+                    "portfolio_id": meta.get("portfolio_id"),
+                    "portfolio_name": meta.get("portfolio_name"),
+                    "listing_id": listing_id,
+                    "listing_name": meta.get("listing_name"),
+                    "year": int(year),
+                    "month": int(month),
+                    "year_month": ym,
+                    "booked_nights": 0,
+                    "gross_booking_value": 0.0,
+                    "accommodation_revenue": 0.0,
+                    "cleaning_fee": 0.0,
+                    "tourist_tax": 0.0,
+                    "channel_commission": 0.0,
+                    "host_payout": 0.0,
+                    "host_payout_minus_cleaning": 0.0,
+                    "available_nights": pd.Period(ym).days_in_month,
+                    "occupancy_pct": 0.0,
+                    "adr_accommodation": 0.0,
+                    "adr_host_payout": 0.0,
+                }
+            )
+
+    base = pd.DataFrame(required_rows)
+
+    if monthly.empty:
+        return base
+
+    index_cols = ["portfolio_id", "listing_id", "year_month"]
+
+    combined = base.merge(
+        monthly,
+        on=index_cols,
+        how="left",
+        suffixes=("_base", ""),
+    )
+
+    # For every column, prefer real monthly value; otherwise keep base zero/default.
+    output_cols = list(base.columns)
+    out = pd.DataFrame()
+
+    for col in output_cols:
+        if col in index_cols:
+            out[col] = combined[col]
+        elif col in monthly.columns and col in base.columns:
+            out[col] = combined[col].combine_first(combined[f"{col}_base"])
+        elif f"{col}_base" in combined.columns:
+            out[col] = combined[f"{col}_base"]
+        elif col in combined.columns:
+            out[col] = combined[col]
+
+    money_cols = [
+        "gross_booking_value",
+        "accommodation_revenue",
+        "cleaning_fee",
+        "tourist_tax",
+        "channel_commission",
+        "host_payout",
+        "host_payout_minus_cleaning",
+        "adr_accommodation",
+        "adr_host_payout",
+    ]
+
+    for col in money_cols:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0).round(2)
+
+    int_cols = ["year", "month", "booked_nights", "available_nights"]
+    for col in int_cols:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0).astype(int)
+
+    if "occupancy_pct" in out.columns:
+        out["occupancy_pct"] = pd.to_numeric(out["occupancy_pct"], errors="coerce").fillna(0).round(1)
+
+    return out.sort_values(["portfolio_id", "listing_id", "year_month"])
 
 def build_fixed_expenses(
     monthly: pd.DataFrame,
@@ -423,6 +600,7 @@ def main() -> None:
     reservations = load_csv("normalized_reservations.csv")
     monthly = load_csv("monthly_metrics.csv")
     rules = load_expense_rules(client_id)
+    monthly = build_complete_monthly_base(monthly, rules)
 
     booking_expenses = build_booking_expenses(reservations, rules)
     fixed_expenses = build_fixed_expenses(monthly, rules)

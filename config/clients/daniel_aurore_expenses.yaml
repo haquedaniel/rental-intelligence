@@ -17,25 +17,10 @@ expense_rules:
     - direct
     start_date: 2026-01-01
     end_date: 2026-08-31
-- rule_id: concierge_peskerezh_ota_until_sep_2026
-  category: concierge
-  cost_family: booking_associated
-  calculation_type: percentage_of_host_payout_minus_cleaning
-  percentage: 25
-  applies_to:
-    portfolio_ids:
-    - peskerezh
-    include_channels:
-    - airbnb
-    - booking
-    exclude_channels:
-    - direct
-    start_date: 2026-01-01
-    end_date: 2026-08-31
 - rule_id: cleaning_actual_apt4
   category: cleaning_actual_cost
   cost_family: booking_associated
-  calculation_type: fixed_per_booking
+  calculation_type: equal_to_cleaning_fee_charged
   amount: 85
   applies_to:
     listing_ids:
@@ -49,7 +34,7 @@ expense_rules:
 - rule_id: cleaning_actual_apt5
   category: cleaning_actual_cost
   cost_family: booking_associated
-  calculation_type: fixed_per_booking
+  calculation_type: equal_to_cleaning_fee_charged
   amount: 65
   applies_to:
     listing_ids:
@@ -63,7 +48,7 @@ expense_rules:
 - rule_id: cleaning_actual_peskerezh
   category: cleaning_actual_cost
   cost_family: booking_associated
-  calculation_type: fixed_per_booking
+  calculation_type: equal_to_cleaning_fee_charged
   amount: 120
   applies_to:
     listing_ids:

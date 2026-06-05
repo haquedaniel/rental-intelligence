@@ -155,15 +155,16 @@ def main() -> None:
             )
 
         zero_accommodation = monthly[
-            (pd.to_numeric(monthly["booked_nights"], errors="coerce") > 0)
-            & (pd.to_numeric(monthly["accommodation_revenue"], errors="coerce") == 0)
+            (pd.to_numeric(monthly["booked_nights"], errors="coerce").fillna(0) > 0)
+            & (pd.to_numeric(monthly["accommodation_revenue"], errors="coerce").fillna(0) == 0)
+            & (pd.to_numeric(monthly["host_payout"], errors="coerce").fillna(0) == 0)
         ]
         if not zero_accommodation.empty:
             add_issue(
                 rows,
                 "medium",
                 "financials",
-                "Booked months with zero accommodation revenue",
+                "Booked months with zero revenue and zero payout",
                 "Could be free/test bookings or incomplete parsing.",
                 len(zero_accommodation),
             )

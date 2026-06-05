@@ -27,3 +27,8 @@ portfolios:
       - listing_id: apt4
         name: Un Balcon sur la Mer
         source_room_id: 687189
+        
+      - listing_id: apt2
+        name: Un Jardin sur la Mer
+        source_property_id: 331524
+        source_room_id: 689472

@@ -233,3 +233,58 @@ class Beds24Client:
         }
 
         return self.get("/inventory/rooms/availability", params=params)
+    
+    def post(
+        self,
+        path: str,
+        json_data: Any,
+        params: Optional[Dict[str, Any]] = None,
+        max_retries: int = 3,
+    ) -> Dict[str, Any]:
+        url = f"{self.base_url}{path}"
+
+        token_refreshed = False
+
+        for attempt in range(max_retries + 1):
+            response = requests.post(
+                url,
+                headers=self.headers,
+                params=params,
+                json=json_data,
+            )
+
+            try:
+                data = response.json()
+            except ValueError:
+                data = response.text
+
+            if response.status_code == 401 and not token_refreshed:
+                print("Beds24 token invalid. Refreshing token and retrying...")
+                self.refresh_access_token()
+                token_refreshed = True
+                continue
+
+            if response.status_code == 429:
+                reset_seconds = response.headers.get("X-FiveMinCreditLimit-ResetsIn")
+                wait_seconds = int(reset_seconds) + 5 if reset_seconds else 305
+
+                if attempt < max_retries:
+                    print(
+                        f"Beds24 credit limit hit. Waiting {wait_seconds}s before retry..."
+                    )
+                    time.sleep(wait_seconds)
+                    continue
+
+            if response.status_code >= 400:
+                raise RuntimeError(f"Beds24 API error {response.status_code}: {data}")
+
+            if isinstance(data, dict) and data.get("success") is False:
+                raise RuntimeError(f"Beds24 API returned error: {data}")
+
+            return data
+
+        raise RuntimeError("Beds24 API POST request failed after retries.")
+
+    def create_booking(self, booking_payload: Dict[str, Any]) -> Dict[str, Any]:
+        # Beds24 v2 POST endpoints generally accept an array payload.
+        return self.post("/bookings", json_data=[booking_payload])
