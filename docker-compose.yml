@@ -1,0 +1,12 @@
+services:
+  cockpit:
+    build: .
+    container_name: rental_cockpit
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./config:/app/config

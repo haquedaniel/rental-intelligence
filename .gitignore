@@ -19,3 +19,4 @@ data/manual/*
 !data/manual/.gitkeep
 !data/manual/reservations/
 !data/manual/reservations/.gitkeep
+outputs/logs/
