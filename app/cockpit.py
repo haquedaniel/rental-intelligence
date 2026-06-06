@@ -218,6 +218,9 @@ DISPLAY_LABELS = {
     "issue": "Issue",
     "affected_count": "Count",
     "details": "Details",
+    "energy_usage_cost": "Energy usage",
+    "variable_period_costs_total": "Variable usage costs",
+    "booking_contribution": "Booking contribution",
 }
 
 
@@ -663,9 +666,12 @@ with tabs[3]:
         "host_payout",
         "cleaning_fee_charged",
         "actual_cleaning_cost",
+        "cleaning_margin",
         "concierge_fee",
-        "electricity_usage_cost",
         "booking_associated_costs_total",
+        "booking_contribution",
+        "energy_usage_cost",
+        "variable_period_costs_total",
         "rental_contribution",
     ]
     st.dataframe(

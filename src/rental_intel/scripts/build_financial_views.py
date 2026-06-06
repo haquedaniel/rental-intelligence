@@ -60,6 +60,43 @@ def pick_expense_columns(df: pd.DataFrame) -> list[str]:
     return numeric_cols
 
 
+def add_listing_variable_costs(df: pd.DataFrame) -> pd.DataFrame:
+    """Merge listing-level variable period costs, e.g. energy_usage, into listing/month rows."""
+    variable_costs = load_csv("variable_period_costs.csv")
+
+    if variable_costs.empty or "listing_id" not in variable_costs.columns:
+        return df
+
+    listing_variable = variable_costs[variable_costs["listing_id"].notna()].copy()
+
+    if listing_variable.empty:
+        return df
+
+    variable_summary = (
+        listing_variable.groupby(
+            ["portfolio_id", "listing_id", "year_month", "category"],
+            dropna=False,
+        )["expense_amount"]
+        .sum()
+        .reset_index()
+        .pivot_table(
+            index=["portfolio_id", "listing_id", "year_month"],
+            columns="category",
+            values="expense_amount",
+            aggfunc="sum",
+            fill_value=0,
+        )
+        .reset_index()
+    )
+
+    return df.merge(
+        variable_summary,
+        on=["portfolio_id", "listing_id", "year_month"],
+        how="left",
+        suffixes=("", "_variable"),
+    )
+
+
 def build_listing_month_financials() -> pd.DataFrame:
     profitability = load_csv("monthly_profitability.csv")
 
@@ -69,6 +106,7 @@ def build_listing_month_financials() -> pd.DataFrame:
         )
 
     df = profitability.copy()
+    df = add_listing_variable_costs(df)
 
     reservations = load_csv("normalized_reservations.csv")
 
@@ -98,7 +136,6 @@ def build_listing_month_financials() -> pd.DataFrame:
     df["cleaning_fee_charged"] = safe_col(df, "cleaning_fee_charged_arrival_month")
     df["actual_cleaning_cost"] = safe_col(df, "cleaning_actual_cost")
     df["concierge_fee"] = safe_col(df, "concierge")
-    df["electricity_usage_cost"] = safe_col(df, "electricity_usage")
     df["cleaning_margin"] = (
         df["cleaning_fee_charged"] - df["actual_cleaning_cost"]
     ).round(2)
@@ -106,7 +143,6 @@ def build_listing_month_financials() -> pd.DataFrame:
     booking_known = [
         "cleaning_actual_cost",
         "concierge",
-        "electricity_usage",
     ]
 
     df["other_booking_costs"] = 0.0
@@ -116,8 +152,17 @@ def build_listing_month_financials() -> pd.DataFrame:
 
     df["booking_associated_costs_total"] = safe_col(df, "booking_associated_costs")
 
-    df["rental_contribution"] = (
+    # Variable period costs, currently energy usage from variable_period_costs.csv.
+    # The category column in variable_period_costs.csv is expected to be "energy_usage".
+    df["energy_usage_cost"] = safe_col(df, "energy_usage")
+    df["variable_period_costs_total"] = df["energy_usage_cost"].round(2)
+
+    df["booking_contribution"] = (
         safe_col(df, "host_payout") - df["booking_associated_costs_total"]
+    ).round(2)
+
+    df["rental_contribution"] = (
+        df["booking_contribution"] - df["variable_period_costs_total"]
     ).round(2)
 
     # Attributable fixed cost categories.
@@ -137,28 +182,30 @@ def build_listing_month_financials() -> pd.DataFrame:
     df["garden"] = safe_col(df, "garden")
     df["software"] = safe_col(df, "software")
 
-    known_fixed = [
+    fixed_allocated = safe_col(df, "fixed_allocated_costs")
+
+    displayed_fixed_components = [
         "loan_payment",
         "copro_charges",
-        "home_insurance",
-        "insurance_pno",
+        "insurance",
         "cfe",
         "property_tax",
-        "housing_tax",
         "electricity_subscription",
         "accounting",
         "garden",
         "software",
     ]
 
-    fixed_allocated = safe_col(df, "fixed_allocated_costs")
-    known_fixed_total = sum(safe_col(df, col) for col in known_fixed)
+    displayed_fixed_total = sum(safe_col(df, col) for col in displayed_fixed_components)
+
     df["other_attributable_fixed_costs"] = (
-        fixed_allocated - known_fixed_total
+        fixed_allocated - displayed_fixed_total
     ).round(2)
 
-    # Avoid ugly -0.00 effects.
-    df.loc[df["other_attributable_fixed_costs"].abs() < 0.01, "other_attributable_fixed_costs"] = 0.0
+    df.loc[
+        df["other_attributable_fixed_costs"].abs() < 0.01,
+        "other_attributable_fixed_costs",
+    ] = 0.0
 
     df["attributable_fixed_costs_total"] = fixed_allocated.round(2)
 
@@ -196,9 +243,15 @@ def build_listing_month_financials() -> pd.DataFrame:
         "actual_cleaning_cost",
         "cleaning_margin",
         "concierge_fee",
-        "electricity_usage_cost",
         "other_booking_costs",
         "booking_associated_costs_total",
+
+        # Result before usage costs
+        "booking_contribution",
+
+        # Variable usage costs
+        "energy_usage_cost",
+        "variable_period_costs_total",
 
         # Level 1 result
         "rental_contribution",
@@ -256,15 +309,75 @@ def build_portfolio_month_financials() -> pd.DataFrame:
         )
 
     df = portfolio.copy()
+    variable_costs = load_csv("variable_period_costs.csv")
+
+    # Short-term listing variable costs, e.g. energy usage for apt2/apt4/apt5/Peskerezh house.
+    if not variable_costs.empty and "listing_id" in variable_costs.columns:
+        listing_variable = variable_costs[variable_costs["listing_id"].notna()].copy()
+
+        if not listing_variable.empty:
+            listing_variable_summary = (
+                listing_variable.groupby(["portfolio_id", "year_month"], dropna=False)["expense_amount"]
+                .sum()
+                .reset_index()
+                .rename(columns={"expense_amount": "short_term_variable_period_costs"})
+            )
+
+            df = df.merge(
+                listing_variable_summary,
+                on=["portfolio_id", "year_month"],
+                how="left",
+            )
+
+    # Long-term / non-STR unit variable costs, e.g. lot8 electricity usage.
+    if not variable_costs.empty and "unit_id" in variable_costs.columns:
+        unit_variable = variable_costs[variable_costs["unit_id"].notna()].copy()
+
+        if not unit_variable.empty:
+            unit_variable_summary = (
+                unit_variable.groupby(
+                    ["portfolio_id", "year_month", "unit_type"],
+                    dropna=False,
+                )["expense_amount"]
+                .sum()
+                .reset_index()
+                .pivot_table(
+                    index=["portfolio_id", "year_month"],
+                    columns="unit_type",
+                    values="expense_amount",
+                    aggfunc="sum",
+                    fill_value=0,
+                )
+                .reset_index()
+            )
+
+            df = df.merge(
+                unit_variable_summary,
+                on=["portfolio_id", "year_month"],
+                how="left",
+                suffixes=("", "_variable"),
+            )
+
+    df["short_term_variable_period_costs"] = safe_col(df, "short_term_variable_period_costs")
+    df["variable_costs_long_term_units"] = safe_col(df, "long_term_rental")
+    df["unit_variable_costs_total"] = df["variable_costs_long_term_units"]
 
     df["short_term_rental_contribution"] = (
         safe_col(df, "short_term_host_payout")
         - safe_col(df, "short_term_booking_associated_costs")
+        - df["short_term_variable_period_costs"]
     ).round(2)
 
-    df["short_term_attributed_profit"] = safe_col(df, "short_term_operating_profit")
+    df["short_term_attributed_profit"] = (
+        safe_col(df, "short_term_operating_profit")
+        - df["short_term_variable_period_costs"]
+    ).round(2)
 
-    df["portfolio_cash_result"] = safe_col(df, "estimated_portfolio_cash_result")
+    df["portfolio_cash_result"] = (
+        safe_col(df, "estimated_portfolio_cash_result")
+        - df["short_term_variable_period_costs"]
+        - df["unit_variable_costs_total"]
+    ).round(2)
 
     out_cols = [
         "portfolio_id",
@@ -276,6 +389,7 @@ def build_portfolio_month_financials() -> pd.DataFrame:
         "short_term_cleaning_fee",
         "short_term_tourist_tax",
         "short_term_booking_associated_costs",
+        "short_term_variable_period_costs",
         "short_term_rental_contribution",
         "short_term_fixed_allocated_costs",
         "short_term_attributed_profit",
@@ -287,6 +401,8 @@ def build_portfolio_month_financials() -> pd.DataFrame:
         "fixed_costs_long_term_units",
         "fixed_costs_vacant_units",
         "unit_fixed_costs_total",
+        "variable_costs_long_term_units",
+        "unit_variable_costs_total",
 
         # Final investor / portfolio result
         "portfolio_cash_result",
@@ -325,6 +441,8 @@ def main() -> None:
                 "year_month",
                 "host_payout",
                 "booking_associated_costs_total",
+                "energy_usage_cost",
+                "variable_period_costs_total",
                 "rental_contribution",
                 "attributable_fixed_costs_total",
                 "attributed_profit",
@@ -343,6 +461,7 @@ def main() -> None:
                 "short_term_attributed_profit",
                 "long_term_rent_net",
                 "fixed_costs_vacant_units",
+                "variable_costs_long_term_units",
                 "portfolio_cash_result",
             ]
         ].to_string(index=False)

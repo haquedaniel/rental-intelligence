@@ -3,20 +3,30 @@ expense_rules:
   category: concierge
   cost_family: booking_associated
   calculation_type: percentage_of_host_payout_minus_cleaning
-  percentage: 25
+  percentage: 24
   applies_to:
     portfolio_ids:
     - voilerie
     listing_ids:
     - apt4
     - apt5
+    - apt2
     include_channels:
     - airbnb
     - booking
-    exclude_channels:
     - direct
+    exclude_channels:
     start_date: 2026-01-01
     end_date: 2026-08-31
+- rule_id: cleaning_actual_apt2
+  category: cleaning_actual_cost
+  cost_family: booking_associated
+  calculation_type: equal_to_cleaning_fee_charged
+  applies_to:
+    listing_ids: [apt2]
+    include_channels: [airbnb, booking, direct]
+    start_date: 2026-01-01
+    end_date: null
 - rule_id: cleaning_actual_apt4
   category: cleaning_actual_cost
   cost_family: booking_associated
@@ -53,21 +63,6 @@ expense_rules:
   applies_to:
     listing_ids:
     - peskerezh_house
-    include_channels:
-    - airbnb
-    - booking
-    - direct
-    start_date: 2026-01-01
-    end_date: null
-- rule_id: electricity_usage_all
-  category: electricity_usage
-  cost_family: booking_associated
-  calculation_type: fixed_per_night
-  amount: 4
-  applies_to:
-    portfolio_ids:
-    - voilerie
-    - peskerezh
     include_channels:
     - airbnb
     - booking
@@ -367,6 +362,62 @@ expense_rules:
     start_date: 2026-01-01
     end_date: 2026-12-31
   allocation_method: split_evenly_across_listings
+- rule_id: energy_voilerie_str_cold
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 5
+  applies_to:
+    listing_ids: [apt2, apt4, apt5]
+    months: [1, 2, 3, 4, 11, 12]
+
+- rule_id: energy_voilerie_str_warm
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 1
+  applies_to:
+    listing_ids: [apt2, apt4, apt5]
+    months: [5, 6, 7, 8, 9, 10]
+
+- rule_id: energy_peskerezh_house_cold
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 10
+  applies_to:
+    listing_ids: [peskerezh_house]
+    months: [1, 2, 3, 4, 11, 12]
+
+- rule_id: energy_peskerezh_house_warm
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 2
+  applies_to:
+    listing_ids: [peskerezh_house]
+    months: [5, 6, 7, 8, 9, 10]
+
+- rule_id: energy_lot8_cold
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 3
+  applies_to:
+    unit_ids: [lot8]
+    months: [1, 2, 3, 4, 11, 12]
+    occupancy_basis: full_month
+
+- rule_id: energy_lot8_warm
+  category: energy_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 1
+  applies_to:
+    unit_ids: [lot8]
+    months: [5, 6, 7, 8, 9, 10]
+    occupancy_basis: full_month
+
 - rule_id: garden_lot7_2026
   category: garden
   cost_family: fixed_period
@@ -608,11 +659,3 @@ long_term_income:
   start_date: '2026-01-01'
   end_date: null
   notes: Includes charges and electricity.
-- income_id: rent_lot8_electricity_included_2026
-  portfolio_id: peskerezh
-  unit_id: lot8
-  category: long_term_electricity_included
-  amount_monthly: -50
-  start_date: '2026-01-01'
-  end_date: null
-  notes: Estimated electricity included in the €500 rent.
