@@ -418,6 +418,44 @@ expense_rules:
     months: [5, 6, 7, 8, 9, 10]
     occupancy_basis: full_month
 
+- rule_id: water_voilerie_str
+  category: water_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 3
+  applies_to:
+    listing_ids: [apt2, apt4, apt5]
+    months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+- rule_id: water_peskerezh_house
+  category: water_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 6
+  applies_to:
+    listing_ids: [peskerezh_house]
+    months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+- rule_id: water_lot6
+  category: water_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 3
+  applies_to:
+    unit_ids: [lot6]
+    months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    occupancy_basis: full_month
+
+- rule_id: water_lot8
+  category: water_usage
+  cost_family: variable_period
+  calculation_type: per_occupied_day
+  amount_per_day: 1
+  applies_to:
+    unit_ids: [lot8]
+    months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    occupancy_basis: full_month
+
 - rule_id: garden_lot7_2026
   category: garden
   cost_family: fixed_period

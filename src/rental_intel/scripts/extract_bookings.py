@@ -115,7 +115,26 @@ def normalize_booking(
     # In that case, override the normal parser with invoice-item-derived revenue.
     legacy_invoice_revenue = parse_legacy_invoice_items(booking)
 
-    if price == 0 and legacy_invoice_revenue["gross_booking_value"] > 0:
+    invoice_gross = legacy_invoice_revenue["gross_booking_value"]
+
+    channel_raw = str(
+        booking.get("channel")
+        or booking.get("apiSource")
+        or booking.get("referer")
+        or ""
+    ).lower()
+
+    referer_raw = str(booking.get("referer") or "").lower()
+    referer_editable = str(booking.get("refererEditable") or "").lower()
+
+    is_direct_like = (
+        "direct" in channel_raw
+        or "direct" in str(booking.get("apiSource") or "").lower()
+        or referer_raw in {"api", "app"}
+        or "legacy" in referer_editable
+    )
+
+    if invoice_gross > 0 and (price == 0 or is_direct_like):
         revenue = legacy_invoice_revenue
 
     channel = booking.get("channel") or booking.get("apiSource") or booking.get("referer")

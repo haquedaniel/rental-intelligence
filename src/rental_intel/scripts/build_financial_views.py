@@ -155,7 +155,11 @@ def build_listing_month_financials() -> pd.DataFrame:
     # Variable period costs, currently energy usage from variable_period_costs.csv.
     # The category column in variable_period_costs.csv is expected to be "energy_usage".
     df["energy_usage_cost"] = safe_col(df, "energy_usage")
-    df["variable_period_costs_total"] = df["energy_usage_cost"].round(2)
+    df["water_usage_cost"] = safe_col(df, "water_usage")
+
+    df["variable_period_costs_total"] = (
+        df["energy_usage_cost"] + df["water_usage_cost"]
+    ).round(2)
 
     df["booking_contribution"] = (
         safe_col(df, "host_payout") - df["booking_associated_costs_total"]
@@ -251,6 +255,7 @@ def build_listing_month_financials() -> pd.DataFrame:
 
         # Variable usage costs
         "energy_usage_cost",
+        "water_usage_cost",
         "variable_period_costs_total",
 
         # Level 1 result

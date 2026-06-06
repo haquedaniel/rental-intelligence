@@ -154,7 +154,8 @@ DISPLAY_LABELS = {
     "cleaning_fee_charged": "Cleaning charged",
     "actual_cleaning_cost": "Actual cleaning cost",
     "concierge_fee": "Concierge fee",
-    "electricity_usage_cost": "Usage cost",
+    "electricity_usage_cost": "Energy Usage cost",
+    "water_usage_cost": "Water usage cost",
     "booking_associated_costs_total": "Booking costs",
     "rental_contribution": "Rental contribution",
     "loan_payment": "Loan payment",
@@ -671,6 +672,7 @@ with tabs[3]:
         "booking_associated_costs_total",
         "booking_contribution",
         "energy_usage_cost",
+        "water_usage_cost",
         "variable_period_costs_total",
         "rental_contribution",
     ]

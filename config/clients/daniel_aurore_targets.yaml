@@ -82,3 +82,18 @@ monthly_targets:
       apt2: 600
       apt4: 525
       apt5: 450
+
+occupancy_targets:
+  default:
+    1: 15
+    2: 15
+    3: 15
+    4: 45
+    5: 45
+    6: 45
+    7: 85
+    8: 85
+    9: 55
+    10: 15
+    11: 15
+    12: 20
