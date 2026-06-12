@@ -24,7 +24,7 @@ COPY outputs ./outputs
 
 RUN pip install --upgrade pip \
     && pip install -e . \
-    && pip install streamlit plotly pandas openpyxl python-dotenv pyyaml requests
+    && pip install streamlit plotly pandas openpyxl python-dotenv pyyaml requests supabase
 
 EXPOSE 8501
 
