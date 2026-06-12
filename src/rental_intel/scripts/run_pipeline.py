@@ -32,8 +32,8 @@ FINANCIAL_ONLY = [
     "rental_intel.scripts.build_profitability",
     "rental_intel.scripts.build_portfolio_profitability",
     "rental_intel.scripts.build_variable_period_costs",
-    "rental_intel.scripts.build_price_floors",
     "rental_intel.scripts.build_financial_views",
+    "rental_intel.scripts.build_price_floors",
     "rental_intel.scripts.build_dashboard_kpis",
     "rental_intel.scripts.build_data_quality_report",
 ]
