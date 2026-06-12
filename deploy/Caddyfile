@@ -1,0 +1,7 @@
+missions.leclosdelavoilerie.com {
+    reverse_proxy cleaner-web:3000
+}
+
+cockpit.leclosdelavoilerie.com {
+    reverse_proxy cockpit:8501
+}

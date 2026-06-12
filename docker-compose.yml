@@ -1,12 +1,42 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: rental_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - cockpit
+      - cleaner-web
+
   cockpit:
     build: .
     container_name: rental_cockpit
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "8501:8501"
+    expose:
+      - "8501"
     volumes:
       - ./outputs:/app/outputs
       - ./config:/app/config
+    command: streamlit run src/rental_intel/ui/app.py --server.address=0.0.0.0 --server.port=8501
+
+  cleaner-web:
+    build:
+      context: ./apps/cleaner-web
+    container_name: cleaner_web
+    restart: unless-stopped
+    env_file:
+      - ./apps/cleaner-web/.env.local
+    expose:
+      - "3000"
+
+volumes:
+  caddy_data:
+  caddy_config:
