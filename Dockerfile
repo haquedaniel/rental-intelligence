@@ -28,4 +28,3 @@ RUN pip install --upgrade pip \
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app/cockpit.py"]

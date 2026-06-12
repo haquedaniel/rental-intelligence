@@ -1,5 +1,7 @@
 import { acceptMission, refuseMission } from "./actions";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{
@@ -46,6 +48,7 @@ function statusLabel(status: string) {
 
 export default async function MissionPage({ params }: PageProps) {
   const { token } = await params;
+  const supabaseAdmin = getSupabaseAdmin();
 
   const { data, error } = await supabaseAdmin
     .from("cleaning_requests")

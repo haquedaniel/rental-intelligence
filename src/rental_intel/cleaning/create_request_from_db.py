@@ -6,6 +6,11 @@ from zoneinfo import ZoneInfo
 
 from rental_intel.cleaning.db import get_supabase_client
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 def parse_dt(value: str | None) -> datetime | None:
     if value is None:
@@ -136,8 +141,6 @@ def main() -> None:
 
     request = result.data[0]
 
-    print(f"Cleaner link: http://localhost:3000/mission/{request['public_token']}")
-
     print()
     print("Cleaning request created")
     print("-" * 50)
@@ -149,7 +152,8 @@ def main() -> None:
     print(f"Status: {request['status']}")
     print()
 
-    cleaner_link = f"http://localhost:3000/mission/{request['public_token']}"
+    cleaner_web_base_url = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
+    cleaner_link = f"{cleaner_web_base_url}/mission/{request['public_token']}"
 
     print()
     print("WhatsApp message")

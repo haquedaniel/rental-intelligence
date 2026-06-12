@@ -1,9 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 async function getRequestByToken(token: string) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from("cleaning_requests")
     .select("id, status, public_token_expires_at")
@@ -37,6 +38,7 @@ export async function acceptMission(formData: FormData) {
     throw new Error("Cette mission ne peut plus être acceptée.");
   }
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { error } = await supabaseAdmin
     .from("cleaning_requests")
     .update({
@@ -69,7 +71,7 @@ export async function refuseMission(formData: FormData) {
   if (request.status !== "sent") {
     throw new Error("Cette mission ne peut plus être refusée.");
   }
-
+  const supabaseAdmin = getSupabaseAdmin();
   const { error } = await supabaseAdmin
     .from("cleaning_requests")
     .update({
