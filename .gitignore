@@ -1,7 +1,19 @@
+# Environment variables / secrets
 .env
+.env.*
+*.env
+*.env.*
+apps/*/.env
+apps/*/.env.*
+apps/*/*.env
+apps/*/*.env.*
+
+# Python
 __pycache__/
 *.pyc
 .venv/
+
+# Mac
 .DS_Store
 
 # Contains raw API data / guest data
@@ -19,4 +31,5 @@ data/manual/*
 !data/manual/.gitkeep
 !data/manual/reservations/
 !data/manual/reservations/.gitkeep
+
 outputs/logs/

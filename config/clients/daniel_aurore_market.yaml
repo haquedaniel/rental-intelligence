@@ -1,0 +1,217 @@
+settings:
+  apify_actor_id: sve/airbnb-price-scraper
+  max_scrapes_per_run: 200
+  alert_price_change_pct: 1
+  output_dir: outputs/market
+  locale: en
+  currency: EUR
+  max_retries: 1
+
+scenarios:
+  - scenario_id: rolling_7n_family
+    active: true
+    mode: relative_offsets
+    offset_days: [7, 14, 30]
+    nights: 7
+    adults: 2
+    children: 2
+    infants: 0
+    pets: 0
+
+  - scenario_id: rolling_7n_couple
+    active: true
+    mode: relative_offsets
+    offset_days: [7, 14, 30]
+    nights: 7
+    adults: 2
+    children: 0
+    infants: 0
+    pets: 0
+
+  - scenario_id: anchor_7n_family
+    active: true
+    mode: anchor_dates
+    nights: 7
+    adults: 2
+    children: 2
+    infants: 0
+    pets: 0
+    anchor_dates:
+      - 2026-07-15
+      - 2026-08-15
+      - 2026-09-15
+      - 2026-11-15
+      - 2026-12-30
+      - 2027-03-15
+      - 2027-05-08
+      - 2027-06-15
+
+  - scenario_id: anchor_7n_couple
+    active: true
+    mode: anchor_dates
+    nights: 7
+    adults: 2
+    children: 0
+    infants: 0
+    pets: 0
+    anchor_dates:
+      - 2026-07-15
+      - 2026-08-15
+      - 2026-09-15
+      - 2026-11-15
+      - 2026-12-30
+      - 2027-03-15
+      - 2027-05-08
+      - 2027-06-15
+
+own_listings:
+  - listing_id: apt2
+    portfolio_id: voilerie
+    market_set_id: voilerie_apartment_base
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - listing_id: apt4
+    portfolio_id: voilerie
+    market_set_id: voilerie_apartment_base
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - listing_id: apt5
+    portfolio_id: voilerie
+    market_set_id: voilerie_apartment_base
+    active: true
+    scenario_ids:
+      - rolling_7n_couple
+      - anchor_7n_couple
+
+  - listing_id: peskerezh_house
+    portfolio_id: peskerezh
+    market_set_id: peskerezh_house
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+competitors:
+  - competitor_id: audierne_comp_1492544508527700379
+    name: Airbnb 1492544508527700379
+    market_set_id: voilerie_apartment_base
+    source: airbnb
+    airbnb_id: "1492544508527700379"
+    expected_price_index: 1.0
+    active: true
+    guest_price_to_comparable_factor: 0.86
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - competitor_id: audierne_comp_47250197
+    name: Airbnb 47250197
+    market_set_id: voilerie_apartment_base
+    source: airbnb
+    airbnb_id: "47250197"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_couple
+      - anchor_7n_couple
+
+  - competitor_id: audierne_comp_960758531653404617
+    name: Airbnb 960758531653404617
+    market_set_id: voilerie_apartment_base
+    source: airbnb
+    airbnb_id: "960758531653404617"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_couple
+      - anchor_7n_couple
+
+  - competitor_id: audierne_comp_53526062
+    name: Airbnb 53526062
+    market_set_id: voilerie_apartment_base
+    source: airbnb
+    airbnb_id: "53526062"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_couple
+      - anchor_7n_couple
+      
+  - competitor_id: audierne_comp_1389006471713716400
+    name: Airbnb 1389006471713716400
+    market_set_id: voilerie_apartment_base
+    source: airbnb
+    airbnb_id: "1389006471713716400"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_couple
+      - anchor_7n_couple
+  
+  - competitor_id: peskerezh_comp_888359838251046233
+    name: Airbnb 888359838251046233
+    market_set_id: peskerezh_house
+    source: airbnb
+    airbnb_id: "888359838251046233"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - competitor_id: peskerezh_comp_1420777546871107974
+    name: Airbnb 1420777546871107974
+    market_set_id: peskerezh_house
+    source: airbnb
+    airbnb_id: "1420777546871107974"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - competitor_id: peskerezh_comp_775899800795530135
+    name: Airbnb 775899800795530135
+    market_set_id: peskerezh_house
+    source: airbnb
+    airbnb_id: "775899800795530135"
+    expected_price_index: 1.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - competitor_id: peskerezh_comp_53129921
+    name: Airbnb 53129921
+    market_set_id: peskerezh_house
+    source: airbnb
+    airbnb_id: "53129921"
+    expected_price_index: 2.0
+    guest_price_to_comparable_factor: 0.86
+    active: true
+    scenario_ids:
+      - rolling_7n_family
+      - anchor_7n_family
+
+  - competitor_id: le_goyen_hotel
+    name: Hôtel Le Goyen
+    market_set_id: audierne_premium_hotel
+    source: thais_prices_api
+    prices_api_url: "https://legoyen.thais-hotel.com/hub/api/booking-engine/prices"
+    expected_price_index: 1.0
+    active: true
+    room_type_ids: [3]
+    rate_ids: [4]
