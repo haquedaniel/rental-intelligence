@@ -60,23 +60,46 @@ export default async function CleaningReportPage({
     .eq("id", mission.property_id)
     .maybeSingle();
 
-  let templateQuery = supabase
-    .from("cleaning_checklist_templates")
-    .select("id,name,version,estimated_minutes")
-    .eq("property_id", mission.property_id)
-    .eq("active", true)
-    .order("version", { ascending: false })
-    .limit(1);
+
+  let template = null;
 
   if (mission.cleaning_profile_id) {
-    templateQuery = templateQuery.eq(
-      "cleaning_profile_id",
-      mission.cleaning_profile_id
-    );
+    const { data: exactTemplates } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("property_id", mission.property_id)
+      .eq("cleaning_profile_id", mission.cleaning_profile_id)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1);
+
+    template = exactTemplates?.[0] ?? null;
   }
 
-  const { data: templates } = await templateQuery;
-  const template = templates?.[0];
+  if (!template) {
+    const { data: defaultTemplates } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("property_id", mission.property_id)
+      .is("cleaning_profile_id", null)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1);
+
+    template = defaultTemplates?.[0] ?? null;
+  }
+
+  if (!template) {
+    const { data: propertyTemplates } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("property_id", mission.property_id)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1);
+
+    template = propertyTemplates?.[0] ?? null;
+  }
 
   if (!template) {
     return (

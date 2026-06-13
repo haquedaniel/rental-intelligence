@@ -53,7 +53,44 @@ export async function submitCleaningReport(formData: FormData) {
     throw new Error("Le rapport ne peut être complété qu'après acceptation de la mission.");
   }
 
-  let templateQuery = supabase
+  let template = null;
+
+  if (mission.cleaning_profile_id) {
+    const { data: exactTemplates, error: exactTemplateError } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("property_id", mission.property_id)
+      .eq("cleaning_profile_id", mission.cleaning_profile_id)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1);
+
+    if (exactTemplateError) {
+      console.error("Exact checklist template query failed", exactTemplateError);
+    }
+
+    template = exactTemplates?.[0] ?? null;
+  }
+
+  if (!template) {
+    const { data: defaultTemplates, error: defaultTemplateError } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("property_id", mission.property_id)
+      .is("cleaning_profile_id", null)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1);
+
+    if (defaultTemplateError) {
+      console.error("Default checklist template query failed", defaultTemplateError);
+    }
+
+    template = defaultTemplates?.[0] ?? null;
+  }
+
+if (!template) {
+  const { data: propertyTemplates, error: propertyTemplateError } = await supabase
     .from("cleaning_checklist_templates")
     .select("id,name,version,estimated_minutes")
     .eq("property_id", mission.property_id)
@@ -61,20 +98,16 @@ export async function submitCleaningReport(formData: FormData) {
     .order("version", { ascending: false })
     .limit(1);
 
-  if (mission.cleaning_profile_id) {
-    templateQuery = templateQuery.eq(
-      "cleaning_profile_id",
-      mission.cleaning_profile_id
-    );
+  if (propertyTemplateError) {
+    console.error("Property checklist template query failed", propertyTemplateError);
   }
 
-  const { data: templates, error: templateError } = await templateQuery;
+  template = propertyTemplates?.[0] ?? null;
+}
 
-  if (templateError || !templates || templates.length === 0) {
-    throw new Error("Aucune checklist active n'est configurée pour cette mission.");
-  }
-
-  const template = templates[0];
+if (!template) {
+  throw new Error("Aucune checklist active n'est configurée pour cette mission.");
+}
 
   const { data: sections, error: sectionsError } = await supabase
     .from("cleaning_checklist_sections")
