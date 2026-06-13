@@ -9,6 +9,7 @@ from rental_intel.ui.page_modules.market import render_market_page
 from rental_intel.ui.page_modules.operations import render_operations_page
 from rental_intel.ui.page_modules.outlook import render_outlook_page
 from rental_intel.ui.page_modules.profitability import render_profitability_page
+from rental_intel.ui.page_modules.cleaning_reports import render_cleaning_reports_page
 
 
 st.set_page_config(
@@ -28,6 +29,7 @@ PAGES = {
     "04 · Drill-down concurrents": render_competitor_deep_dive_page,
     "05 · Rentabilité": render_profitability_page,
     "06 · Opérations": render_operations_page,
+    "07 · Rapports ménage": render_cleaning_reports_page,
 }
 
 
