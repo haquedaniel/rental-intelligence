@@ -150,10 +150,23 @@ export function ReportForm({
                   : "à venir"}
               </button>
 
-              {section.photo_requirement !== "none" && (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  Photo possible plus tard
-                </span>
+              {section.photo_requirement !== "none" && !alreadySubmitted && (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+                  <label className="block text-sm font-semibold text-slate-900">
+                    Photo après ménage
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Optionnel pour l’instant. Utile pour confirmer l’état final ou signaler
+                    un détail.
+                  </p>
+                  <input
+                    type="file"
+                    name={`photo_${section.section_key}`}
+                    accept="image/*"
+                    capture="environment"
+                    className="mt-3 block w-full text-sm text-slate-700"
+                  />
+                </div>
               )}
             </div>
 
