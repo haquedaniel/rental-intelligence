@@ -47,6 +47,8 @@ export function ReportForm({
   const [checkedSections, setCheckedSections] =
     useState<Record<string, boolean>>(initialChecked);
 
+  const [photoNames, setPhotoNames] = useState<Record<string, string>>({});
+
   const requiredSections = useMemo(
     () => sections.filter((section) => section.required),
     [sections]
@@ -151,21 +153,46 @@ export function ReportForm({
               </button>
 
               {section.photo_requirement !== "none" && !alreadySubmitted && (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-                  <label className="block text-sm font-semibold text-slate-900">
-                    Photo après ménage
-                  </label>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Optionnel pour l’instant. Utile pour confirmer l’état final ou signaler
-                    un détail.
-                  </p>
+                <div className="mt-4">
                   <input
+                    id={`photo_${section.section_key}`}
                     type="file"
                     name={`photo_${section.section_key}`}
                     accept="image/*"
                     capture="environment"
-                    className="mt-3 block w-full text-sm text-slate-700"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      setPhotoNames((current) => ({
+                        ...current,
+                        [section.section_key]: file?.name ?? "",
+                      }));
+                    }}
                   />
+
+                  <label
+                    htmlFor={`photo_${section.section_key}`}
+                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 p-4"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-2xl text-white">
+                      📷
+                    </span>
+
+                    <span className="flex-1">
+                      <span className="block text-sm font-semibold text-emerald-950">
+                        Prendre une photo après ménage
+                      </span>
+                      <span className="mt-1 block text-xs text-emerald-800">
+                        Optionnel pour l’instant. Utile pour confirmer l’état final.
+                      </span>
+
+                      {photoNames[section.section_key] && (
+                        <span className="mt-2 block text-xs font-medium text-emerald-700">
+                          Photo sélectionnée ✅
+                        </span>
+                      )}
+                    </span>
+                  </label>
                 </div>
               )}
             </div>
