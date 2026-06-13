@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { submitCleaningReport } from "./actions";
+import { useFormStatus } from "react-dom";
 
 type Section = {
   section_key: string;
@@ -21,6 +22,47 @@ type ReportFormProps = {
   sections: Section[];
   alreadySubmitted: boolean;
 };
+
+function PendingOverlay() {
+  const { pending } = useFormStatus();
+
+  if (!pending) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/85 px-6 backdrop-blur-sm">
+      <div className="max-w-sm rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-xl">
+        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
+
+        <h2 className="text-lg font-bold text-slate-950">
+          Envoi du rapport en cours…
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-600">
+          Les photos peuvent prendre quelques secondes. Merci de ne pas fermer cette page.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={!canSubmit || pending}
+      className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-base font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-300"
+    >
+      {pending && (
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      )}
+      {pending ? "Envoi en cours…" : "Envoyer le rapport"}
+    </button>
+  );
+}
 
 export function ReportForm({
   token,
@@ -73,7 +115,7 @@ export function ReportForm({
   return (
     <form action={submitCleaningReport} className="space-y-5">
       <input type="hidden" name="token" value={token} />
-
+      <PendingOverlay />
       {Object.entries(viewedSections).map(([sectionKey, viewed]) =>
         viewed ? (
           <input
@@ -204,20 +246,29 @@ export function ReportForm({
                   : "border-slate-200 bg-slate-50"
               }`}
             >
-              <input
-                type="checkbox"
-                name="checkedSections"
-                value={section.section_key}
-                checked={isChecked}
-                disabled={!hasViewed || alreadySubmitted}
-                onChange={(event) =>
-                  setCheckedSections((current) => ({
+            <input
+              type="checkbox"
+              name="checkedSections"
+              value={section.section_key}
+              checked={isChecked}
+              disabled={!hasViewed || alreadySubmitted}
+              onChange={(event) => {
+                const checked = event.target.checked;
+
+                setCheckedSections((current) => ({
+                  ...current,
+                  [section.section_key]: checked,
+                }));
+
+                if (checked) {
+                  setOpenSections((current) => ({
                     ...current,
-                    [section.section_key]: event.target.checked,
-                  }))
+                    [section.section_key]: false,
+                  }));
                 }
-                className="mt-1 h-5 w-5"
-              />
+              }}
+              className="mt-1 h-5 w-5"
+            />
 
               <span>
                 <span className="block text-sm font-semibold text-slate-900">
@@ -293,17 +344,8 @@ export function ReportForm({
       </section>
 
       {!alreadySubmitted && (
-        <button
-          type="submit"
-          disabled={!allRequiredChecked}
-          className={`w-full rounded-2xl px-4 py-4 text-base font-semibold text-white ${
-            allRequiredChecked
-              ? "bg-emerald-600"
-              : "cursor-not-allowed bg-slate-300"
-          }`}
-        >
-          Envoyer le rapport de ménage
-        </button>
+      <SubmitButton canSubmit={allRequiredChecked} />
+
       )}
 
       {!allRequiredChecked && !alreadySubmitted && (
