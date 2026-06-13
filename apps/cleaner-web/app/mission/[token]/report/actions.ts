@@ -26,7 +26,7 @@ export async function submitCleaningReport(formData: FormData) {
   const { data: mission, error: missionError } = await supabase
     .from("cleaning_requests")
     .select(
-      "id,status,property_id,cleaning_profile_id,public_token_expires_at"
+      "id,status,property_id,cleaning_profile_id,assigned_cleaner_id,public_token_expires_at"
     )
     .eq("public_token", token)
     .single();
@@ -187,17 +187,25 @@ if (!template) {
     })),
   };
 
+  if (!mission.assigned_cleaner_id) {
+    throw new Error("Aucune intervenante n'est associée à cette mission.");
+  }
+
   const { data: report, error: reportError } = await supabase
     .from("cleaning_reports")
     .upsert(
       {
         cleaning_request_id: mission.id,
+        cleaner_id: mission.assigned_cleaner_id,
+
         checklist_template_id: template.id,
         checklist_version: template.version,
         checklist_snapshot: checklistSnapshot,
         status: hasProblem ? "problem_reported" : "submitted",
         submitted_at: now,
         ready_for_guests: !hasProblem,
+
+      // rest unchanged...
 
         damage_found: damageFound,
         damage_notes: textValue(formData, "damage_notes"),
