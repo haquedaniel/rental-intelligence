@@ -1,5 +1,6 @@
 import { acceptMission, refuseMission } from "./actions";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -232,7 +233,13 @@ export default async function MissionPage({ params }: PageProps) {
               <p className="mt-1 text-sm">
                 Elle apparaît maintenant comme acceptée pour le propriétaire.
               </p>
+              <Link
+              href={`/mission/${token}/report`}
+              className="block w-full rounded-2xl bg-emerald-600 px-4 py-4 text-center text-base font-semibold text-white">
+              Commencer le rapport de ménage
+            </Link>
             </div>
+
           )}
 
           {isRefused && (
