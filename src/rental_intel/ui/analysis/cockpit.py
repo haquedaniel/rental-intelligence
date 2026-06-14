@@ -308,6 +308,21 @@ def build_cockpit_summary(
 
         if "occupancy_pct" in month_fin.columns:
             agg_spec["occupancy_pct"] = ("occupancy_pct", "mean")
+            
+        for col in ["attributed_profit", "rental_contribution"]:
+            if col not in month_fin.columns:
+                month_fin[col] = 0.0
+
+        month_fin["attributed_profit"] = pd.to_numeric(
+            month_fin["attributed_profit"],
+            errors="coerce",
+        ).fillna(0.0)
+
+        month_fin["rental_contribution"] = pd.to_numeric(
+            month_fin["rental_contribution"],
+            errors="coerce",
+        ).fillna(0.0)
+
 
         listing_summary = (
             month_fin.groupby(group_cols, dropna=False)
