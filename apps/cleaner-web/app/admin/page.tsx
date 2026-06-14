@@ -41,13 +41,16 @@ export default async function AdminHomePage() {
             </p>
           </Link>
 
-          <div className="rounded-3xl bg-white p-5 opacity-60 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-bold text-slate-950">
-              Checklists
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Prochaine étape : modifier les rubriques et points à vérifier.
-            </p>
+        <div className="grid gap-4 sm:grid-cols-2">            
+          <Link
+              href="/admin/checklists"
+              className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+            >
+              <h2 className="text-lg font-bold text-slate-950">Checklists</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Modifier les rubriques et les points à vérifier pour chaque logement.
+              </p>
+            </Link>
           </div>
         </div>
       </div>
