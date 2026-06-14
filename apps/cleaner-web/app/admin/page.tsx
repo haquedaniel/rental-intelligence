@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { logoutAdmin } from "./login/actions";
-
+export const dynamic = "force-dynamic";
 export default async function AdminHomePage() {
   await requireAdmin();
 

@@ -1,5 +1,5 @@
 import { loginAdmin } from "./actions";
-
+export const dynamic = "force-dynamic";
 type PageProps = {
   searchParams?: Promise<{ error?: string }>;
 };

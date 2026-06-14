@@ -6,7 +6,7 @@ import {
   updateReferencePhoto,
   deactivateReferencePhoto,
 } from "./actions";
-
+export const dynamic = "force-dynamic";
 type PageProps = {
   searchParams?: Promise<{ property_id?: string }>;
 };
