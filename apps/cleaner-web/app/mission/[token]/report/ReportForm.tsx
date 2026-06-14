@@ -17,10 +17,20 @@ type Section = {
   existing_notes?: string | null;
 };
 
+type ReferencePhoto = {
+  id: string;
+  section_key: string | null;
+  title: string | null;
+  signedUrl: string | null;
+  is_cover: boolean;
+  display_order: number;
+};
+
 type ReportFormProps = {
   token: string;
   sections: Section[];
   alreadySubmitted: boolean;
+  referencePhotos: ReferencePhoto[];
 };
 
 function PendingOverlay() {
@@ -68,6 +78,7 @@ export function ReportForm({
   token,
   sections,
   alreadySubmitted,
+  referencePhotos,
 }: ReportFormProps) {
   const initialViewed = Object.fromEntries(
     sections.map((section) => [
@@ -90,6 +101,13 @@ export function ReportForm({
     useState<Record<string, boolean>>(initialChecked);
 
   const [photoNames, setPhotoNames] = useState<Record<string, string>>({});
+
+  const [selectedReferencePhoto, setSelectedReferencePhoto] =
+  useState<ReferencePhoto | null>(null);
+
+  const coverPhoto = referencePhotos.find(
+    (photo) => photo.is_cover && photo.signedUrl
+  );
 
   const requiredSections = useMemo(
     () => sections.filter((section) => section.required),
@@ -126,7 +144,23 @@ export function ReportForm({
           />
         ) : null
       )}
-
+      {coverPhoto?.signedUrl && (
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <img
+            src={coverPhoto.signedUrl}
+            alt={coverPhoto.title ?? "Photo du logement"}
+            className="h-40 w-full object-cover"
+          />
+          <div className="p-4">
+            <p className="text-sm font-semibold text-slate-950">
+              {coverPhoto.title ?? "Logement à préparer"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Utilisez les photos modèles pour vérifier l’état attendu du logement.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-base font-semibold text-slate-900">
           Checklist de ménage
@@ -141,6 +175,13 @@ export function ReportForm({
         const isOpen = Boolean(openSections[section.section_key]);
         const hasViewed = Boolean(viewedSections[section.section_key]);
         const isChecked = Boolean(checkedSections[section.section_key]);
+
+        const sectionReferencePhotos = referencePhotos.filter(
+          (photo) =>
+            !photo.is_cover &&
+            photo.section_key === section.section_key &&
+            photo.signedUrl
+        );
 
         return (
           <section
@@ -178,21 +219,37 @@ export function ReportForm({
             )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                disabled={section.reference_photo_count === 0}
-                title={
-                  section.reference_photo_count === 0
-                    ? "Photos modèle à ajouter plus tard"
-                    : "Voir les photos modèle"
-                }
-              >
-                Photos modèle{" "}
-                {section.reference_photo_count > 0
-                  ? `(${section.reference_photo_count})`
-                  : "à venir"}
-              </button>
+              {sectionReferencePhotos.length > 0 ? (
+              <div className="w-full">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Photos modèles
+                </p>
+
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {sectionReferencePhotos.map((photo) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setSelectedReferencePhoto(photo)}
+                      className="shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                    >
+                      <img
+                        src={photo.signedUrl ?? ""}
+                        alt={photo.title ?? "Photo modèle"}
+                        className="h-20 w-28 object-cover"
+                      />
+                      <div className="max-w-28 truncate px-2 py-1 text-left text-[11px] text-slate-600">
+                        {photo.title ?? "Photo modèle"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                Photos modèle à venir
+              </span>
+            )}
 
               {section.photo_requirement !== "none" && !alreadySubmitted && (
                 <div className="mt-4">
@@ -353,6 +410,31 @@ export function ReportForm({
           Toutes les rubriques obligatoires doivent être validées avant l’envoi.
         </p>
       )}
+
+      {selectedReferencePhoto?.signedUrl && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+        <button
+          type="button"
+          onClick={() => setSelectedReferencePhoto(null)}
+          className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950"
+        >
+          Fermer
+        </button>
+
+        <div className="max-h-full max-w-3xl overflow-hidden rounded-3xl bg-white">
+          <img
+            src={selectedReferencePhoto.signedUrl}
+            alt={selectedReferencePhoto.title ?? "Photo modèle"}
+            className="max-h-[75vh] w-full object-contain"
+          />
+          <div className="p-4">
+            <p className="font-semibold text-slate-950">
+              {selectedReferencePhoto.title ?? "Photo modèle"}
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
     </form>
   );
 }

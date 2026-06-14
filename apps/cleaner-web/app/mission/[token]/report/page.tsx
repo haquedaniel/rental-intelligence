@@ -9,6 +9,24 @@ type PageProps = {
   searchParams?: Promise<{ submitted?: string }>;
 };
 
+async function withSignedReferencePhotoUrls(
+  supabase: ReturnType<typeof import("@/lib/supabaseAdmin").getSupabaseAdmin>,
+  photos: any[],
+) {
+  return Promise.all(
+    photos.map(async (photo) => {
+      const { data, error } = await supabase.storage
+        .from(photo.storage_bucket)
+        .createSignedUrl(photo.storage_path, 60 * 60);
+
+      return {
+        ...photo,
+        signedUrl: error ? null : data?.signedUrl ?? null,
+      };
+    }),
+  );
+}
+
 export default async function CleaningReportPage({
   params,
   searchParams,
@@ -22,7 +40,7 @@ export default async function CleaningReportPage({
   const { data: mission, error: missionError } = await supabase
     .from("cleaning_requests")
     .select(
-      "id,status,property_id,cleaning_profile_id,scheduled_start_at,public_token_expires_at"
+      "id,status,property_id,cleaning_profile_id,scheduled_start_at,public_token_expires_at",
     )
     .eq("public_token", token)
     .single();
@@ -60,8 +78,7 @@ export default async function CleaningReportPage({
     .eq("id", mission.property_id)
     .maybeSingle();
 
-
-  let template = null;
+  let template: any = null;
 
   if (mission.cleaning_profile_id) {
     const { data: exactTemplates } = await supabase
@@ -110,10 +127,31 @@ export default async function CleaningReportPage({
     );
   }
 
+  const { data: referencePhotoRows, error: referencePhotosError } =
+    await supabase
+      .from("property_reference_photos")
+      .select(
+        "id,property_id,section_key,title,storage_bucket,storage_path,is_cover,display_order,is_active",
+      )
+      .eq("property_id", mission.property_id)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true });
+
+  if (referencePhotosError) {
+    throw new Error(
+      `Impossible de charger les photos modèles : ${referencePhotosError.message}`,
+    );
+  }
+
+  const referencePhotos = await withSignedReferencePhotoUrls(
+    supabase,
+    referencePhotoRows ?? [],
+  );
+
   const { data: sectionsData } = await supabase
     .from("cleaning_checklist_sections")
     .select(
-      "section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement"
+      "section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement",
     )
     .eq("template_id", template.id)
     .order("order_index", { ascending: true });
@@ -134,22 +172,20 @@ export default async function CleaningReportPage({
     : { data: [] };
 
   const checksByKey = Object.fromEntries(
-    (existingChecks ?? []).map((check: any) => [check.section_key, check])
+    (existingChecks ?? []).map((check: any) => [check.section_key, check]),
   );
 
-  const { data: referencePhotos } = await supabase
-    .from("property_reference_photos")
-    .select("id,section_key")
-    .eq("property_id", mission.property_id)
-    .eq("active", true);
-
-  const referencePhotoCounts = (referencePhotos ?? []).reduce(
+  const referencePhotoCounts = referencePhotos.reduce(
     (acc: Record<string, number>, photo: any) => {
+      if (photo.is_cover) {
+        return acc;
+      }
+
       const key = photo.section_key ?? "general";
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     },
-    {}
+    {},
   );
 
   const normalizedSections = sections.map((section: any) => {
@@ -225,6 +261,7 @@ export default async function CleaningReportPage({
           token={token}
           sections={normalizedSections}
           alreadySubmitted={alreadySubmitted}
+          referencePhotos={referencePhotos}
         />
       </div>
     </main>
