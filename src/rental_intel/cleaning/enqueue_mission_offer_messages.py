@@ -196,11 +196,11 @@ def insert_message(
         supabase.table("outbound_messages")
         .select("id")
         .eq("event_key", event_key)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
 
-    if existing.data:
+    if existing and existing.data:
         return False
 
     supabase.table("outbound_messages").insert(
