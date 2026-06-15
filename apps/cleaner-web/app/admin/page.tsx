@@ -77,6 +77,18 @@ export default async function AdminHomePage() {
           </p>
         </Link>
 
+        <Link
+          href="/admin/operations"
+          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <h2 className="text-lg font-bold text-slate-950">
+            Planning opérations
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Séjours, départs, ménages, intervenantes et alertes opérationnelles.
+          </p>
+        </Link>
+
         </div>
 
         </div>
