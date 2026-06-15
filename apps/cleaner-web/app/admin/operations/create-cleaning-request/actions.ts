@@ -153,15 +153,20 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
     .limit(1)
     .maybeSingle();
 
-  const existingResult = await supabase
+  const { data: existingRequests, error: existingRequestError } = await supabase
     .from("cleaning_requests")
     .select("*")
     .eq("reservation_id", reservationId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .execute();
+    .limit(1);
 
-  const existingRequest = (existingResult.data ?? [])[0];
+  if (existingRequestError) {
+    throw new Error(
+      `Impossible de vérifier les missions existantes : ${existingRequestError.message}`,
+    );
+  }
+
+  const existingRequest = (existingRequests ?? [])[0];
 
   if (
     existingRequest &&
