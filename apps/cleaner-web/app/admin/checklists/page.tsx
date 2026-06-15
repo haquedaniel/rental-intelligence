@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import {
   addChecklistSection,
+  createBlankChecklist,
   createStandardChecklist,
   updateChecklistSection,
   updateChecklistTemplate,
@@ -85,8 +86,8 @@ export default async function AdminChecklistsPage({ searchParams }: PageProps) {
       const { data: sectionRows } = await supabase
         .from("cleaning_checklist_sections")
         .select(
-          "id,section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement",
-        )
+          "id,section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement,active",
+        )        
         .eq("template_id", template.id)
         .order("order_index", { ascending: true });
 
@@ -130,7 +131,56 @@ export default async function AdminChecklistsPage({ searchParams }: PageProps) {
             ))}
           </div>
         </section>
+        {propertyId && (
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-950">
+              Créer une nouvelle checklist vierge
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Cette action remplace la checklist active de ce logement par une nouvelle
+              checklist vide. Vous pourrez ensuite ajouter les rubriques une par une.
+            </p>
 
+            <form
+              action={createBlankChecklist}
+              className="mt-4 grid gap-4 md:grid-cols-3"
+            >
+              <input type="hidden" name="property_id" value={propertyId} />
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-800">
+                  Nom
+                </label>
+                <input
+                  name="name"
+                  defaultValue="Ménage standard"
+                  className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-800">
+                  Durée estimée en minutes
+                </label>
+                <input
+                  name="estimated_minutes"
+                  type="number"
+                  defaultValue={120}
+                  className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 font-semibold text-amber-900"
+                >
+                  Créer vierge
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
         {propertyId && !template && (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
             <h2 className="text-lg font-bold">Aucune checklist active</h2>
@@ -317,6 +367,11 @@ export default async function AdminChecklistsPage({ searchParams }: PageProps) {
                         Obligatoire
                       </span>
                     )}
+                    {!section.active && (
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+                        Masquée
+                      </span>
+                    )}
                   </div>
 
                   <form
@@ -391,6 +446,15 @@ export default async function AdminChecklistsPage({ searchParams }: PageProps) {
                         defaultChecked={section.required}
                       />
                       Rubrique obligatoire
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="active"
+                        defaultChecked={section.active}
+                      />
+                      Visible pour l’intervenante
                     </label>
 
                     <div className="md:col-span-2">

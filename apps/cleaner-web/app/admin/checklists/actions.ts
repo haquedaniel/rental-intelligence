@@ -179,7 +179,7 @@ export async function createStandardChecklist(formData: FormData) {
       name: "Ménage standard",
       version: 1,
       estimated_minutes: 120,
-      active: true,
+      active: boolValue(formData, "active"),
     })
     .select("id")
     .single();
@@ -202,6 +202,64 @@ export async function createStandardChecklist(formData: FormData) {
   if (sectionsError) {
     throw new Error(
       `Checklist créée, mais rubriques non créées : ${sectionsError.message}`,
+    );
+  }
+
+  redirectToChecklists(propertyId);
+}
+
+export async function createBlankChecklist(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const propertyId = textValue(formData, "property_id");
+  const name = textValue(formData, "name") || "Nouvelle checklist";
+  const estimatedMinutes = numberValue(formData, "estimated_minutes", 120);
+
+  if (!propertyId) {
+    throw new Error("Logement manquant");
+  }
+
+  const { data: existingTemplates, error: existingError } = await supabase
+    .from("cleaning_checklist_templates")
+    .select("id,version")
+    .eq("property_id", propertyId)
+    .order("version", { ascending: false });
+
+  if (existingError) {
+    throw new Error(
+      `Impossible de lire les checklists existantes : ${existingError.message}`,
+    );
+  }
+
+  const nextVersion =
+    Math.max(0, ...((existingTemplates ?? []).map((template) => Number(template.version) || 0))) + 1;
+
+  const { error: deactivateError } = await supabase
+    .from("cleaning_checklist_templates")
+    .update({ active: false })
+    .eq("property_id", propertyId);
+
+  if (deactivateError) {
+    throw new Error(
+      `Impossible de désactiver l'ancienne checklist : ${deactivateError.message}`,
+    );
+  }
+
+  const { error: insertError } = await supabase
+    .from("cleaning_checklist_templates")
+    .insert({
+      property_id: propertyId,
+      name,
+      version: nextVersion,
+      estimated_minutes: estimatedMinutes,
+      active: true,
+    });
+
+  if (insertError) {
+    throw new Error(
+      `Impossible de créer la checklist vierge : ${insertError.message}`,
     );
   }
 
@@ -300,6 +358,7 @@ export async function addChecklistSection(formData: FormData) {
     order_index: numberValue(formData, "order_index", 100),
     required: boolValue(formData, "required"),
     photo_requirement: textValue(formData, "photo_requirement") || "none",
+    active: true,
   });
 
   if (error) {
