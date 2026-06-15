@@ -17,6 +17,14 @@ function numberValue(formData: FormData, key: string, fallback: number): number 
   return Number.isFinite(value) ? Math.round(value) : fallback;
 }
 
+function nullableNumberValue(formData: FormData, key: string): number | null {
+  const raw = textValue(formData, key);
+  if (!raw) return null;
+
+  const value = Number(raw.replace(",", "."));
+  return Number.isFinite(value) ? value : null;
+}
+
 function boolValue(formData: FormData, key: string): boolean {
   return formData.get(key) === "on";
 }
@@ -92,6 +100,7 @@ export async function saveAssignment(formData: FormData) {
         cleaner_id: cleanerId,
         role,
         priority: numberValue(formData, "priority", role === "primary" ? 1 : 2),
+        travel_distance_km: nullableNumberValue(formData, "travel_distance_km"),
         familiar: boolValue(formData, "familiar"),
         active,
         notes: textValue(formData, "notes") || null,

@@ -20,7 +20,7 @@ JOB_NAME = "create_cleaning_requests_from_reservations"
 LOOKAHEAD_DAYS = int(os.getenv("CLEANING_REQUEST_LOOKAHEAD_DAYS", "365"))
 LOOKBACK_DAYS = int(os.getenv("CLEANING_REQUEST_LOOKBACK_DAYS", "2"))
 DEFAULT_PROFILE_CODE = os.getenv("CLEANING_PROFILE_CODE", "light")
-DEFAULT_CLEANER_DISTANCE_KM = float(os.getenv("DEFAULT_CLEANER_DISTANCE_KM", "7.0"))
+DEFAULT_CLEANER_DISTANCE_KM = float(os.getenv("DEFAULT_CLEANER_DISTANCE_KM", "0.0"))
 CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
 
 # Keep this as "sent" for now so we do not break the existing cleaner mission page.
@@ -261,6 +261,7 @@ def candidate_rows_for_property(
                 "role": assignment.get("role") or "backup",
                 "priority": int(assignment.get("priority") or 99),
                 "familiar": bool(assignment.get("familiar")),
+                "travel_distance_km": assignment.get("travel_distance_km"),
                 "source": "property_cleaner_assignments",
             }
         )
@@ -277,6 +278,7 @@ def candidate_rows_for_property(
                     "role": "primary",
                     "priority": 1,
                     "familiar": False,
+                    "travel_distance_km": None,
                     "source": "properties.preferred_cleaner_id",
                 }
             )
@@ -394,6 +396,7 @@ def build_request_payload(
     scheduled_start_local: datetime,
     scheduled_end_local: datetime,
     existing_request: dict | None,
+    travel_distance_km: float | int | str | None = None,
 ) -> tuple[dict, dict]:
     checkout_at = parse_dt(reservation.get("checkout_at"))
 
@@ -407,7 +410,10 @@ def build_request_payload(
     if next_checkin_at:
         urgent = (next_checkin_at - checkout_at) <= timedelta(hours=36)
 
-    distance_km = DEFAULT_CLEANER_DISTANCE_KM
+    if travel_distance_km is None or travel_distance_km == "":
+        distance_km = DEFAULT_CLEANER_DISTANCE_KM
+    else:
+        distance_km = float(travel_distance_km)
 
     included_radius = float(cleaner.get("included_radius_km") or 0)
     hourly_rate = float(cleaner.get("hourly_rate_eur") or 0)
@@ -641,6 +647,7 @@ def main() -> None:
                 scheduled_start_local=scheduled_start_local,
                 scheduled_end_local=scheduled_end_local,
                 existing_request=existing_request,
+                travel_distance_km=candidate.get("travel_distance_km"),
             )
 
             if existing_request:
@@ -666,6 +673,7 @@ def main() -> None:
                 f"{candidate['role']}"
                 f", priority {candidate['priority']}"
                 f", familiar={candidate['familiar']}"
+                f", distance={candidate.get('travel_distance_km') if candidate.get('travel_distance_km') is not None else DEFAULT_CLEANER_DISTANCE_KM}km"
             )
 
             log(

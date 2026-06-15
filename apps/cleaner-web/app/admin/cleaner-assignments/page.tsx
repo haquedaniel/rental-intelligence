@@ -201,6 +201,20 @@ export default async function CleanerAssignmentsPage({
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-semibold text-slate-800">
+                Distance trajet (km)
+              </label>
+              <input
+                name="travel_distance_km"
+                type="number"
+                step="0.1"
+                min={0}
+                placeholder="Ex: 3.5"
+                className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
+              />
+            </div>
+
             <label className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
               <input type="checkbox" name="familiar" defaultChecked />
               Connaît déjà le logement
@@ -315,6 +329,13 @@ export default async function CleanerAssignmentsPage({
                               Priorité {assignment.priority}
                             </span>
 
+                            {assignment.travel_distance_km !== null &&
+                              assignment.travel_distance_km !== undefined && (
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                  {assignment.travel_distance_km} km
+                                </span>
+                              )}
+
                             {assignment.familiar && (
                               <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
                                 Connaît le logement
@@ -366,6 +387,20 @@ export default async function CleanerAssignmentsPage({
                                 type="number"
                                 min={1}
                                 defaultValue={assignment.priority}
+                                className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-700">
+                                Distance trajet (km)
+                              </label>
+                              <input
+                                name="travel_distance_km"
+                                type="number"
+                                step="0.1"
+                                min={0}
+                                defaultValue={assignment.travel_distance_km ?? ""}
                                 className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
                               />
                             </div>
