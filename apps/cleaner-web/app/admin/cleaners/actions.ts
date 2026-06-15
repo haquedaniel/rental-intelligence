@@ -167,7 +167,10 @@ export async function createCleaner(formData: FormData) {
 
   const { data, error } = await supabase
     .from("cleaners")
-    .insert(payload)
+    .insert({
+      ...payload,
+      public_token: randomUUID().replaceAll("-", ""),
+    })
     .select("id")
     .single();
 
