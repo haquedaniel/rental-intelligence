@@ -28,7 +28,6 @@ CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000"
 INITIAL_REQUEST_STATUS = os.getenv("CLEANING_REQUEST_INITIAL_STATUS", "created")
 
 FINAL_OR_HUMAN_LOCKED_STATUSES = {
-    "accepted",
     "refused",
     "completed",
     "report_submitted",
@@ -56,6 +55,75 @@ def parse_time(value: str | None) -> time | None:
 
 def money(value: float) -> float:
     return round(float(value), 2)
+
+
+IMPORTANT_CHANGE_FIELDS = {
+    "assigned_cleaner_id",
+    "scheduled_start_at",
+    "scheduled_end_at",
+    "urgent",
+    "number_of_guests",
+    "linen_required",
+    "laundry_required",
+    "estimated_hours",
+    "cleaning_cost_eur",
+    "travel_distance_km",
+    "billable_travel_km",
+    "travel_cost_eur",
+    "urgency_bonus_percent",
+    "urgency_bonus_eur",
+    "total_cost_eur",
+}
+
+
+def comparable_value(key: str, value):
+    if value is None:
+        return None
+
+    if key in {"scheduled_start_at", "scheduled_end_at"}:
+        parsed = parse_dt(str(value))
+        if not parsed:
+            return None
+        return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+
+    if key in {
+        "estimated_hours",
+        "cleaning_cost_eur",
+        "travel_distance_km",
+        "billable_travel_km",
+        "travel_cost_eur",
+        "urgency_bonus_percent",
+        "urgency_bonus_eur",
+        "total_cost_eur",
+    }:
+        try:
+            return round(float(value), 2)
+        except Exception:
+            return None
+
+    if key in {"urgent", "linen_required", "laundry_required"}:
+        return bool(value)
+
+    if key == "number_of_guests":
+        try:
+            return int(value)
+        except Exception:
+            return 0
+
+    return str(value)
+
+
+def request_payload_changed(existing_request: dict, payload: dict) -> bool:
+    for key in IMPORTANT_CHANGE_FIELDS:
+        if key not in payload:
+            continue
+
+        if comparable_value(key, existing_request.get(key)) != comparable_value(
+            key, payload.get(key)
+        ):
+            return True
+
+    return False
 
 
 def start_run(supabase):
@@ -651,6 +719,16 @@ def main() -> None:
             )
 
             if existing_request:
+                if existing_request.get("status") == "accepted" and request_payload_changed(
+                    existing_request,
+                    payload,
+                ):
+                    payload["status"] = "sent"
+                    log(
+                        f"Reconfirmation needed: {property_.get('name')} · "
+                        f"{reservation.get('guest_name') or source_booking_id}"
+                    )
+
                 supabase.table("cleaning_requests").update(payload).eq(
                     "id", existing_request["id"]
                 ).execute()
