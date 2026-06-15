@@ -320,14 +320,14 @@ function alertClass(level: "red" | "orange" | "blue") {
   return "border-sky-200 bg-sky-50 text-sky-900";
 }
 
-function missionHref(request?: Row | null): string {
-  if (!request?.public_token) return "#";
+function reportHref(request?: Row | null): string | null {
+  if (!request?.public_token) return null;
 
   if (["report_submitted", "completed", "problem_reported"].includes(request.status)) {
     return `/mission/${request.public_token}/report`;
   }
 
-  return `/mission/${request.public_token}`;
+  return null;
 }
 
 function propertyFilterHref(start: string, propertyId?: string) {
@@ -341,30 +341,28 @@ function rangeLabel(start: string, end: string): string {
   return `${compactDateLabel(start)} → ${compactDateLabel(end)}`;
 }
 
-function turnoverBackground(hasDeparture: boolean, hasArrival: boolean, hasMissingCleaning: boolean) {
-  if (hasMissingCleaning) {
-    return {
-      background:
-        "linear-gradient(135deg, rgba(254,242,242,1) 0%, rgba(255,247,237,1) 48%, rgba(236,253,245,1) 52%, rgba(236,253,245,1) 100%)",
-    };
+function changeoverCellClasses(hasDeparture: boolean, hasArrival: boolean, missingCleaning: boolean) {
+  if (missingCleaning) {
+    return "bg-red-50 ring-red-200";
   }
 
   if (hasDeparture && hasArrival) {
-    return {
-      background:
-        "linear-gradient(135deg, rgba(255,247,237,1) 0%, rgba(255,247,237,1) 49%, rgba(236,253,245,1) 51%, rgba(236,253,245,1) 100%)",
-    };
+    return "bg-gradient-to-br from-amber-50 from-0% via-amber-50 via-49% to-emerald-50 to-51% ring-slate-200";
   }
 
   if (hasDeparture) {
-    return { background: "rgba(255,247,237,1)" };
+    return "bg-amber-50 ring-amber-100";
   }
 
   if (hasArrival) {
-    return { background: "rgba(236,253,245,1)" };
+    return "bg-emerald-50 ring-emerald-100";
   }
 
-  return {};
+  return "bg-slate-50 ring-slate-100";
+}
+
+function showReportLink(status?: string): boolean {
+  return ["report_submitted", "completed", "problem_reported"].includes(status || "");
 }
 
 export default async function AdminOperationsPage({
@@ -551,7 +549,7 @@ export default async function AdminOperationsPage({
     const request = requestByReservationId[reservation.id];
     const property = propertyById[reservation.property_id];
 
-    if (!request || ["cancelled", "refused"].includes(request.status)) {
+    if (!request || ["cancelled"].includes(request.status)) {
       alerts.push({
         level: "red",
         title: "Ménage manquant",
@@ -567,7 +565,14 @@ export default async function AdminOperationsPage({
         level: "red",
         title: "SMS échoué",
         detail: `${property?.name ?? "Logement"} · ${fullName(cleanerById[request.assigned_cleaner_id])}`,
-        href: missionHref(request),
+      });
+    }
+
+    if (request.status === "refused") {
+      alerts.push({
+        level: "red",
+        title: "Mission refusée",
+        detail: `${property?.name ?? "Logement"} · ${fullName(cleanerById[request.assigned_cleaner_id])}`,
       });
     }
 
@@ -576,7 +581,6 @@ export default async function AdminOperationsPage({
         level: "orange",
         title: "À confirmer",
         detail: `${property?.name ?? "Logement"} · ${compactDateLabel(parisDateKey(request.scheduled_start_at))} · ${fullName(cleanerById[request.assigned_cleaner_id])}`,
-        href: missionHref(request),
       });
     }
 
@@ -585,7 +589,7 @@ export default async function AdminOperationsPage({
         level: "orange",
         title: "Problème signalé",
         detail: `${property?.name ?? "Logement"} · rapport ménage`,
-        href: missionHref(request),
+        href: reportHref(request) ?? undefined,
       });
     }
 
@@ -600,7 +604,6 @@ export default async function AdminOperationsPage({
         level: "orange",
         title: "Rapport attendu",
         detail: `${property?.name ?? "Logement"} · ménage terminé en théorie`,
-        href: missionHref(request),
       });
     }
   }
@@ -818,16 +821,16 @@ export default async function AdminOperationsPage({
                               <div
                                 key={reservation.id}
                                 title={reservationTooltip(reservation)}
-                                className="h-20 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 px-4 py-3 text-white shadow-sm"
+                                className="h-16 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 px-4 py-3 text-white shadow-sm"
                                 style={{
                                   gridColumn: `${span.start} / span ${span.span}`,
                                 }}
                               >
-                                <p className="truncate text-sm font-semibold text-slate-300">
+                                <p className="truncate text-xs font-semibold text-slate-300">
                                   Séjour
                                 </p>
 
-                                <p className="mt-1 truncate text-lg font-black">
+                                <p className="mt-1 truncate text-base font-black">
                                   {span.clippedStart ? "… " : ""}
                                   {reservationTitle(reservation)}
                                   {span.clippedEnd ? " …" : ""}
@@ -835,6 +838,74 @@ export default async function AdminOperationsPage({
                               </div>
                             );
                           })}
+                      </div>
+
+                      <div
+                        className="grid gap-2 rounded-3xl bg-white p-3 ring-1 ring-slate-100"
+                        style={{
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
+                        }}
+                      >
+                        {rangeDays.map((dayKey) => {
+                          const checkouts = propertyReservations.filter((reservation) =>
+                            reservationChecksOutOn(reservation, dayKey),
+                          );
+                          const checkins = propertyReservations.filter((reservation) =>
+                            reservationChecksInOn(reservation, dayKey),
+                          );
+
+                          const missingCleaning = checkouts.some((reservation) => {
+                            const request = requestByReservationId[reservation.id];
+                            return !request || request.status === "cancelled";
+                          });
+
+                          const hasDeparture = checkouts.length > 0;
+                          const hasArrival = checkins.length > 0;
+                          const hasActivity = hasDeparture || hasArrival;
+
+                          return (
+                            <div
+                              key={`${property.id}-${dayKey}-changeover`}
+                              title={[
+                                hasDeparture
+                                  ? `Départ: ${checkouts.map(reservationTitle).join(", ")}`
+                                  : "",
+                                hasArrival
+                                  ? `Arrivée: ${checkins.map(reservationTitle).join(", ")}`
+                                  : "",
+                                missingCleaning ? "Ménage manquant" : "",
+                              ]
+                                .filter(Boolean)
+                                .join("\n")}
+                              className={`h-12 rounded-2xl p-2 text-center ring-1 ${changeoverCellClasses(
+                                hasDeparture,
+                                hasArrival,
+                                missingCleaning,
+                              )}`}
+                            >
+                              {!hasActivity ? (
+                                <p className="pt-1 text-xs text-slate-300">—</p>
+                              ) : hasDeparture && hasArrival ? (
+                                <div className="grid h-full grid-cols-2 items-center gap-1 text-[10px] font-black">
+                                  <div className="truncate text-amber-900">
+                                    Dép. {timeLabel(checkouts[0].checkout_at)}
+                                  </div>
+                                  <div className="truncate text-emerald-900">
+                                    Arr. {timeLabel(checkins[0].checkin_at)}
+                                  </div>
+                                </div>
+                              ) : hasDeparture ? (
+                                <p className="pt-1 text-[10px] font-black uppercase text-amber-900">
+                                  Dép. {timeLabel(checkouts[0].checkout_at)}
+                                </p>
+                              ) : (
+                                <p className="pt-1 text-[10px] font-black uppercase text-emerald-900">
+                                  Arr. {timeLabel(checkins[0].checkin_at)}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div
@@ -847,113 +918,80 @@ export default async function AdminOperationsPage({
                           const checkouts = propertyReservations.filter((reservation) =>
                             reservationChecksOutOn(reservation, dayKey),
                           );
-                          const checkins = propertyReservations.filter((reservation) =>
-                            reservationChecksInOn(reservation, dayKey),
-                          );
+
                           const cleanings = propertyRequests.filter((request) =>
                             requestScheduledOn(request, dayKey),
                           );
 
-                          const missingCleaning = checkouts.some((reservation) => {
+                          const missingReservations = checkouts.filter((reservation) => {
                             const request = requestByReservationId[reservation.id];
-                            return !request || ["cancelled", "refused"].includes(request.status);
+                            return !request || request.status === "cancelled";
                           });
-
-                          const hasActivity =
-                            checkouts.length > 0 || checkins.length > 0 || cleanings.length > 0;
 
                           return (
                             <div
-                              key={`${property.id}-${dayKey}-turnover`}
-                              title={[
-                                checkouts.length
-                                  ? `Départ: ${checkouts.map(reservationTitle).join(", ")}`
-                                  : "",
-                                checkins.length
-                                  ? `Arrivée: ${checkins.map(reservationTitle).join(", ")}`
-                                  : "",
-                              ]
-                                .filter(Boolean)
-                                .join("\n")}
-                              className={`relative min-h-32 rounded-3xl border p-2 ${
-                                missingCleaning
-                                  ? "border-red-200 ring-2 ring-red-100"
-                                  : hasActivity
-                                    ? "border-slate-200 shadow-sm"
-                                    : "border-slate-100 bg-slate-50"
-                              }`}
-                              style={turnoverBackground(
-                                checkouts.length > 0,
-                                checkins.length > 0,
-                                missingCleaning,
-                              )}
+                              key={`${property.id}-${dayKey}-cleaning`}
+                              className="min-h-24 rounded-3xl border border-slate-100 bg-slate-50 p-2"
                             >
-                              {!hasActivity ? (
-                                <p className="pt-10 text-center text-xs text-slate-300">—</p>
-                              ) : (
-                                <>
-                                  {checkouts.length > 0 && (
-                                    <div className="absolute left-2 top-2 max-w-[80%]">
-                                      <p className="text-lg leading-none text-amber-900">↗</p>
-                                      <p className="mt-1 text-[10px] font-black uppercase text-amber-900">
-                                        {timeLabel(checkouts[0].checkout_at)}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {checkins.length > 0 && (
-                                    <div className="absolute bottom-2 right-2 max-w-[80%] text-right">
-                                      <p className="text-lg leading-none text-emerald-900">↘</p>
-                                      <p className="mt-1 text-[10px] font-black uppercase text-emerald-900">
-                                        {timeLabel(checkins[0].checkin_at)}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {missingCleaning && cleanings.length === 0 && (
-                                    <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 rounded-2xl bg-red-100 px-2 py-2 text-center text-xs font-black text-red-800">
-                                      Ménage manquant
-                                    </div>
-                                  )}
-
-                                  <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 flex-col gap-2">
-                                    {cleanings.map((request) => {
-                                      const cleaner = cleanerById[request.assigned_cleaner_id];
-                                      const messages = outboundByRequestId[request.id] ?? [];
-                                      const displayStatus = cleaningDisplayStatus(request, messages);
-                                      const href = missionHref(request);
-
-                                      const card = (
-                                        <div
-                                          title={[
-                                            fullName(cleaner),
-                                            `Ménage: ${timeLabel(request.scheduled_start_at)}`,
-                                            `Statut: ${displayStatus.label}`,
-                                            `Montant: ${euro(request.total_cost_eur)}`,
-                                          ].join("\n")}
-                                          className="mx-auto flex max-w-[92px] flex-col items-center gap-1 rounded-2xl bg-white/95 p-2 text-center shadow-sm ring-1 ring-slate-200"
-                                        >
-                                          {cleanerPhoto(cleaner, "h-9 w-9")}
-
-                                          <span
-                                            className={`w-full rounded-full px-2 py-1 text-[10px] font-black ring-1 ${displayStatus.className}`}
-                                          >
-                                            {displayStatus.label}
-                                          </span>
-                                        </div>
-                                      );
-
-                                      return href !== "#" ? (
-                                        <Link key={request.id} href={href}>
-                                          {card}
-                                        </Link>
-                                      ) : (
-                                        <div key={request.id}>{card}</div>
-                                      );
-                                    })}
-                                  </div>
-                                </>
+                              {cleanings.length === 0 && missingReservations.length === 0 && (
+                                <p className="pt-8 text-center text-xs text-slate-300">—</p>
                               )}
+
+                              <div className="flex flex-col items-center justify-center gap-2">
+                                {missingReservations.length > 0 && (
+                                  <div
+                                    title={missingReservations.map(reservationTooltip).join("\n\n")}
+                                    className="w-full rounded-2xl bg-red-100 px-2 py-3 text-center text-xs font-black text-red-800 ring-1 ring-red-200"
+                                  >
+                                    Ménage manquant
+                                  </div>
+                                )}
+
+                                {cleanings.map((request) => {
+                                  const cleaner = cleanerById[request.assigned_cleaner_id];
+                                  const messages = outboundByRequestId[request.id] ?? [];
+                                  const displayStatus = cleaningDisplayStatus(request, messages);
+                                  const href = reportHref(request);
+                                  const reports = reportsByRequestId[request.id] ?? [];
+
+                                  const content = (
+                                    <div
+                                      title={[
+                                        fullName(cleaner),
+                                        `Ménage: ${timeLabel(request.scheduled_start_at)}`,
+                                        `Statut: ${displayStatus.label}`,
+                                        `Montant: ${euro(request.total_cost_eur)}`,
+                                        reports.length > 0 ? "Rapport disponible" : "",
+                                      ]
+                                        .filter(Boolean)
+                                        .join("\n")}
+                                      className={`mx-auto flex w-full max-w-[98px] flex-col items-center gap-1 rounded-2xl bg-white p-2 text-center shadow-sm ring-1 ${
+                                        showReportLink(request.status)
+                                          ? "ring-slate-300"
+                                          : "ring-slate-200"
+                                      }`}
+                                    >
+                                      {cleanerPhoto(cleaner, "h-9 w-9")}
+
+                                      <span
+                                        className={`w-full rounded-full px-2 py-1 text-[10px] font-black ring-1 ${displayStatus.className}`}
+                                      >
+                                        {displayStatus.label}
+                                      </span>
+                                    </div>
+                                  );
+
+                                  return href ? (
+                                    <Link key={request.id} href={href} className="block w-full">
+                                      {content}
+                                    </Link>
+                                  ) : (
+                                    <div key={request.id} className="w-full">
+                                      {content}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           );
                         })}
