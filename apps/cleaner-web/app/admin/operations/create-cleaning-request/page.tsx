@@ -1,10 +1,88 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { createOrUpdateCleaningRequest } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function CreateCleaningRequestPlaceholderPage({
+const PARIS_TZ = "Europe/Paris";
+
+type Row = Record<string, any>;
+
+function timeLabel(iso?: string | null): string {
+  if (!iso) return "—";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+    .format(new Date(iso))
+    .replace(":", "h");
+}
+
+function dateLabel(iso?: string | null): string {
+  if (!iso) return "—";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+function fullName(cleaner?: Row | null): string {
+  if (!cleaner) return "Intervenante";
+  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Intervenante";
+}
+
+function initials(cleaner?: Row | null): string {
+  if (!cleaner) return "?";
+  const first = cleaner.first_name?.[0] ?? "";
+  const last = cleaner.last_name?.[0] ?? "";
+  return `${first}${last}` || "?";
+}
+
+function cleanerPhoto(cleaner?: Row | null, size = "h-12 w-12") {
+  if (!cleaner) {
+    return (
+      <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-700 ring-1 ring-red-100`}>
+        ?
+      </div>
+    );
+  }
+
+  if (cleaner.profilePhotoSignedUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={cleaner.profilePhotoSignedUrl}
+        alt=""
+        className={`${size} shrink-0 rounded-full object-cover ring-2 ring-white`}
+      />
+    );
+  }
+
+  return (
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700 ring-1 ring-slate-200`}>
+      {initials(cleaner)}
+    </div>
+  );
+}
+
+function roleLabel(role?: string): string {
+  return role === "primary" ? "Principale" : "Renfort";
+}
+
+function roleClass(role?: string): string {
+  return role === "primary"
+    ? "bg-slate-950 text-white"
+    : "bg-slate-100 text-slate-700";
+}
+
+export default async function CreateCleaningRequestPage({
   searchParams,
 }: {
   searchParams?: Promise<{ reservation_id?: string; property_id?: string }>;
@@ -16,32 +94,105 @@ export default async function CreateCleaningRequestPlaceholderPage({
 
   const supabase = getSupabaseAdmin();
 
-  let reservation: Record<string, any> | null = null;
-  let property: Record<string, any> | null = null;
+  const { data: reservation } = await supabase
+    .from("reservations")
+    .select("*")
+    .eq("id", reservationId)
+    .maybeSingle();
 
-  if (reservationId) {
-    const { data: reservationData } = await supabase
-      .from("reservations")
-      .select("*")
-      .eq("id", reservationId)
-      .maybeSingle();
+  if (!reservation) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-6">
+        <div className="mx-auto max-w-2xl">
+          <Link href="/admin/operations" className="text-sm font-semibold text-slate-600">
+            ← Planning opérations
+          </Link>
 
-    reservation = reservationData;
-
-    if (reservation?.property_id) {
-      const { data: propertyData } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("id", reservation.property_id)
-        .maybeSingle();
-
-      property = propertyData;
-    }
+          <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <h1 className="text-2xl font-bold text-slate-950">
+              Réservation introuvable
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Impossible de créer une mission sans réservation valide.
+            </p>
+          </section>
+        </div>
+      </main>
+    );
   }
+
+  const { data: property } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", reservation.property_id)
+    .maybeSingle();
+
+  const { data: existingRequests } = await supabase
+    .from("cleaning_requests")
+    .select("*")
+    .eq("reservation_id", reservation.id)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const existingRequest = (existingRequests ?? [])[0];
+  const existingIsActive =
+    existingRequest && !["cancelled", "refused"].includes(existingRequest.status);
+
+  const { data: profiles } = await supabase
+    .from("property_cleaning_profiles")
+    .select("*")
+    .eq("property_id", reservation.property_id)
+    .order("code", { ascending: true });
+
+  const { data: assignments } = await supabase
+    .from("property_cleaner_assignments")
+    .select("*")
+    .eq("property_id", reservation.property_id)
+    .eq("active", true)
+    .order("role", { ascending: false })
+    .order("priority", { ascending: true });
+
+  const assignedCleanerIds = Array.from(
+    new Set((assignments ?? []).map((assignment) => assignment.cleaner_id)),
+  );
+
+  let cleaners: Row[] = [];
+
+  if (assignedCleanerIds.length > 0) {
+    const { data: cleanerRows } = await supabase
+      .from("cleaners")
+      .select("*")
+      .in("id", assignedCleanerIds);
+
+    cleaners = await Promise.all(
+      (cleanerRows ?? []).map(async (cleaner) => {
+        if (!cleaner.profile_photo_path) return cleaner;
+
+        const { data } = await supabase.storage
+          .from(cleaner.profile_photo_bucket || "cleaner-profile-photos")
+          .createSignedUrl(cleaner.profile_photo_path, 60 * 60);
+
+        return {
+          ...cleaner,
+          profilePhotoSignedUrl: data?.signedUrl ?? null,
+        };
+      }),
+    );
+  }
+
+  const cleanerById = Object.fromEntries(cleaners.map((cleaner) => [cleaner.id, cleaner]));
+  const profileRows = profiles ?? [];
+  const assignmentRows = assignments ?? [];
+
+  const defaultCleanerId = assignmentRows[0]?.cleaner_id ?? "";
+  const defaultProfileId =
+    profileRows.find((profile) => profile.code === "light")?.id ??
+    profileRows[0]?.id ??
+    "";
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-4xl">
         <Link href="/admin/operations" className="text-sm font-semibold text-slate-600">
           ← Planning opérations
         </Link>
@@ -56,30 +207,159 @@ export default async function CreateCleaningRequestPlaceholderPage({
           </h1>
 
           <p className="mt-3 text-slate-600">
-            Cette page sera l’étape de confirmation avant création d’une mission
-            manquante. Pour l’instant, le lien permet simplement d’identifier la
-            réservation concernée sans risque de création automatique.
+            Vérifiez la réservation, choisissez l’intervenante, puis créez la
+            mission. L’envoi SMS sera pris en charge par la prochaine exécution
+            de l’automatisation.
           </p>
 
-          <div className="mt-6 space-y-3 rounded-2xl bg-slate-50 p-4 text-sm">
-            <p>
-              <span className="font-semibold">Logement :</span>{" "}
-              {property?.name ?? "Non identifié"}
-            </p>
-            <p>
-              <span className="font-semibold">Réservation :</span>{" "}
-              {reservation?.guest_name ?? reservation?.source_booking_id ?? reservationId ?? "Non identifiée"}
-            </p>
-            <p>
-              <span className="font-semibold">Départ :</span>{" "}
-              {reservation?.checkout_at ?? "Non renseigné"}
-            </p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-500">Logement</p>
+              <p className="mt-1 font-bold text-slate-950">
+                {property?.name ?? "Non identifié"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-500">Réservation</p>
+              <p className="mt-1 font-bold text-slate-950">
+                {reservation.guest_name ?? reservation.source_booking_id ?? "Client"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-500">Départ</p>
+              <p className="mt-1 font-bold text-slate-950">
+                {dateLabel(reservation.checkout_at)} · {timeLabel(reservation.checkout_at)}
+              </p>
+            </div>
           </div>
 
-          <p className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-            Prochaine étape : proposer l’intervenante disponible, calculer le
-            montant, puis bouton “Créer et envoyer la mission”.
-          </p>
+          {existingIsActive ? (
+            <div className="mt-6 rounded-2xl bg-amber-50 p-5 text-amber-900 ring-1 ring-amber-200">
+              <p className="font-bold">Une mission existe déjà.</p>
+              <p className="mt-1 text-sm">
+                Statut actuel : {existingRequest.status}. La création manuelle
+                est bloquée pour éviter les doublons.
+              </p>
+            </div>
+          ) : profileRows.length === 0 ? (
+            <div className="mt-6 rounded-2xl bg-red-50 p-5 text-red-900 ring-1 ring-red-200">
+              <p className="font-bold">Aucun profil ménage configuré.</p>
+              <p className="mt-1 text-sm">
+                Créez d’abord un profil ménage pour ce logement.
+              </p>
+            </div>
+          ) : assignmentRows.length === 0 ? (
+            <div className="mt-6 rounded-2xl bg-red-50 p-5 text-red-900 ring-1 ring-red-200">
+              <p className="font-bold">Aucune intervenante affectée.</p>
+              <p className="mt-1 text-sm">
+                Affectez au moins une intervenante à ce logement avant de créer
+                la mission.
+              </p>
+            </div>
+          ) : (
+            <form action={createOrUpdateCleaningRequest} className="mt-8 space-y-6">
+              <input type="hidden" name="reservation_id" value={reservation.id} />
+
+              <section>
+                <h2 className="text-lg font-bold text-slate-950">
+                  Intervenante
+                </h2>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {assignmentRows.map((assignment, index) => {
+                    const cleaner = cleanerById[assignment.cleaner_id];
+
+                    return (
+                      <label
+                        key={assignment.id}
+                        className="cursor-pointer rounded-3xl border border-slate-200 bg-slate-50 p-4 has-[:checked]:border-slate-950 has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-slate-950"
+                      >
+                        <input
+                          type="radio"
+                          name="cleaner_id"
+                          value={assignment.cleaner_id}
+                          defaultChecked={assignment.cleaner_id === defaultCleanerId || index === 0}
+                          className="sr-only"
+                        />
+
+                        <div className="flex items-center gap-3">
+                          {cleanerPhoto(cleaner)}
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold text-slate-950">
+                              {fullName(cleaner)}
+                            </p>
+
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${roleClass(assignment.role)}`}>
+                                {roleLabel(assignment.role)}
+                              </span>
+                              {assignment.familiar && (
+                                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-bold text-violet-800">
+                                  Connait le logement
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              {assignment.travel_distance_km ?? 0} km ·{" "}
+                              {cleaner?.hourly_rate_eur ?? "?"} €/h
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Profil ménage
+                  </label>
+                  <select
+                    name="profile_id"
+                    defaultValue={defaultProfileId}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  >
+                    {profileRows.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.label ?? profile.code} · {profile.estimated_hours}h
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Heure prévue
+                  </label>
+                  <input
+                    type="time"
+                    name="scheduled_time"
+                    defaultValue="14:00"
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
+              </section>
+
+              <div className="rounded-2xl bg-sky-50 p-4 text-sm text-sky-900 ring-1 ring-sky-100">
+                La mission sera créée avec le statut <strong>Créée</strong>.
+                Elle sera ensuite envoyée par SMS lors du prochain passage de
+                l’automatisation.
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white"
+              >
+                Créer la mission ménage
+              </button>
+            </form>
+          )}
         </section>
       </div>
     </main>
