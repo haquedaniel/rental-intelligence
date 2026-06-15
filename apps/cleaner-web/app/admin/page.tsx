@@ -28,7 +28,7 @@ export default async function AdminHomePage() {
           </form>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">            
+        <div className="grid gap-4 sm:grid-cols-4">            
           <Link
               href="/admin/checklists"
               className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -55,6 +55,15 @@ export default async function AdminHomePage() {
           <h2 className="text-lg font-bold text-slate-950">Intervenantes</h2>
           <p className="mt-2 text-sm text-slate-600">
             Coordonnées, tarifs et affectation des intervenantes par logement.
+          </p>
+        </Link>
+        <Link
+          href="/admin/cleaner-assignments"
+          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <h2 className="text-lg font-bold text-slate-950">Affectations ménage</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Définir l’intervenante principale, les remplaçantes et la familiarité par logement.
           </p>
         </Link>
         </div>
