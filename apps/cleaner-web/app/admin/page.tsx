@@ -66,6 +66,17 @@ export default async function AdminHomePage() {
             Définir l’intervenante principale, les remplaçantes et la familiarité par logement.
           </p>
         </Link>
+
+        <Link
+          href="/admin/cleaner-availability"
+          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <h2 className="text-lg font-bold text-slate-950">Disponibilités ménage</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Semaine type, vacances et périodes d’indisponibilité des intervenantes.
+          </p>
+        </Link>
+
         </div>
 
         </div>
