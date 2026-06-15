@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 const PARIS_TZ = "Europe/Paris";
-const DAYS_TO_SHOW = 21;
+const DAYS_TO_SHOW = 14;
 
 type Row = Record<string, any>;
 
@@ -105,15 +105,6 @@ function timeLabel(iso?: string | null): string {
   })
     .format(new Date(iso))
     .replace(":", "h");
-}
-
-function euro(value?: number | string | null): string {
-  if (value === null || value === undefined || value === "") return "—";
-
-  const numberValue = Number(value);
-  if (!Number.isFinite(numberValue)) return "—";
-
-  return `${numberValue.toFixed(2)} €`;
 }
 
 function fullName(cleaner?: Row | null): string {
@@ -239,9 +230,7 @@ function reservationGridSpan(reservation: Row, rangeDays: string[]) {
   const lastDay = rangeDays[rangeDays.length - 1];
   const endExclusive = addDays(lastDay, 1);
 
-  if (checkin > lastDay || checkout <= firstDay) {
-    return null;
-  }
+  if (checkin > lastDay || checkout <= firstDay) return null;
 
   const visibleStart = checkin < firstDay ? firstDay : checkin;
   const visibleEndExclusive = checkout > endExclusive ? endExclusive : checkout;
@@ -330,6 +319,13 @@ function reportHref(request?: Row | null): string | null {
   return null;
 }
 
+function missingCleaningHref(reservation: Row): string {
+  const params = new URLSearchParams();
+  params.set("reservation_id", reservation.id);
+  params.set("property_id", reservation.property_id);
+  return `/admin/operations/create-cleaning-request?${params.toString()}`;
+}
+
 function propertyFilterHref(start: string, propertyId?: string) {
   const params = new URLSearchParams();
   params.set("start", start);
@@ -342,27 +338,11 @@ function rangeLabel(start: string, end: string): string {
 }
 
 function changeoverCellClasses(hasDeparture: boolean, hasArrival: boolean, missingCleaning: boolean) {
-  if (missingCleaning) {
-    return "bg-red-50 ring-red-200";
-  }
-
-  if (hasDeparture && hasArrival) {
-    return "bg-gradient-to-br from-amber-50 from-0% via-amber-50 via-49% to-emerald-50 to-51% ring-slate-200";
-  }
-
-  if (hasDeparture) {
-    return "bg-amber-50 ring-amber-100";
-  }
-
-  if (hasArrival) {
-    return "bg-emerald-50 ring-emerald-100";
-  }
-
-  return "bg-slate-50 ring-slate-100";
-}
-
-function showReportLink(status?: string): boolean {
-  return ["report_submitted", "completed", "problem_reported"].includes(status || "");
+  if (missingCleaning) return "bg-red-50 ring-red-200";
+  if (hasDeparture && hasArrival) return "bg-gradient-to-r from-amber-50 from-0% via-amber-50 via-50% to-emerald-50 to-50% ring-slate-200";
+  if (hasDeparture) return "bg-amber-50 ring-amber-100";
+  if (hasArrival) return "bg-emerald-50 ring-emerald-100";
+  return "bg-white ring-slate-100";
 }
 
 export default async function AdminOperationsPage({
@@ -374,12 +354,9 @@ export default async function AdminOperationsPage({
 
   const params = await searchParams;
   const rangeStart = isDateKey(params?.start) ? params.start : todayParisDateKey();
-
-  const rangeDays = Array.from({ length: DAYS_TO_SHOW }, (_, index) =>
-    addDays(rangeStart, index),
-  );
-
+  const rangeDays = Array.from({ length: DAYS_TO_SHOW }, (_, index) => addDays(rangeStart, index));
   const rangeEnd = rangeDays[rangeDays.length - 1];
+
   const selectedPropertyId = params?.property ?? "";
   const previousRange = addDays(rangeStart, -DAYS_TO_SHOW);
   const nextRange = addDays(rangeStart, DAYS_TO_SHOW);
@@ -510,7 +487,6 @@ export default async function AdminOperationsPage({
   const reservationsByProperty: Record<string, Row[]> = {};
   for (const reservation of reservations) {
     if (!reservationTouchesRange(reservation, rangeStart, rangeEnd)) continue;
-
     const propertyId = String(reservation.property_id);
     reservationsByProperty[propertyId] = reservationsByProperty[propertyId] ?? [];
     reservationsByProperty[propertyId].push(reservation);
@@ -549,11 +525,12 @@ export default async function AdminOperationsPage({
     const request = requestByReservationId[reservation.id];
     const property = propertyById[reservation.property_id];
 
-    if (!request || ["cancelled"].includes(request.status)) {
+    if (!request || request.status === "cancelled") {
       alerts.push({
         level: "red",
         title: "Ménage manquant",
         detail: `${property?.name ?? "Logement"} · départ ${compactDateLabel(parisDateKey(reservation.checkout_at))}`,
+        href: missingCleaningHref(reservation),
       });
       continue;
     }
@@ -590,20 +567,6 @@ export default async function AdminOperationsPage({
         title: "Problème signalé",
         detail: `${property?.name ?? "Logement"} · rapport ménage`,
         href: reportHref(request) ?? undefined,
-      });
-    }
-
-    const scheduledEnd = request.scheduled_end_at ? new Date(request.scheduled_end_at) : null;
-
-    if (
-      scheduledEnd &&
-      scheduledEnd.getTime() < Date.now() &&
-      !["report_submitted", "completed", "problem_reported", "cancelled"].includes(request.status)
-    ) {
-      alerts.push({
-        level: "orange",
-        title: "Rapport attendu",
-        detail: `${property?.name ?? "Logement"} · ménage terminé en théorie`,
       });
     }
   }
@@ -775,12 +738,10 @@ export default async function AdminOperationsPage({
                   </div>
 
                   <div className="overflow-x-auto p-4">
-                    <div className="min-w-[1680px] space-y-3">
+                    <div className="min-w-[980px] space-y-3">
                       <div
                         className="grid gap-2"
-                        style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
-                        }}
+                        style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {rangeDays.map((dayKey) => {
                           const isToday = dayKey === todayParisDateKey();
@@ -788,16 +749,14 @@ export default async function AdminOperationsPage({
                           return (
                             <div
                               key={dayKey}
-                              className={`rounded-2xl p-3 text-center ${
-                                isToday
-                                  ? "bg-slate-950 text-white"
-                                  : "bg-slate-50 text-slate-600"
+                              className={`rounded-2xl p-2 text-center ${
+                                isToday ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-600"
                               }`}
                             >
-                              <p className="text-xs font-black uppercase opacity-70">
+                              <p className="text-[11px] font-black uppercase opacity-70">
                                 {shortDayName(dayKey)}
                               </p>
-                              <p className="mt-1 text-lg font-black">
+                              <p className="mt-1 text-base font-black">
                                 {Number(dayKey.slice(8, 10))}
                               </p>
                             </div>
@@ -807,9 +766,7 @@ export default async function AdminOperationsPage({
 
                       <div
                         className="grid gap-2 rounded-3xl bg-slate-50 p-3"
-                        style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
-                        }}
+                        style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {propertyReservations
                           .filter((reservation) => reservationGridSpan(reservation, rangeDays))
@@ -821,16 +778,14 @@ export default async function AdminOperationsPage({
                               <div
                                 key={reservation.id}
                                 title={reservationTooltip(reservation)}
-                                className="h-16 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 px-4 py-3 text-white shadow-sm"
-                                style={{
-                                  gridColumn: `${span.start} / span ${span.span}`,
-                                }}
+                                className="h-14 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 px-3 py-2 text-white shadow-sm"
+                                style={{ gridColumn: `${span.start} / span ${span.span}` }}
                               >
-                                <p className="truncate text-xs font-semibold text-slate-300">
+                                <p className="truncate text-[11px] font-semibold text-slate-300">
                                   Séjour
                                 </p>
 
-                                <p className="mt-1 truncate text-base font-black">
+                                <p className="mt-1 truncate text-sm font-black">
                                   {span.clippedStart ? "… " : ""}
                                   {reservationTitle(reservation)}
                                   {span.clippedEnd ? " …" : ""}
@@ -842,9 +797,7 @@ export default async function AdminOperationsPage({
 
                       <div
                         className="grid gap-2 rounded-3xl bg-white p-3 ring-1 ring-slate-100"
-                        style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
-                        }}
+                        style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {rangeDays.map((dayKey) => {
                           const checkouts = propertyReservations.filter((reservation) =>
@@ -867,17 +820,13 @@ export default async function AdminOperationsPage({
                             <div
                               key={`${property.id}-${dayKey}-changeover`}
                               title={[
-                                hasDeparture
-                                  ? `Départ: ${checkouts.map(reservationTitle).join(", ")}`
-                                  : "",
-                                hasArrival
-                                  ? `Arrivée: ${checkins.map(reservationTitle).join(", ")}`
-                                  : "",
+                                hasDeparture ? `Départ: ${checkouts.map(reservationTitle).join(", ")}` : "",
+                                hasArrival ? `Arrivée: ${checkins.map(reservationTitle).join(", ")}` : "",
                                 missingCleaning ? "Ménage manquant" : "",
                               ]
                                 .filter(Boolean)
                                 .join("\n")}
-                              className={`h-12 rounded-2xl p-2 text-center ring-1 ${changeoverCellClasses(
+                              className={`h-10 rounded-2xl p-1 text-center ring-1 ${changeoverCellClasses(
                                 hasDeparture,
                                 hasArrival,
                                 missingCleaning,
@@ -886,21 +835,17 @@ export default async function AdminOperationsPage({
                               {!hasActivity ? (
                                 <p className="pt-1 text-xs text-slate-300">—</p>
                               ) : hasDeparture && hasArrival ? (
-                                <div className="grid h-full grid-cols-2 items-center gap-1 text-[10px] font-black">
-                                  <div className="truncate text-amber-900">
-                                    Dép. {timeLabel(checkouts[0].checkout_at)}
-                                  </div>
-                                  <div className="truncate text-emerald-900">
-                                    Arr. {timeLabel(checkins[0].checkin_at)}
-                                  </div>
+                                <div className="grid h-full grid-cols-2 items-center gap-1 text-[9px] font-black">
+                                  <div className="truncate text-amber-900">Dép.</div>
+                                  <div className="truncate text-emerald-900">Arr.</div>
                                 </div>
                               ) : hasDeparture ? (
-                                <p className="pt-1 text-[10px] font-black uppercase text-amber-900">
-                                  Dép. {timeLabel(checkouts[0].checkout_at)}
+                                <p className="pt-1 text-[9px] font-black uppercase text-amber-900">
+                                  Dép.
                                 </p>
                               ) : (
-                                <p className="pt-1 text-[10px] font-black uppercase text-emerald-900">
-                                  Arr. {timeLabel(checkins[0].checkin_at)}
+                                <p className="pt-1 text-[9px] font-black uppercase text-emerald-900">
+                                  Arr.
                                 </p>
                               )}
                             </div>
@@ -909,10 +854,8 @@ export default async function AdminOperationsPage({
                       </div>
 
                       <div
-                        className="grid gap-2"
-                        style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
-                        }}
+                        className="grid gap-2 rounded-3xl bg-slate-50 p-3"
+                        style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {rangeDays.map((dayKey) => {
                           const checkouts = propertyReservations.filter((reservation) =>
@@ -931,28 +874,29 @@ export default async function AdminOperationsPage({
                           return (
                             <div
                               key={`${property.id}-${dayKey}-cleaning`}
-                              className="min-h-24 rounded-3xl border border-slate-100 bg-slate-50 p-2"
+                              className="flex min-h-20 items-center justify-center"
                             >
                               {cleanings.length === 0 && missingReservations.length === 0 && (
-                                <p className="pt-8 text-center text-xs text-slate-300">—</p>
+                                <p className="text-xs text-slate-300">—</p>
                               )}
 
-                              <div className="flex flex-col items-center justify-center gap-2">
-                                {missingReservations.length > 0 && (
-                                  <div
-                                    title={missingReservations.map(reservationTooltip).join("\n\n")}
-                                    className="w-full rounded-2xl bg-red-100 px-2 py-3 text-center text-xs font-black text-red-800 ring-1 ring-red-200"
+                              <div className="flex w-full flex-col items-center justify-center gap-2">
+                                {missingReservations.map((reservation) => (
+                                  <Link
+                                    key={`${reservation.id}-missing`}
+                                    href={missingCleaningHref(reservation)}
+                                    title={reservationTooltip(reservation)}
+                                    className="w-full rounded-2xl bg-red-100 px-2 py-3 text-center text-[11px] font-black leading-tight text-red-800 ring-1 ring-red-200"
                                   >
                                     Ménage manquant
-                                  </div>
-                                )}
+                                  </Link>
+                                ))}
 
                                 {cleanings.map((request) => {
                                   const cleaner = cleanerById[request.assigned_cleaner_id];
                                   const messages = outboundByRequestId[request.id] ?? [];
                                   const displayStatus = cleaningDisplayStatus(request, messages);
                                   const href = reportHref(request);
-                                  const reports = reportsByRequestId[request.id] ?? [];
 
                                   const content = (
                                     <div
@@ -960,21 +904,13 @@ export default async function AdminOperationsPage({
                                         fullName(cleaner),
                                         `Ménage: ${timeLabel(request.scheduled_start_at)}`,
                                         `Statut: ${displayStatus.label}`,
-                                        `Montant: ${euro(request.total_cost_eur)}`,
-                                        reports.length > 0 ? "Rapport disponible" : "",
-                                      ]
-                                        .filter(Boolean)
-                                        .join("\n")}
-                                      className={`mx-auto flex w-full max-w-[98px] flex-col items-center gap-1 rounded-2xl bg-white p-2 text-center shadow-sm ring-1 ${
-                                        showReportLink(request.status)
-                                          ? "ring-slate-300"
-                                          : "ring-slate-200"
-                                      }`}
+                                      ].join("\n")}
+                                      className="flex w-full flex-col items-center gap-1"
                                     >
-                                      {cleanerPhoto(cleaner, "h-9 w-9")}
+                                      {cleanerPhoto(cleaner, "h-8 w-8")}
 
                                       <span
-                                        className={`w-full rounded-full px-2 py-1 text-[10px] font-black ring-1 ${displayStatus.className}`}
+                                        className={`w-full rounded-full px-2 py-1 text-center text-[10px] font-black ring-1 ${displayStatus.className}`}
                                       >
                                         {displayStatus.label}
                                       </span>
@@ -1020,9 +956,7 @@ export default async function AdminOperationsPage({
               <div className="border-t border-white/10 p-4">
                 <div className="flex -space-x-3">
                   {uniqueCleanerIds.slice(0, 8).map((cleanerId) => (
-                    <div key={cleanerId}>
-                      {cleanerPhoto(cleanerById[cleanerId], "h-12 w-12")}
-                    </div>
+                    <div key={cleanerId}>{cleanerPhoto(cleanerById[cleanerId], "h-12 w-12")}</div>
                   ))}
                 </div>
               </div>
@@ -1051,10 +985,7 @@ export default async function AdminOperationsPage({
                   ).length;
 
                   return (
-                    <div
-                      key={cleanerId}
-                      className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3"
-                    >
+                    <div key={cleanerId} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
                       {cleanerPhoto(cleaner, "h-12 w-12")}
 
                       <div className="min-w-0 flex-1">
@@ -1064,9 +995,7 @@ export default async function AdminOperationsPage({
 
                         <div className="mt-1 flex flex-wrap gap-1">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${cleanerStatusClass(
-                              cleaner,
-                            )}`}
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${cleanerStatusClass(cleaner)}`}
                           >
                             {cleanerStatusLabel(cleaner)}
                           </span>
