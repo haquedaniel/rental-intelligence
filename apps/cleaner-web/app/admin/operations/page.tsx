@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 const PARIS_TZ = "Europe/Paris";
+const DAYS_TO_SHOW = 14;
 
 type Row = Record<string, any>;
 
@@ -26,14 +27,6 @@ function dateKeyFromUtcDate(date: Date): string {
 function addDays(dateKey: string, days: number): string {
   const date = dateAtNoonUtc(dateKey);
   date.setUTCDate(date.getUTCDate() + days);
-  return dateKeyFromUtcDate(date);
-}
-
-function startOfWeek(dateKey: string): string {
-  const date = dateAtNoonUtc(dateKey);
-  const day = date.getUTCDay();
-  const diffToMonday = (day + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - diffToMonday);
   return dateKeyFromUtcDate(date);
 }
 
@@ -81,6 +74,16 @@ function shortDayName(dateKey: string): string {
   );
 }
 
+function compactDateLabel(dateKey: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    day: "numeric",
+    month: "short",
+  })
+    .format(dateAtNoonUtc(dateKey))
+    .replace(".", "");
+}
+
 function longDateLabel(dateKey: string): string {
   return capitalize(
     new Intl.DateTimeFormat("fr-FR", {
@@ -90,16 +93,6 @@ function longDateLabel(dateKey: string): string {
       month: "long",
     }).format(dateAtNoonUtc(dateKey)),
   );
-}
-
-function compactDateLabel(dateKey: string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: PARIS_TZ,
-    day: "numeric",
-    month: "short",
-  })
-    .format(dateAtNoonUtc(dateKey))
-    .replace(".", "");
 }
 
 function timeLabel(iso?: string | null): string {
@@ -126,6 +119,13 @@ function euro(value?: number | string | null): string {
 function fullName(cleaner?: Row | null): string {
   if (!cleaner) return "Non affecté";
   return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Intervenante";
+}
+
+function initials(cleaner?: Row | null): string {
+  if (!cleaner) return "?";
+  const first = cleaner.first_name?.[0] ?? "";
+  const last = cleaner.last_name?.[0] ?? "";
+  return `${first}${last}` || "?";
 }
 
 function reservationTitle(reservation?: Row | null): string {
@@ -178,39 +178,18 @@ function requestStatusClasses(status?: string): string {
 
 function smsStatus(messages: Row[]): { label: string; className: string } {
   if (messages.some((message) => message.status === "failed")) {
-    return {
-      label: "SMS échoué",
-      className: "bg-red-100 text-red-800",
-    };
+    return { label: "SMS échoué", className: "bg-red-100 text-red-800" };
   }
 
   if (messages.some((message) => message.status === "pending")) {
-    return {
-      label: "SMS en attente",
-      className: "bg-amber-100 text-amber-900",
-    };
+    return { label: "SMS en attente", className: "bg-amber-100 text-amber-900" };
   }
 
   if (messages.some((message) => message.status === "sent")) {
-    return {
-      label: "SMS envoyé",
-      className: "bg-emerald-100 text-emerald-800",
-    };
+    return { label: "SMS envoyé", className: "bg-emerald-100 text-emerald-800" };
   }
 
-  return {
-    label: "Pas de SMS",
-    className: "bg-slate-100 text-slate-600",
-  };
-}
-
-function reservationTouchesDay(reservation: Row, dayKey: string): boolean {
-  if (!reservation.checkin_at || !reservation.checkout_at) return false;
-
-  const checkin = parisDateKey(reservation.checkin_at);
-  const checkout = parisDateKey(reservation.checkout_at);
-
-  return dayKey >= checkin && dayKey < checkout;
+  return { label: "Pas de SMS", className: "bg-slate-100 text-slate-600" };
 }
 
 function reservationChecksInOn(reservation: Row, dayKey: string): boolean {
@@ -228,10 +207,50 @@ function requestScheduledOn(request: Row, dayKey: string): boolean {
   return parisDateKey(request.scheduled_start_at) === dayKey;
 }
 
+function reservationTouchesRange(reservation: Row, rangeStart: string, rangeEnd: string): boolean {
+  if (!reservation.checkin_at || !reservation.checkout_at) return false;
+
+  const checkin = parisDateKey(reservation.checkin_at);
+  const checkout = parisDateKey(reservation.checkout_at);
+
+  return checkin <= rangeEnd && checkout >= rangeStart;
+}
+
+function reservationGridSpan(reservation: Row, rangeDays: string[]) {
+  if (!reservation.checkin_at || !reservation.checkout_at) return null;
+
+  const checkin = parisDateKey(reservation.checkin_at);
+  const checkout = parisDateKey(reservation.checkout_at);
+
+  const firstDay = rangeDays[0];
+  const lastDay = rangeDays[rangeDays.length - 1];
+  const endExclusive = addDays(lastDay, 1);
+
+  const visibleStart = checkin < firstDay ? firstDay : checkin;
+  const visibleEndExclusive = checkout > endExclusive ? endExclusive : checkout;
+
+  let startIndex = rangeDays.indexOf(visibleStart);
+  if (startIndex < 0) startIndex = 0;
+
+  let endIndexExclusive = rangeDays.indexOf(visibleEndExclusive);
+  if (endIndexExclusive < 0) {
+    endIndexExclusive = visibleEndExclusive > lastDay ? rangeDays.length : startIndex + 1;
+  }
+
+  const span = Math.max(1, endIndexExclusive - startIndex);
+
+  return {
+    start: startIndex + 1,
+    span,
+    clippedStart: checkin < firstDay,
+    clippedEnd: checkout > endExclusive,
+  };
+}
+
 function cleanerPhoto(cleaner?: Row | null, size = "h-10 w-10") {
   if (!cleaner) {
     return (
-      <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg ring-1 ring-slate-200`}>
+      <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-700 ring-1 ring-red-100`}>
         ?
       </div>
     );
@@ -249,8 +268,8 @@ function cleanerPhoto(cleaner?: Row | null, size = "h-10 w-10") {
   }
 
   return (
-    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg ring-1 ring-slate-200`}>
-      👤
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700 ring-1 ring-slate-200`}>
+      {initials(cleaner)}
     </div>
   );
 }
@@ -274,7 +293,7 @@ function cleanerStatusClass(cleaner?: Row | null): string {
 }
 
 function roleLabel(role?: string): string {
-  return role === "primary" ? "Principale" : "Remplaçante";
+  return role === "primary" ? "Principale" : "Renfort";
 }
 
 function roleClass(role?: string): string {
@@ -306,6 +325,10 @@ function propertyFilterHref(start: string, propertyId?: string) {
   return `/admin/operations?${params.toString()}`;
 }
 
+function rangeLabel(start: string, end: string): string {
+  return `${compactDateLabel(start)} → ${compactDateLabel(end)}`;
+}
+
 export default async function AdminOperationsPage({
   searchParams,
 }: {
@@ -314,15 +337,15 @@ export default async function AdminOperationsPage({
   await requireAdmin();
 
   const params = await searchParams;
-  const weekStart = startOfWeek(
-    isDateKey(params?.start) ? params.start : todayParisDateKey(),
+  const rangeStart = isDateKey(params?.start) ? params.start : todayParisDateKey();
+  const rangeDays = Array.from({ length: DAYS_TO_SHOW }, (_, index) =>
+    addDays(rangeStart, index),
   );
-  const selectedPropertyId = params?.property ?? "";
+  const rangeEnd = rangeDays[rangeDays.length - 1];
 
-  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-  const weekEnd = addDays(weekStart, 6);
-  const previousWeek = addDays(weekStart, -7);
-  const nextWeek = addDays(weekStart, 7);
+  const selectedPropertyId = params?.property ?? "";
+  const previousRange = addDays(rangeStart, -DAYS_TO_SHOW);
+  const nextRange = addDays(rangeStart, DAYS_TO_SHOW);
 
   const supabase = getSupabaseAdmin();
 
@@ -339,8 +362,8 @@ export default async function AdminOperationsPage({
     .from("reservations")
     .select("*")
     .neq("status", "cancelled")
-    .lte("checkin_at", toIsoEnd(addDays(weekEnd, 2)))
-    .gte("checkout_at", toIsoStart(addDays(weekStart, -2)))
+    .lte("checkin_at", toIsoEnd(addDays(rangeEnd, 2)))
+    .gte("checkout_at", toIsoStart(addDays(rangeStart, -2)))
     .order("checkin_at", { ascending: true });
 
   if (reservationsError) {
@@ -350,8 +373,8 @@ export default async function AdminOperationsPage({
   const { data: requestsData, error: requestsError } = await supabase
     .from("cleaning_requests")
     .select("*")
-    .gte("scheduled_start_at", toIsoStart(addDays(weekStart, -2)))
-    .lte("scheduled_start_at", toIsoEnd(addDays(weekEnd, 2)))
+    .gte("scheduled_start_at", toIsoStart(addDays(rangeStart, -2)))
+    .lte("scheduled_start_at", toIsoEnd(addDays(rangeEnd, 2)))
     .order("scheduled_start_at", { ascending: true });
 
   if (requestsError) {
@@ -448,6 +471,8 @@ export default async function AdminOperationsPage({
 
   const reservationsByProperty: Record<string, Row[]> = {};
   for (const reservation of reservations) {
+    if (!reservationTouchesRange(reservation, rangeStart, rangeEnd)) continue;
+
     const propertyId = String(reservation.property_id);
     reservationsByProperty[propertyId] = reservationsByProperty[propertyId] ?? [];
     reservationsByProperty[propertyId].push(reservation);
@@ -460,28 +485,28 @@ export default async function AdminOperationsPage({
     requestsByProperty[propertyId].push(request);
   }
 
-  const assignmentsByProperty: Record<string, Row[]> = {};
+  const assignmentsByCleaner: Record<string, Row[]> = {};
   for (const assignment of assignments) {
-    const propertyId = String(assignment.property_id);
-    assignmentsByProperty[propertyId] = assignmentsByProperty[propertyId] ?? [];
-    assignmentsByProperty[propertyId].push(assignment);
+    const cleanerId = String(assignment.cleaner_id);
+    assignmentsByCleaner[cleanerId] = assignmentsByCleaner[cleanerId] ?? [];
+    assignmentsByCleaner[cleanerId].push(assignment);
   }
 
-  const departuresThisWeek = reservations.filter((reservation) =>
-    weekDays.includes(parisDateKey(reservation.checkout_at)),
+  const departuresInRange = reservations.filter((reservation) =>
+    rangeDays.includes(parisDateKey(reservation.checkout_at)),
   );
 
-  const acceptedThisWeek = requests.filter((request) => request.status === "accepted").length;
-  const reportsThisWeek = requests.filter((request) =>
+  const acceptedInRange = requests.filter((request) => request.status === "accepted").length;
+  const reportsInRange = requests.filter((request) =>
     ["report_submitted", "completed"].includes(request.status),
   ).length;
-  const proposedThisWeek = requests.filter((request) =>
+  const proposedInRange = requests.filter((request) =>
     ["created", "sent"].includes(request.status),
   ).length;
 
   const alerts: { level: "red" | "orange" | "blue"; title: string; detail: string; href?: string }[] = [];
 
-  for (const reservation of departuresThisWeek) {
+  for (const reservation of departuresInRange) {
     const request = requestByReservationId[reservation.id];
     const property = propertyById[reservation.property_id];
 
@@ -533,6 +558,7 @@ export default async function AdminOperationsPage({
     }
 
     const scheduledEnd = request.scheduled_end_at ? new Date(request.scheduled_end_at) : null;
+
     if (
       scheduledEnd &&
       scheduledEnd.getTime() < Date.now() &&
@@ -550,6 +576,9 @@ export default async function AdminOperationsPage({
   const uniqueCleanerIds = Array.from(
     new Set(assignments.map((assignment) => assignment.cleaner_id).filter(Boolean)),
   );
+
+  const primaryCount = assignments.filter((assignment) => assignment.role === "primary").length;
+  const backupCount = assignments.filter((assignment) => assignment.role === "backup").length;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
@@ -569,57 +598,69 @@ export default async function AdminOperationsPage({
               </h1>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link
-                href={propertyFilterHref(previousWeek, selectedPropertyId)}
+                href={propertyFilterHref(previousRange, selectedPropertyId)}
                 className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200"
               >
-                ← Semaine précédente
+                ← Précédent
               </Link>
+
               <Link
-                href={propertyFilterHref(nextWeek, selectedPropertyId)}
+                href={propertyFilterHref(todayParisDateKey(), selectedPropertyId)}
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+              >
+                Aujourd’hui
+              </Link>
+
+              <Link
+                href={propertyFilterHref(nextRange, selectedPropertyId)}
                 className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200"
               >
-                Semaine suivante →
+                Suivant →
               </Link>
             </div>
           </div>
 
           <p className="mt-2 text-sm text-slate-600">
-            {longDateLabel(weekStart)} → {longDateLabel(weekEnd)}
+            {longDateLabel(rangeStart)} → {longDateLabel(rangeEnd)}
           </p>
         </div>
 
         <section className="grid gap-3 md:grid-cols-4">
           <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-sm">
             <p className="text-sm text-slate-300">Départs</p>
-            <p className="mt-2 text-4xl font-bold">{departuresThisWeek.length}</p>
-            <p className="mt-1 text-sm text-slate-300">cette semaine</p>
+            <p className="mt-2 text-4xl font-bold">{departuresInRange.length}</p>
+            <p className="mt-1 text-sm text-slate-300">{rangeLabel(rangeStart, rangeEnd)}</p>
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <p className="text-sm text-slate-500">Missions acceptées</p>
-            <p className="mt-2 text-4xl font-bold text-emerald-700">{acceptedThisWeek}</p>
+            <p className="mt-2 text-4xl font-bold text-emerald-700">{acceptedInRange}</p>
             <p className="mt-1 text-sm text-slate-500">intervenante confirmée</p>
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <p className="text-sm text-slate-500">À confirmer</p>
-            <p className="mt-2 text-4xl font-bold text-sky-700">{proposedThisWeek}</p>
+            <p className="mt-2 text-4xl font-bold text-sky-700">{proposedInRange}</p>
             <p className="mt-1 text-sm text-slate-500">proposées ou à envoyer</p>
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">Rapports reçus</p>
-            <p className="mt-2 text-4xl font-bold text-slate-950">{reportsThisWeek}</p>
-            <p className="mt-1 text-sm text-slate-500">photos / checklist</p>
+            <p className="text-sm text-slate-500">Alertes</p>
+            <p className={`mt-2 text-4xl font-bold ${alerts.length ? "text-orange-700" : "text-emerald-700"}`}>
+              {alerts.length}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {alerts.length ? "à surveiller" : "tout roule"}
+            </p>
           </div>
         </section>
 
         <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="flex flex-wrap gap-2">
             <Link
-              href={propertyFilterHref(weekStart)}
+              href={propertyFilterHref(rangeStart)}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 selectedPropertyId
                   ? "bg-slate-100 text-slate-700"
@@ -632,7 +673,7 @@ export default async function AdminOperationsPage({
             {properties.map((property) => (
               <Link
                 key={property.id}
-                href={propertyFilterHref(weekStart, property.id)}
+                href={propertyFilterHref(rangeStart, property.id)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   selectedPropertyId === property.id
                     ? "bg-slate-950 text-white"
@@ -645,7 +686,7 @@ export default async function AdminOperationsPage({
           </div>
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_330px]">
           <section className="space-y-5">
             {alerts.length > 0 && (
               <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -653,7 +694,7 @@ export default async function AdminOperationsPage({
                   À surveiller
                 </h2>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {alerts.slice(0, 8).map((alert, index) => {
                     const content = (
                       <div className={`rounded-2xl border p-4 ${alertClass(alert.level)}`}>
@@ -674,28 +715,6 @@ export default async function AdminOperationsPage({
               </div>
             )}
 
-            <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-              <div className="grid grid-cols-7 gap-2">
-                {weekDays.map((dayKey) => (
-                  <div
-                    key={dayKey}
-                    className={`rounded-2xl p-3 text-center ${
-                      dayKey === todayParisDateKey()
-                        ? "bg-slate-950 text-white"
-                        : "bg-slate-50 text-slate-700"
-                    }`}
-                  >
-                    <p className="text-xs font-semibold opacity-70">
-                      {shortDayName(dayKey)}
-                    </p>
-                    <p className="mt-1 text-lg font-bold">
-                      {Number(dayKey.slice(8, 10))}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {visibleProperties.map((property) => {
               const propertyReservations = reservationsByProperty[property.id] ?? [];
               const propertyRequests = requestsByProperty[property.id] ?? [];
@@ -706,154 +725,247 @@ export default async function AdminOperationsPage({
                   className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200"
                 >
                   <div className="border-b border-slate-100 p-5">
-                    <h2 className="text-xl font-bold text-slate-950">
-                      {property.name}
-                    </h2>
-                    {property.address && (
-                      <p className="mt-1 text-sm text-slate-500">
-                        {property.address}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-950">
+                          {property.name}
+                        </h2>
+                        {property.address && (
+                          <p className="mt-1 text-sm text-slate-500">
+                            {property.address}
+                          </p>
+                        )}
+                      </div>
+
+                      <p className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                        {rangeLabel(rangeStart, rangeEnd)}
                       </p>
-                    )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-7">
-                    {weekDays.map((dayKey) => {
-                      const stays = propertyReservations.filter((reservation) =>
-                        reservationTouchesDay(reservation, dayKey),
-                      );
-                      const checkins = propertyReservations.filter((reservation) =>
-                        reservationChecksInOn(reservation, dayKey),
-                      );
-                      const checkouts = propertyReservations.filter((reservation) =>
-                        reservationChecksOutOn(reservation, dayKey),
-                      );
-                      const cleanings = propertyRequests.filter((request) =>
-                        requestScheduledOn(request, dayKey),
-                      );
+                  <div className="overflow-x-auto p-4">
+                    <div className="min-w-[1180px] space-y-3">
+                      <div
+                        className="grid gap-2"
+                        style={{
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                        }}
+                      >
+                        {rangeDays.map((dayKey) => {
+                          const isToday = dayKey === todayParisDateKey();
 
-                      return (
-                        <div
-                          key={dayKey}
-                          className="min-h-44 rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
-                        >
-                          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-                            {compactDateLabel(dayKey)}
-                          </p>
+                          return (
+                            <div
+                              key={dayKey}
+                              className={`rounded-2xl p-3 text-center ${
+                                isToday
+                                  ? "bg-slate-950 text-white"
+                                  : "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              <p className="text-xs font-bold uppercase opacity-70">
+                                {shortDayName(dayKey)}
+                              </p>
+                              <p className="mt-1 text-lg font-black">
+                                {Number(dayKey.slice(8, 10))}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                          <div className="space-y-2">
-                            {stays.map((reservation) => (
+                      <div
+                        className="grid gap-2 rounded-3xl bg-slate-50 p-3"
+                        style={{
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                        }}
+                      >
+                        {propertyReservations
+                          .filter((reservation) => reservationGridSpan(reservation, rangeDays))
+                          .map((reservation) => {
+                            const span = reservationGridSpan(reservation, rangeDays);
+                            if (!span) return null;
+
+                            return (
                               <div
                                 key={reservation.id}
-                                className="rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 p-3 text-white"
+                                className="rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 p-4 text-white shadow-sm"
+                                style={{
+                                  gridColumn: `${span.start} / span ${span.span}`,
+                                }}
                               >
-                                <p className="text-xs text-slate-300">Séjour</p>
-                                <p className="mt-1 truncate text-sm font-bold">
-                                  {reservationTitle(reservation)}
+                                <p className="text-xs font-semibold text-slate-300">
+                                  Séjour
                                 </p>
-                                <p className="mt-1 text-xs text-slate-300">
-                                  {timeLabel(reservation.checkin_at)} → {timeLabel(reservation.checkout_at)}
+
+                                <p className="mt-1 truncate text-lg font-black">
+                                  {span.clippedStart ? "… " : ""}
+                                  {reservationTitle(reservation)}
+                                  {span.clippedEnd ? " …" : ""}
+                                </p>
+
+                                <p className="mt-1 text-sm text-slate-300">
+                                  {compactDateLabel(parisDateKey(reservation.checkin_at))} · {timeLabel(reservation.checkin_at)}
+                                  {" → "}
+                                  {compactDateLabel(parisDateKey(reservation.checkout_at))} · {timeLabel(reservation.checkout_at)}
                                 </p>
                               </div>
-                            ))}
+                            );
+                          })}
+                      </div>
 
-                            {checkouts.map((reservation) => (
-                              <div
-                                key={`${reservation.id}-checkout`}
-                                className="rounded-xl border border-amber-200 bg-amber-50 p-3"
-                              >
-                                <p className="text-xs font-semibold text-amber-900">
-                                  Départ {timeLabel(reservation.checkout_at)}
+                      <div
+                        className="grid gap-2"
+                        style={{
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                        }}
+                      >
+                        {rangeDays.map((dayKey) => {
+                          const checkouts = propertyReservations.filter((reservation) =>
+                            reservationChecksOutOn(reservation, dayKey),
+                          );
+                          const checkins = propertyReservations.filter((reservation) =>
+                            reservationChecksInOn(reservation, dayKey),
+                          );
+                          const cleanings = propertyRequests.filter((request) =>
+                            requestScheduledOn(request, dayKey),
+                          );
+
+                          const hasActivity =
+                            checkouts.length > 0 || checkins.length > 0 || cleanings.length > 0;
+
+                          return (
+                            <div
+                              key={`${property.id}-${dayKey}-turnover`}
+                              className={`min-h-40 rounded-3xl border p-3 ${
+                                hasActivity
+                                  ? "border-slate-200 bg-white shadow-sm"
+                                  : "border-slate-100 bg-slate-50"
+                              }`}
+                            >
+                              {!hasActivity ? (
+                                <p className="pt-10 text-center text-xs text-slate-300">
+                                  —
                                 </p>
-                                <p className="mt-1 truncate text-sm font-bold text-amber-950">
-                                  {reservationTitle(reservation)}
-                                </p>
-                              </div>
-                            ))}
+                              ) : (
+                                <div className="space-y-3">
+                                  {checkouts.map((reservation) => {
+                                    const request = requestByReservationId[reservation.id];
 
-                            {cleanings.map((request) => {
-                              const cleaner = cleanerById[request.assigned_cleaner_id];
-                              const messages = outboundByRequestId[request.id] ?? [];
-                              const sms = smsStatus(messages);
-                              const reports = reportsByRequestId[request.id] ?? [];
+                                    return (
+                                      <div key={`${reservation.id}-out`}>
+                                        <div
+                                          className={`rounded-2xl p-3 ${
+                                            request
+                                              ? "bg-amber-50 text-amber-950 ring-1 ring-amber-100"
+                                              : "bg-red-50 text-red-900 ring-2 ring-red-200"
+                                          }`}
+                                        >
+                                          <div className="flex items-start gap-2">
+                                            <span className="text-lg">↗</span>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-bold uppercase opacity-70">
+                                                Départ {timeLabel(reservation.checkout_at)}
+                                              </p>
+                                              <p className="truncate text-sm font-black">
+                                                {reservationTitle(reservation)}
+                                              </p>
+                                            </div>
+                                          </div>
 
-                              return (
-                                <div
-                                  key={request.id}
-                                  className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {cleanerPhoto(cleaner, "h-9 w-9")}
-                                    <div className="min-w-0">
-                                      <p className="truncate text-sm font-bold text-slate-950">
-                                        {fullName(cleaner)}
-                                      </p>
-                                      <p className="text-xs text-slate-500">
-                                        Ménage {timeLabel(request.scheduled_start_at)}
-                                      </p>
+                                          {!request && (
+                                            <p className="mt-2 rounded-xl bg-red-100 px-2 py-1 text-xs font-black text-red-800">
+                                              Ménage manquant
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {cleanings.map((request) => {
+                                    const cleaner = cleanerById[request.assigned_cleaner_id];
+                                    const messages = outboundByRequestId[request.id] ?? [];
+                                    const sms = smsStatus(messages);
+                                    const reports = reportsByRequestId[request.id] ?? [];
+
+                                    return (
+                                      <div
+                                        key={request.id}
+                                        className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {cleanerPhoto(cleaner, "h-9 w-9")}
+                                          <div className="min-w-0">
+                                            <p className="truncate text-sm font-black text-slate-950">
+                                              {fullName(cleaner)}
+                                            </p>
+                                            <p className="text-xs text-slate-500">
+                                              🧹 {timeLabel(request.scheduled_start_at)}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="mt-3 flex flex-wrap gap-1">
+                                          <span
+                                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${requestStatusClasses(
+                                              request.status,
+                                            )}`}
+                                          >
+                                            {requestStatusLabel(request.status)}
+                                          </span>
+                                          <span
+                                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${sms.className}`}
+                                          >
+                                            {sms.label}
+                                          </span>
+                                          {reports.length > 0 && (
+                                            <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-bold text-violet-800">
+                                              Rapport
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="mt-3 flex items-center justify-between gap-2">
+                                          <p className="text-sm font-black text-slate-950">
+                                            {euro(request.total_cost_eur)}
+                                          </p>
+                                          <Link
+                                            href={missionHref(request)}
+                                            className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white"
+                                          >
+                                            Ouvrir
+                                          </Link>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {checkins.map((reservation) => (
+                                    <div
+                                      key={`${reservation.id}-in`}
+                                      className="rounded-2xl bg-emerald-50 p-3 text-emerald-950 ring-1 ring-emerald-100"
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-lg">↘</span>
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-bold uppercase opacity-70">
+                                            Arrivée {timeLabel(reservation.checkin_at)}
+                                          </p>
+                                          <p className="truncate text-sm font-black">
+                                            {reservationTitle(reservation)}
+                                          </p>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-
-                                  <div className="mt-3 flex flex-wrap gap-1">
-                                    <span
-                                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${requestStatusClasses(
-                                        request.status,
-                                      )}`}
-                                    >
-                                      {requestStatusLabel(request.status)}
-                                    </span>
-                                    <span
-                                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${sms.className}`}
-                                    >
-                                      {sms.label}
-                                    </span>
-                                    {reports.length > 0 && (
-                                      <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-800">
-                                        Rapport
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="mt-3 flex items-center justify-between">
-                                    <p className="text-sm font-bold text-slate-950">
-                                      {euro(request.total_cost_eur)}
-                                    </p>
-                                    <Link
-                                      href={missionHref(request)}
-                                      className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
-                                    >
-                                      Ouvrir
-                                    </Link>
-                                  </div>
+                                  ))}
                                 </div>
-                              );
-                            })}
-
-                            {checkins.map((reservation) => (
-                              <div
-                                key={`${reservation.id}-checkin`}
-                                className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"
-                              >
-                                <p className="text-xs font-semibold text-emerald-900">
-                                  Arrivée {timeLabel(reservation.checkin_at)}
-                                </p>
-                                <p className="mt-1 truncate text-sm font-bold text-emerald-950">
-                                  {reservationTitle(reservation)}
-                                </p>
-                              </div>
-                            ))}
-
-                            {stays.length === 0 &&
-                              checkouts.length === 0 &&
-                              cleanings.length === 0 &&
-                              checkins.length === 0 && (
-                                <p className="rounded-xl bg-white p-3 text-center text-xs text-slate-400">
-                                  Rien prévu
-                                </p>
                               )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </article>
               );
@@ -867,10 +979,10 @@ export default async function AdminOperationsPage({
                   Mon équipe ménage
                 </p>
                 <h2 className="mt-1 text-2xl font-bold">
-                  {uniqueCleanerIds.length} intervenante(s)
+                  {uniqueCleanerIds.length} personne(s) de confiance
                 </h2>
                 <p className="mt-2 text-sm text-slate-300">
-                  Principales et remplaçantes par logement.
+                  {primaryCount} affectation(s) principale(s) · {backupCount} renfort(s)
                 </p>
               </div>
 
@@ -885,88 +997,80 @@ export default async function AdminOperationsPage({
               </div>
             </section>
 
-            {properties.map((property) => {
-              const propertyAssignments = assignmentsByProperty[property.id] ?? [];
+            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <h3 className="text-lg font-bold text-slate-950">
+                Équipe disponible
+              </h3>
 
-              if (propertyAssignments.length === 0) {
-                return (
-                  <section
-                    key={property.id}
-                    className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-                  >
-                    <h3 className="font-bold text-slate-950">{property.name}</h3>
-                    <p className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">
-                      Aucune intervenante affectée
-                    </p>
-                  </section>
-                );
-              }
+              <div className="mt-4 space-y-3">
+                {uniqueCleanerIds.length === 0 && (
+                  <p className="rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-800">
+                    Aucune intervenante affectée.
+                  </p>
+                )}
 
-              return (
-                <section
-                  key={property.id}
-                  className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-                >
-                  <h3 className="font-bold text-slate-950">{property.name}</h3>
+                {uniqueCleanerIds.map((cleanerId) => {
+                  const cleaner = cleanerById[cleanerId];
+                  const cleanerAssignments = assignmentsByCleaner[cleanerId] ?? [];
+                  const primaryAssignments = cleanerAssignments.filter(
+                    (assignment) => assignment.role === "primary",
+                  ).length;
+                  const backupAssignments = cleanerAssignments.filter(
+                    (assignment) => assignment.role === "backup",
+                  ).length;
 
-                  <div className="mt-4 space-y-3">
-                    {propertyAssignments.map((assignment) => {
-                      const cleaner = cleanerById[assignment.cleaner_id];
+                  return (
+                    <div
+                      key={cleanerId}
+                      className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3"
+                    >
+                      {cleanerPhoto(cleaner, "h-12 w-12")}
 
-                      return (
-                        <div
-                          key={assignment.id}
-                          className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3"
-                        >
-                          {cleanerPhoto(cleaner, "h-12 w-12")}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-black text-slate-950">
+                          {fullName(cleaner)}
+                        </p>
 
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-bold text-slate-950">
-                              {fullName(cleaner)}
-                            </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${cleanerStatusClass(
+                              cleaner,
+                            )}`}
+                          >
+                            {cleanerStatusLabel(cleaner)}
+                          </span>
 
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${roleClass(
-                                  assignment.role,
-                                )}`}
-                              >
-                                {roleLabel(assignment.role)}
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${cleanerStatusClass(
-                                  cleaner,
-                                )}`}
-                              >
-                                {cleanerStatusLabel(cleaner)}
-                              </span>
-                            </div>
+                          {primaryAssignments > 0 && (
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${roleClass("primary")}`}>
+                              {primaryAssignments} principale
+                            </span>
+                          )}
 
-                            <p className="mt-1 text-xs text-slate-500">
-                              Priorité {assignment.priority}
-                              {assignment.familiar ? " · connaît le logement" : ""}
-                              {assignment.travel_distance_km !== null &&
-                              assignment.travel_distance_km !== undefined
-                                ? ` · ${assignment.travel_distance_km} km`
-                                : ""}
-                            </p>
-                          </div>
-
-                          {cleaner?.public_token && (
-                            <Link
-                              href={`/cleaner/${cleaner.public_token}`}
-                              className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200"
-                            >
-                              Planning
-                            </Link>
+                          {backupAssignments > 0 && (
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${roleClass("backup")}`}>
+                              {backupAssignments} renfort
+                            </span>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {cleaner.phone || "Téléphone non renseigné"}
+                        </p>
+                      </div>
+
+                      {cleaner?.public_token && (
+                        <Link
+                          href={`/cleaner/${cleaner.public_token}`}
+                          className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200"
+                        >
+                          Planning
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           </aside>
         </div>
       </div>
