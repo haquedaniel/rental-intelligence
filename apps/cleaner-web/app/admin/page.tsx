@@ -28,7 +28,7 @@ export default async function AdminHomePage() {
           </form>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-1">            
+        <div className="grid gap-4 sm:grid-cols-3">            
           <Link
               href="/admin/checklists"
               className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -37,8 +37,7 @@ export default async function AdminHomePage() {
                 Modifier les rubriques et les points à vérifier pour chaque logement.
               </p>
             </Link>
-          </div>
-        <div className="grid gap-4 sm:grid-cols-1">
+
           <Link
             href="/admin/photos"
             className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
@@ -49,6 +48,15 @@ export default async function AdminHomePage() {
               Ajouter les photos de couverture et les photos modèles par rubrique.
             </p>
           </Link>
+          <Link
+          href="/admin/cleaners"
+          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        >
+          <h2 className="text-lg font-bold text-slate-950">Intervenantes</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Coordonnées, tarifs et affectation des intervenantes par logement.
+          </p>
+        </Link>
         </div>
 
         </div>
