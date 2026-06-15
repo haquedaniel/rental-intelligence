@@ -1,6 +1,4 @@
-cd /opt/rental-intelligence
 
-cat > scripts/cockpit_refresh.sh <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -59,6 +57,3 @@ echo "===== $(date -Is) restarting cockpit container ====="
 docker compose restart cockpit
 
 echo "===== $(date -Is) cockpit_refresh complete ====="
-SH
-
-chmod +x scripts/cockpit_refresh.sh

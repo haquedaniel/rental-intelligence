@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -23,5 +22,7 @@ run_required python -m rental_intel.scripts.extract_bookings
 run_required python -m rental_intel.scripts.build_metrics
 run_required python -m rental_intel.scripts.sync_cleaning_reservations
 run_required python -m rental_intel.cleaning.create_requests_from_reservations
+run_required python -m rental_intel.cleaning.enqueue_mission_offer_messages
+run_required python -m rental_intel.cleaning.send_pending_outbound_messages
 
 echo "===== $(date -Is) ops_refresh complete ====="

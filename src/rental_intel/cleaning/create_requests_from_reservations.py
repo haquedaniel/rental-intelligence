@@ -25,7 +25,7 @@ CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000"
 
 # Keep this as "sent" for now so we do not break the existing cleaner mission page.
 # When we add the WhatsApp queue, we should switch this to "created".
-INITIAL_REQUEST_STATUS = os.getenv("CLEANING_REQUEST_INITIAL_STATUS", "sent")
+INITIAL_REQUEST_STATUS = os.getenv("CLEANING_REQUEST_INITIAL_STATUS", "created")
 
 FINAL_OR_HUMAN_LOCKED_STATUSES = {
     "accepted",

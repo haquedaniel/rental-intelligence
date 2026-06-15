@@ -20,6 +20,7 @@ The profile is used to:
 
 * First name
 * Last name
+* profile photo
 * Phone number
 * Email address
 * Postal address
