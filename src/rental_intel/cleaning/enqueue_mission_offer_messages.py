@@ -54,17 +54,31 @@ def build_body(request: dict, reservation: dict | None, property_: dict | None, 
 
     guest_text = ""
     if reservation and reservation.get("guest_name"):
-        guest_text = f" · client: {reservation['guest_name']}"
+        guest_text = f"Client: {reservation['guest_name']}\n"
 
-    link = f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}"
+    mission_link = f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}"
+
+    calendar_link = ""
+    if cleaner and cleaner.get("public_token"):
+        calendar_link = (
+            "\n"
+            f"Planning:\n"
+            f"{CLEANER_WEB_BASE_URL}/cleaner/{cleaner['public_token']}\n"
+        )
 
     return (
         f"Bonjour {cleaner_first_name} 👋\n"
-        f"Nouvelle mission ménage proposée.\n"
-        f"{property_name}{guest_text}\n"
+        "\n"
+        "Nouvelle mission ménage proposée.\n"
+        "\n"
+        f"🏠 {property_name}\n"
+        f"{guest_text}"
         f"📅 {date_text}\n"
         f"💶 {money(request.get('total_cost_eur'))}\n"
-        f"Répondre ici: {link}"
+        "\n"
+        "Répondre ici:\n"
+        f"{mission_link}\n"
+        f"{calendar_link}"
     )
 
 
