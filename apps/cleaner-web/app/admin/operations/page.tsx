@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 const PARIS_TZ = "Europe/Paris";
-const DAYS_TO_SHOW = 14;
+const DAYS_TO_SHOW = 21;
 
 type Row = Record<string, any>;
 
@@ -133,10 +133,21 @@ function reservationTitle(reservation?: Row | null): string {
   return reservation.guest_name || reservation.source_booking_id || "Séjour";
 }
 
+function reservationTooltip(reservation: Row): string {
+  return [
+    reservationTitle(reservation),
+    `Arrivée: ${compactDateLabel(parisDateKey(reservation.checkin_at))} ${timeLabel(reservation.checkin_at)}`,
+    `Départ: ${compactDateLabel(parisDateKey(reservation.checkout_at))} ${timeLabel(reservation.checkout_at)}`,
+    reservation.number_of_guests ? `${reservation.number_of_guests} voyageur(s)` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function requestStatusLabel(status?: string): string {
   switch (status) {
     case "created":
-      return "À envoyer";
+      return "Créée";
     case "sent":
       return "Proposée";
     case "accepted":
@@ -146,9 +157,9 @@ function requestStatusLabel(status?: string): string {
     case "cancelled":
       return "Annulée";
     case "report_submitted":
-      return "Rapport reçu";
+      return "Fait";
     case "completed":
-      return "Terminée";
+      return "Fait";
     case "problem_reported":
       return "Problème";
     default:
@@ -159,37 +170,39 @@ function requestStatusLabel(status?: string): string {
 function requestStatusClasses(status?: string): string {
   switch (status) {
     case "accepted":
-      return "bg-emerald-100 text-emerald-800";
+      return "bg-emerald-100 text-emerald-800 ring-emerald-200";
     case "sent":
     case "created":
-      return "bg-sky-100 text-sky-800";
+      return "bg-sky-100 text-sky-800 ring-sky-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-900 text-white";
+      return "bg-slate-950 text-white ring-slate-950";
     case "problem_reported":
-      return "bg-orange-100 text-orange-900";
+      return "bg-orange-100 text-orange-900 ring-orange-200";
     case "refused":
     case "cancelled":
-      return "bg-red-100 text-red-800";
+      return "bg-red-100 text-red-800 ring-red-200";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-slate-100 text-slate-700 ring-slate-200";
   }
 }
 
-function smsStatus(messages: Row[]): { label: string; className: string } {
-  if (messages.some((message) => message.status === "failed")) {
-    return { label: "SMS échoué", className: "bg-red-100 text-red-800" };
+function smsHasFailed(messages: Row[]): boolean {
+  return messages.some((message) => message.status === "failed");
+}
+
+function cleaningDisplayStatus(request: Row, messages: Row[]) {
+  if (smsHasFailed(messages) && ["created", "sent"].includes(request.status)) {
+    return {
+      label: "SMS échoué",
+      className: "bg-red-100 text-red-800 ring-red-200",
+    };
   }
 
-  if (messages.some((message) => message.status === "pending")) {
-    return { label: "SMS en attente", className: "bg-amber-100 text-amber-900" };
-  }
-
-  if (messages.some((message) => message.status === "sent")) {
-    return { label: "SMS envoyé", className: "bg-emerald-100 text-emerald-800" };
-  }
-
-  return { label: "Pas de SMS", className: "bg-slate-100 text-slate-600" };
+  return {
+    label: requestStatusLabel(request.status),
+    className: requestStatusClasses(request.status),
+  };
 }
 
 function reservationChecksInOn(reservation: Row, dayKey: string): boolean {
@@ -213,7 +226,7 @@ function reservationTouchesRange(reservation: Row, rangeStart: string, rangeEnd:
   const checkin = parisDateKey(reservation.checkin_at);
   const checkout = parisDateKey(reservation.checkout_at);
 
-  return checkin <= rangeEnd && checkout >= rangeStart;
+  return checkin <= rangeEnd && checkout > rangeStart;
 }
 
 function reservationGridSpan(reservation: Row, rangeDays: string[]) {
@@ -226,11 +239,14 @@ function reservationGridSpan(reservation: Row, rangeDays: string[]) {
   const lastDay = rangeDays[rangeDays.length - 1];
   const endExclusive = addDays(lastDay, 1);
 
+  if (checkin > lastDay || checkout <= firstDay) {
+    return null;
+  }
+
   const visibleStart = checkin < firstDay ? firstDay : checkin;
   const visibleEndExclusive = checkout > endExclusive ? endExclusive : checkout;
 
-  let startIndex = rangeDays.indexOf(visibleStart);
-  if (startIndex < 0) startIndex = 0;
+  const startIndex = Math.max(0, rangeDays.indexOf(visibleStart));
 
   let endIndexExclusive = rangeDays.indexOf(visibleEndExclusive);
   if (endIndexExclusive < 0) {
@@ -292,10 +308,6 @@ function cleanerStatusClass(cleaner?: Row | null): string {
   return "bg-red-100 text-red-800";
 }
 
-function roleLabel(role?: string): string {
-  return role === "primary" ? "Principale" : "Renfort";
-}
-
 function roleClass(role?: string): string {
   return role === "primary"
     ? "bg-slate-950 text-white"
@@ -310,12 +322,12 @@ function alertClass(level: "red" | "orange" | "blue") {
 
 function missionHref(request?: Row | null): string {
   if (!request?.public_token) return "#";
-  return `/mission/${request.public_token}`;
-}
 
-function reportHref(request?: Row | null): string {
-  if (!request?.public_token) return "#";
-  return `/mission/${request.public_token}/report`;
+  if (["report_submitted", "completed", "problem_reported"].includes(request.status)) {
+    return `/mission/${request.public_token}/report`;
+  }
+
+  return `/mission/${request.public_token}`;
 }
 
 function propertyFilterHref(start: string, propertyId?: string) {
@@ -329,6 +341,32 @@ function rangeLabel(start: string, end: string): string {
   return `${compactDateLabel(start)} → ${compactDateLabel(end)}`;
 }
 
+function turnoverBackground(hasDeparture: boolean, hasArrival: boolean, hasMissingCleaning: boolean) {
+  if (hasMissingCleaning) {
+    return {
+      background:
+        "linear-gradient(135deg, rgba(254,242,242,1) 0%, rgba(255,247,237,1) 48%, rgba(236,253,245,1) 52%, rgba(236,253,245,1) 100%)",
+    };
+  }
+
+  if (hasDeparture && hasArrival) {
+    return {
+      background:
+        "linear-gradient(135deg, rgba(255,247,237,1) 0%, rgba(255,247,237,1) 49%, rgba(236,253,245,1) 51%, rgba(236,253,245,1) 100%)",
+    };
+  }
+
+  if (hasDeparture) {
+    return { background: "rgba(255,247,237,1)" };
+  }
+
+  if (hasArrival) {
+    return { background: "rgba(236,253,245,1)" };
+  }
+
+  return {};
+}
+
 export default async function AdminOperationsPage({
   searchParams,
 }: {
@@ -338,11 +376,12 @@ export default async function AdminOperationsPage({
 
   const params = await searchParams;
   const rangeStart = isDateKey(params?.start) ? params.start : todayParisDateKey();
+
   const rangeDays = Array.from({ length: DAYS_TO_SHOW }, (_, index) =>
     addDays(rangeStart, index),
   );
-  const rangeEnd = rangeDays[rangeDays.length - 1];
 
+  const rangeEnd = rangeDays[rangeDays.length - 1];
   const selectedPropertyId = params?.property ?? "";
   const previousRange = addDays(rangeStart, -DAYS_TO_SHOW);
   const nextRange = addDays(rangeStart, DAYS_TO_SHOW);
@@ -445,6 +484,7 @@ export default async function AdminOperationsPage({
 
   const cleanerById = Object.fromEntries(cleaners.map((cleaner) => [cleaner.id, cleaner]));
   const propertyById = Object.fromEntries(properties.map((property) => [property.id, property]));
+
   const requestByReservationId = Object.fromEntries(
     requests
       .filter((request) => request.reservation_id)
@@ -492,12 +532,13 @@ export default async function AdminOperationsPage({
     assignmentsByCleaner[cleanerId].push(assignment);
   }
 
-  const departuresInRange = reservations.filter((reservation) =>
-    rangeDays.includes(parisDateKey(reservation.checkout_at)),
+  const departuresInRange = reservations.filter(
+    (reservation) =>
+      reservation.checkout_at && rangeDays.includes(parisDateKey(reservation.checkout_at)),
   );
 
   const acceptedInRange = requests.filter((request) => request.status === "accepted").length;
-  const reportsInRange = requests.filter((request) =>
+  const doneInRange = requests.filter((request) =>
     ["report_submitted", "completed"].includes(request.status),
   ).length;
   const proposedInRange = requests.filter((request) =>
@@ -510,7 +551,7 @@ export default async function AdminOperationsPage({
     const request = requestByReservationId[reservation.id];
     const property = propertyById[reservation.property_id];
 
-    if (!request) {
+    if (!request || ["cancelled", "refused"].includes(request.status)) {
       alerts.push({
         level: "red",
         title: "Ménage manquant",
@@ -530,15 +571,6 @@ export default async function AdminOperationsPage({
       });
     }
 
-    if (request.status === "refused") {
-      alerts.push({
-        level: "red",
-        title: "Mission refusée",
-        detail: `${property?.name ?? "Logement"} · ${fullName(cleanerById[request.assigned_cleaner_id])}`,
-        href: missionHref(request),
-      });
-    }
-
     if (["created", "sent"].includes(request.status)) {
       alerts.push({
         level: "orange",
@@ -553,7 +585,7 @@ export default async function AdminOperationsPage({
         level: "orange",
         title: "Problème signalé",
         detail: `${property?.name ?? "Logement"} · rapport ménage`,
-        href: reportHref(request),
+        href: missionHref(request),
       });
     }
 
@@ -568,7 +600,7 @@ export default async function AdminOperationsPage({
         level: "orange",
         title: "Rapport attendu",
         detail: `${property?.name ?? "Logement"} · ménage terminé en théorie`,
-        href: reportHref(request),
+        href: missionHref(request),
       });
     }
   }
@@ -635,7 +667,7 @@ export default async function AdminOperationsPage({
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">Missions acceptées</p>
+            <p className="text-sm text-slate-500">Acceptées</p>
             <p className="mt-2 text-4xl font-bold text-emerald-700">{acceptedInRange}</p>
             <p className="mt-1 text-sm text-slate-500">intervenante confirmée</p>
           </div>
@@ -647,13 +679,9 @@ export default async function AdminOperationsPage({
           </div>
 
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">Alertes</p>
-            <p className={`mt-2 text-4xl font-bold ${alerts.length ? "text-orange-700" : "text-emerald-700"}`}>
-              {alerts.length}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              {alerts.length ? "à surveiller" : "tout roule"}
-            </p>
+            <p className="text-sm text-slate-500">Terminées</p>
+            <p className="mt-2 text-4xl font-bold text-slate-950">{doneInRange}</p>
+            <p className="mt-1 text-sm text-slate-500">rapport accessible</p>
           </div>
         </section>
 
@@ -744,11 +772,11 @@ export default async function AdminOperationsPage({
                   </div>
 
                   <div className="overflow-x-auto p-4">
-                    <div className="min-w-[1180px] space-y-3">
+                    <div className="min-w-[1680px] space-y-3">
                       <div
                         className="grid gap-2"
                         style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
                         }}
                       >
                         {rangeDays.map((dayKey) => {
@@ -763,7 +791,7 @@ export default async function AdminOperationsPage({
                                   : "bg-slate-50 text-slate-600"
                               }`}
                             >
-                              <p className="text-xs font-bold uppercase opacity-70">
+                              <p className="text-xs font-black uppercase opacity-70">
                                 {shortDayName(dayKey)}
                               </p>
                               <p className="mt-1 text-lg font-black">
@@ -777,7 +805,7 @@ export default async function AdminOperationsPage({
                       <div
                         className="grid gap-2 rounded-3xl bg-slate-50 p-3"
                         style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
                         }}
                       >
                         {propertyReservations
@@ -789,12 +817,13 @@ export default async function AdminOperationsPage({
                             return (
                               <div
                                 key={reservation.id}
-                                className="rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 p-4 text-white shadow-sm"
+                                title={reservationTooltip(reservation)}
+                                className="h-20 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 px-4 py-3 text-white shadow-sm"
                                 style={{
                                   gridColumn: `${span.start} / span ${span.span}`,
                                 }}
                               >
-                                <p className="text-xs font-semibold text-slate-300">
+                                <p className="truncate text-sm font-semibold text-slate-300">
                                   Séjour
                                 </p>
 
@@ -802,12 +831,6 @@ export default async function AdminOperationsPage({
                                   {span.clippedStart ? "… " : ""}
                                   {reservationTitle(reservation)}
                                   {span.clippedEnd ? " …" : ""}
-                                </p>
-
-                                <p className="mt-1 text-sm text-slate-300">
-                                  {compactDateLabel(parisDateKey(reservation.checkin_at))} · {timeLabel(reservation.checkin_at)}
-                                  {" → "}
-                                  {compactDateLabel(parisDateKey(reservation.checkout_at))} · {timeLabel(reservation.checkout_at)}
                                 </p>
                               </div>
                             );
@@ -817,7 +840,7 @@ export default async function AdminOperationsPage({
                       <div
                         className="grid gap-2"
                         style={{
-                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(74px, 1fr))`,
+                          gridTemplateColumns: `repeat(${rangeDays.length}, minmax(68px, 1fr))`,
                         }}
                       >
                         {rangeDays.map((dayKey) => {
@@ -831,135 +854,105 @@ export default async function AdminOperationsPage({
                             requestScheduledOn(request, dayKey),
                           );
 
+                          const missingCleaning = checkouts.some((reservation) => {
+                            const request = requestByReservationId[reservation.id];
+                            return !request || ["cancelled", "refused"].includes(request.status);
+                          });
+
                           const hasActivity =
                             checkouts.length > 0 || checkins.length > 0 || cleanings.length > 0;
 
                           return (
                             <div
                               key={`${property.id}-${dayKey}-turnover`}
-                              className={`min-h-40 rounded-3xl border p-3 ${
-                                hasActivity
-                                  ? "border-slate-200 bg-white shadow-sm"
-                                  : "border-slate-100 bg-slate-50"
+                              title={[
+                                checkouts.length
+                                  ? `Départ: ${checkouts.map(reservationTitle).join(", ")}`
+                                  : "",
+                                checkins.length
+                                  ? `Arrivée: ${checkins.map(reservationTitle).join(", ")}`
+                                  : "",
+                              ]
+                                .filter(Boolean)
+                                .join("\n")}
+                              className={`relative min-h-32 rounded-3xl border p-2 ${
+                                missingCleaning
+                                  ? "border-red-200 ring-2 ring-red-100"
+                                  : hasActivity
+                                    ? "border-slate-200 shadow-sm"
+                                    : "border-slate-100 bg-slate-50"
                               }`}
+                              style={turnoverBackground(
+                                checkouts.length > 0,
+                                checkins.length > 0,
+                                missingCleaning,
+                              )}
                             >
                               {!hasActivity ? (
-                                <p className="pt-10 text-center text-xs text-slate-300">
-                                  —
-                                </p>
+                                <p className="pt-10 text-center text-xs text-slate-300">—</p>
                               ) : (
-                                <div className="space-y-3">
-                                  {checkouts.map((reservation) => {
-                                    const request = requestByReservationId[reservation.id];
-
-                                    return (
-                                      <div key={`${reservation.id}-out`}>
-                                        <div
-                                          className={`rounded-2xl p-3 ${
-                                            request
-                                              ? "bg-amber-50 text-amber-950 ring-1 ring-amber-100"
-                                              : "bg-red-50 text-red-900 ring-2 ring-red-200"
-                                          }`}
-                                        >
-                                          <div className="flex items-start gap-2">
-                                            <span className="text-lg">↗</span>
-                                            <div className="min-w-0">
-                                              <p className="text-xs font-bold uppercase opacity-70">
-                                                Départ {timeLabel(reservation.checkout_at)}
-                                              </p>
-                                              <p className="truncate text-sm font-black">
-                                                {reservationTitle(reservation)}
-                                              </p>
-                                            </div>
-                                          </div>
-
-                                          {!request && (
-                                            <p className="mt-2 rounded-xl bg-red-100 px-2 py-1 text-xs font-black text-red-800">
-                                              Ménage manquant
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-
-                                  {cleanings.map((request) => {
-                                    const cleaner = cleanerById[request.assigned_cleaner_id];
-                                    const messages = outboundByRequestId[request.id] ?? [];
-                                    const sms = smsStatus(messages);
-                                    const reports = reportsByRequestId[request.id] ?? [];
-
-                                    return (
-                                      <div
-                                        key={request.id}
-                                        className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {cleanerPhoto(cleaner, "h-9 w-9")}
-                                          <div className="min-w-0">
-                                            <p className="truncate text-sm font-black text-slate-950">
-                                              {fullName(cleaner)}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                              🧹 {timeLabel(request.scheduled_start_at)}
-                                            </p>
-                                          </div>
-                                        </div>
-
-                                        <div className="mt-3 flex flex-wrap gap-1">
-                                          <span
-                                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${requestStatusClasses(
-                                              request.status,
-                                            )}`}
-                                          >
-                                            {requestStatusLabel(request.status)}
-                                          </span>
-                                          <span
-                                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${sms.className}`}
-                                          >
-                                            {sms.label}
-                                          </span>
-                                          {reports.length > 0 && (
-                                            <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-bold text-violet-800">
-                                              Rapport
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        <div className="mt-3 flex items-center justify-between gap-2">
-                                          <p className="text-sm font-black text-slate-950">
-                                            {euro(request.total_cost_eur)}
-                                          </p>
-                                          <Link
-                                            href={missionHref(request)}
-                                            className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white"
-                                          >
-                                            Ouvrir
-                                          </Link>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-
-                                  {checkins.map((reservation) => (
-                                    <div
-                                      key={`${reservation.id}-in`}
-                                      className="rounded-2xl bg-emerald-50 p-3 text-emerald-950 ring-1 ring-emerald-100"
-                                    >
-                                      <div className="flex items-start gap-2">
-                                        <span className="text-lg">↘</span>
-                                        <div className="min-w-0">
-                                          <p className="text-xs font-bold uppercase opacity-70">
-                                            Arrivée {timeLabel(reservation.checkin_at)}
-                                          </p>
-                                          <p className="truncate text-sm font-black">
-                                            {reservationTitle(reservation)}
-                                          </p>
-                                        </div>
-                                      </div>
+                                <>
+                                  {checkouts.length > 0 && (
+                                    <div className="absolute left-2 top-2 max-w-[80%]">
+                                      <p className="text-lg leading-none text-amber-900">↗</p>
+                                      <p className="mt-1 text-[10px] font-black uppercase text-amber-900">
+                                        {timeLabel(checkouts[0].checkout_at)}
+                                      </p>
                                     </div>
-                                  ))}
-                                </div>
+                                  )}
+
+                                  {checkins.length > 0 && (
+                                    <div className="absolute bottom-2 right-2 max-w-[80%] text-right">
+                                      <p className="text-lg leading-none text-emerald-900">↘</p>
+                                      <p className="mt-1 text-[10px] font-black uppercase text-emerald-900">
+                                        {timeLabel(checkins[0].checkin_at)}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {missingCleaning && cleanings.length === 0 && (
+                                    <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 rounded-2xl bg-red-100 px-2 py-2 text-center text-xs font-black text-red-800">
+                                      Ménage manquant
+                                    </div>
+                                  )}
+
+                                  <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 flex-col gap-2">
+                                    {cleanings.map((request) => {
+                                      const cleaner = cleanerById[request.assigned_cleaner_id];
+                                      const messages = outboundByRequestId[request.id] ?? [];
+                                      const displayStatus = cleaningDisplayStatus(request, messages);
+                                      const href = missionHref(request);
+
+                                      const card = (
+                                        <div
+                                          title={[
+                                            fullName(cleaner),
+                                            `Ménage: ${timeLabel(request.scheduled_start_at)}`,
+                                            `Statut: ${displayStatus.label}`,
+                                            `Montant: ${euro(request.total_cost_eur)}`,
+                                          ].join("\n")}
+                                          className="mx-auto flex max-w-[92px] flex-col items-center gap-1 rounded-2xl bg-white/95 p-2 text-center shadow-sm ring-1 ring-slate-200"
+                                        >
+                                          {cleanerPhoto(cleaner, "h-9 w-9")}
+
+                                          <span
+                                            className={`w-full rounded-full px-2 py-1 text-[10px] font-black ring-1 ${displayStatus.className}`}
+                                          >
+                                            {displayStatus.label}
+                                          </span>
+                                        </div>
+                                      );
+
+                                      return href !== "#" ? (
+                                        <Link key={request.id} href={href}>
+                                          {card}
+                                        </Link>
+                                      ) : (
+                                        <div key={request.id}>{card}</div>
+                                      );
+                                    })}
+                                  </div>
+                                </>
                               )}
                             </div>
                           );
