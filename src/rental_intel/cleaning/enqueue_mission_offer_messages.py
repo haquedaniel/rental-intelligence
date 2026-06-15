@@ -393,35 +393,32 @@ def main() -> None:
                 continue
 
             if not sent_prior:
-                # No prior successfully sent message. Treat this as an initial offer.
-                message_type = "mission_offer"
-                body = build_offer_body(request, reservation, property_, cleaner)
-            else:
-                message_type = "mission_modified"
-                body = build_modified_body(request, reservation, property_, cleaner)
+                # Legacy state: the request is already marked as sent, but we have
+                # no SMS audit trail proving that our sender created the original
+                # offer. Do NOT send an initial offer here, otherwise old missions
+                # can be spammed during deployment/backfill.
+                skipped += 1
+                print(
+                    "SKIP legacy sent request without prior SMS audit: "
+                    f"{property_.get('name') if property_ else 'property'} · "
+                    f"{full_name(cleaner)} · {request.get('id')}"
+                )
+                continue
 
             if insert_message(
                 supabase=supabase,
                 request=request,
                 cleaner=cleaner,
-                message_type=message_type,
-                body=body,
+                message_type="mission_modified",
+                body=build_modified_body(request, reservation, property_, cleaner),
                 event_key=current_event_key,
             ):
-                if message_type == "mission_modified":
-                    created_modified += 1
-                    print(
-                        "Created modification SMS: "
-                        f"{property_.get('name') if property_ else 'property'} · "
-                        f"{full_name(cleaner)}"
-                    )
-                else:
-                    created_offer += 1
-                    print(
-                        "Created offer SMS: "
-                        f"{property_.get('name') if property_ else 'property'} · "
-                        f"{full_name(cleaner)}"
-                    )
+                created_modified += 1
+                print(
+                    "Created modification SMS: "
+                    f"{property_.get('name') if property_ else 'property'} · "
+                    f"{full_name(cleaner)}"
+                )
             else:
                 skipped += 1
 
