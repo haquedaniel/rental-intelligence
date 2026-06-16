@@ -326,6 +326,13 @@ function missingCleaningHref(reservation: Row): string {
   return `/admin/operations/create-cleaning-request?${params.toString()}`;
 }
 
+function manualMissionHref(propertyId: string, dateKey: string): string {
+  const params = new URLSearchParams();
+  params.set("property_id", propertyId);
+  params.set("date", dateKey);
+  return `/admin/operations/create-cleaning-request?${params.toString()}`;
+}
+
 function propertyFilterHref(start: string, propertyId?: string) {
   const params = new URLSearchParams();
   params.set("start", start);
@@ -877,7 +884,13 @@ export default async function AdminOperationsPage({
                               className="flex min-h-20 items-center justify-center"
                             >
                               {cleanings.length === 0 && missingReservations.length === 0 && (
-                                <p className="text-xs text-slate-300">—</p>
+                                <Link
+                                  href={manualMissionHref(property.id, dayKey)}
+                                  title="Planifier une mission"
+                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-black text-slate-300 ring-1 ring-slate-200 hover:text-slate-950 hover:ring-slate-400"
+                                >
+                                  +
+                                </Link>
                               )}
 
                               <div className="flex w-full flex-col items-center justify-center gap-2">

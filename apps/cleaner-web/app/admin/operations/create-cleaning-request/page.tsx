@@ -9,6 +9,44 @@ const PARIS_TZ = "Europe/Paris";
 
 type Row = Record<string, any>;
 
+const SERVICE_OPTIONS = [
+  ["standard_cleaning", "Ménage standard"],
+  ["deep_cleaning", "Grand ménage"],
+  ["linen_laundry", "Linge / lessive"],
+  ["inventory_check", "Contrôle inventaire"],
+  ["garden_lawn", "Jardin / tonte"],
+  ["maintenance_check", "Petite maintenance"],
+  ["other", "Mission ponctuelle"],
+];
+
+function parisDateKey(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function timeLabel(iso?: string | null): string {
   if (!iso) return "—";
 
@@ -82,25 +120,43 @@ function roleClass(role?: string): string {
     : "bg-slate-100 text-slate-700";
 }
 
+function todayParisDateKey(): string {
+  return parisDateKey(new Date());
+}
+
 export default async function CreateCleaningRequestPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ reservation_id?: string; property_id?: string }>;
+  searchParams?: Promise<{
+    reservation_id?: string;
+    property_id?: string;
+    date?: string;
+  }>;
 }) {
   await requireAdmin();
 
   const params = await searchParams;
   const reservationId = params?.reservation_id ?? "";
+  const propertyIdParam = params?.property_id ?? "";
+  const dateParam = params?.date ?? "";
 
   const supabase = getSupabaseAdmin();
 
-  const { data: reservation } = await supabase
-    .from("reservations")
-    .select("*")
-    .eq("id", reservationId)
-    .maybeSingle();
+  let reservation: Row | null = null;
 
-  if (!reservation) {
+  if (reservationId) {
+    const { data } = await supabase
+      .from("reservations")
+      .select("*")
+      .eq("id", reservationId)
+      .maybeSingle();
+
+    reservation = data;
+  }
+
+  const propertyId = reservation?.property_id ?? propertyIdParam;
+
+  if (!propertyId) {
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-6">
         <div className="mx-auto max-w-2xl">
@@ -110,10 +166,10 @@ export default async function CreateCleaningRequestPage({
 
           <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
             <h1 className="text-2xl font-bold text-slate-950">
-              Réservation introuvable
+              Informations manquantes
             </h1>
             <p className="mt-2 text-slate-600">
-              Impossible de créer une mission sans réservation valide.
+              Impossible de créer une mission sans logement ou réservation valide.
             </p>
           </section>
         </div>
@@ -124,15 +180,17 @@ export default async function CreateCleaningRequestPage({
   const { data: property } = await supabase
     .from("properties")
     .select("*")
-    .eq("id", reservation.property_id)
+    .eq("id", propertyId)
     .maybeSingle();
 
-  const { data: existingRequests } = await supabase
-    .from("cleaning_requests")
-    .select("*")
-    .eq("reservation_id", reservation.id)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  const { data: existingRequests } = reservation
+    ? await supabase
+        .from("cleaning_requests")
+        .select("*")
+        .eq("reservation_id", reservation.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+    : { data: [] };
 
   const existingRequest = (existingRequests ?? [])[0];
   const existingIsActive =
@@ -141,13 +199,13 @@ export default async function CreateCleaningRequestPage({
   const { data: profiles } = await supabase
     .from("property_cleaning_profiles")
     .select("*")
-    .eq("property_id", reservation.property_id)
+    .eq("property_id", propertyId)
     .order("code", { ascending: true });
 
   const { data: assignments } = await supabase
     .from("property_cleaner_assignments")
     .select("*")
-    .eq("property_id", reservation.property_id)
+    .eq("property_id", propertyId)
     .eq("active", true)
     .order("role", { ascending: false })
     .order("priority", { ascending: true });
@@ -185,10 +243,17 @@ export default async function CreateCleaningRequestPage({
   const assignmentRows = assignments ?? [];
 
   const defaultCleanerId = assignmentRows[0]?.cleaner_id ?? "";
-  const defaultProfileId =
-    profileRows.find((profile) => profile.code === "light")?.id ??
-    profileRows[0]?.id ??
-    "";
+  const defaultProfile =
+    profileRows.find((profile) => profile.code === "light") ?? profileRows[0];
+  const defaultProfileId = defaultProfile?.id ?? "";
+
+  const scheduledDate = reservation
+    ? parisDateKey(reservation.checkout_at)
+    : dateParam || todayParisDateKey();
+
+  const defaultDeadlineDate = reservation
+    ? addDays(scheduledDate, 2)
+    : scheduledDate;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
@@ -199,17 +264,16 @@ export default async function CreateCleaningRequestPage({
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Création manuelle
+            {reservation ? "Ménage après séjour" : "Mission planifiée"}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold text-slate-950">
-            Créer une mission ménage
+            Créer une mission
           </h1>
 
           <p className="mt-3 text-slate-600">
-            Vérifiez la réservation, choisissez l’intervenante, puis créez la
-            mission. L’envoi SMS sera pris en charge par la prochaine exécution
-            de l’automatisation.
+            Choisissez le type de mission, l’intervenante, la date prévue et la
+            deadline. L’envoi SMS sera pris en charge par l’automatisation.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -221,16 +285,24 @@ export default async function CreateCleaningRequestPage({
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-500">Réservation</p>
+              <p className="text-sm font-semibold text-slate-500">
+                {reservation ? "Réservation" : "Origine"}
+              </p>
               <p className="mt-1 font-bold text-slate-950">
-                {reservation.guest_name ?? reservation.source_booking_id ?? "Client"}
+                {reservation
+                  ? reservation.guest_name ?? reservation.source_booking_id ?? "Client"
+                  : "Mission manuelle"}
               </p>
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-500">Départ</p>
+              <p className="text-sm font-semibold text-slate-500">
+                {reservation ? "Départ" : "Date proposée"}
+              </p>
               <p className="mt-1 font-bold text-slate-950">
-                {dateLabel(reservation.checkout_at)} · {timeLabel(reservation.checkout_at)}
+                {reservation
+                  ? `${dateLabel(reservation.checkout_at)} · ${timeLabel(reservation.checkout_at)}`
+                  : scheduledDate}
               </p>
             </div>
           </div>
@@ -260,7 +332,38 @@ export default async function CreateCleaningRequestPage({
             </div>
           ) : (
             <form action={createOrUpdateCleaningRequest} className="mt-8 space-y-6">
-              <input type="hidden" name="reservation_id" value={reservation.id} />
+              <input type="hidden" name="reservation_id" value={reservation?.id ?? ""} />
+              <input type="hidden" name="property_id" value={propertyId} />
+
+              <section className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Type de mission
+                  </label>
+                  <select
+                    name="service_type"
+                    defaultValue={reservation ? "standard_cleaning" : "deep_cleaning"}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  >
+                    {SERVICE_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Titre
+                  </label>
+                  <input
+                    name="title"
+                    placeholder={reservation ? "Ménage après séjour" : "Grand ménage, jardin, contrôle linge..."}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
+              </section>
 
               <section>
                 <h2 className="text-lg font-bold text-slate-950">
@@ -318,7 +421,7 @@ export default async function CreateCleaningRequestPage({
               <section className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-semibold text-slate-800">
-                    Profil ménage
+                    Profil
                   </label>
                   <select
                     name="profile_id"
@@ -335,6 +438,32 @@ export default async function CreateCleaningRequestPage({
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-800">
+                    Durée estimée
+                  </label>
+                  <input
+                    name="estimated_hours"
+                    type="number"
+                    step="0.25"
+                    min="0.25"
+                    defaultValue={defaultProfile?.estimated_hours ?? 2}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Date prévue
+                  </label>
+                  <input
+                    type="date"
+                    name="scheduled_date"
+                    defaultValue={scheduledDate}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
                     Heure prévue
                   </label>
                   <input
@@ -344,11 +473,59 @@ export default async function CreateCleaningRequestPage({
                     className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Deadline date
+                  </label>
+                  <input
+                    type="date"
+                    name="deadline_date"
+                    defaultValue={defaultDeadlineDate}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Deadline heure
+                  </label>
+                  <input
+                    type="time"
+                    name="deadline_time"
+                    defaultValue={reservation ? "12:00" : "18:00"}
+                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                  />
+                </div>
               </section>
+
+              <section className="grid gap-3 md:grid-cols-2">
+                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                  <input type="checkbox" name="linen_required" defaultChecked={Boolean(reservation)} />
+                  Linge à prévoir
+                </label>
+
+                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                  <input type="checkbox" name="laundry_required" defaultChecked={Boolean(reservation)} />
+                  Lessive / retour linge
+                </label>
+              </section>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-800">
+                  Notes internes
+                </label>
+                <textarea
+                  name="admin_notes"
+                  rows={3}
+                  placeholder="Instructions particulières, grand ménage, extérieur, contrôle..."
+                  className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                />
+              </div>
 
               <div className="rounded-2xl bg-sky-50 p-4 text-sm text-sky-900 ring-1 ring-sky-100">
                 La mission sera créée avec le statut <strong>Créée</strong>.
-                Elle sera ensuite envoyée par SMS lors du prochain passage de
+                Elle sera ensuite proposée par SMS lors du prochain passage de
                 l’automatisation.
               </div>
 
@@ -356,7 +533,7 @@ export default async function CreateCleaningRequestPage({
                 type="submit"
                 className="w-full rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white"
               >
-                Créer la mission ménage
+                Créer la mission
               </button>
             </form>
           )}
