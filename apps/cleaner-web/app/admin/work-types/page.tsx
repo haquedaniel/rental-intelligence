@@ -40,7 +40,7 @@ function serviceBadgeClass(value?: string): string {
 
 function numberLabel(value: unknown): string {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? `${parsed:g}`.replace(":g", "") : "—";
+  return Number.isFinite(parsed) ? String(parsed) : "—";
 }
 
 function profileCard(profile: Row) {
