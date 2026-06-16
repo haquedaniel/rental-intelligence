@@ -200,7 +200,9 @@ export default async function CreateCleaningRequestPage({
     .from("property_cleaning_profiles")
     .select("*")
     .eq("property_id", propertyId)
-    .order("code", { ascending: true });
+    .eq("active", true)
+    .order("sort_order", { ascending: true })
+    .order("label", { ascending: true });
 
   const { data: assignments } = await supabase
     .from("property_cleaner_assignments")
