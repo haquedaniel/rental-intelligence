@@ -147,7 +147,7 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
     }
 
     reservation = reservationData;
-    propertyId = reservation.property_id;
+    propertyId = reservationData.property_id;
     missionOrigin = "turnover";
   }
 
