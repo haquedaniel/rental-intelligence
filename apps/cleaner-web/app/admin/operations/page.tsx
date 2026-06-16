@@ -196,6 +196,65 @@ function cleaningDisplayStatus(request: Row, messages: Row[]) {
   };
 }
 
+function missionTypeLabel(request: Row): string {
+  if (request.title) return request.title;
+
+  switch (request.service_type) {
+    case "garden_lawn":
+      return "Jardin";
+    case "deep_cleaning":
+      return "Grand ménage";
+    case "linen_laundry":
+      return "Linge";
+    case "inventory_check":
+      return "Inventaire";
+    case "maintenance_check":
+      return "Maintenance";
+    case "other":
+      return "Mission";
+    default:
+      return "Ménage";
+  }
+}
+
+function missionTypeIcon(serviceType?: string): string {
+  switch (serviceType) {
+    case "garden_lawn":
+      return "🌿";
+    case "deep_cleaning":
+      return "✨";
+    case "linen_laundry":
+      return "🧺";
+    case "inventory_check":
+      return "🔎";
+    case "maintenance_check":
+      return "🔧";
+    case "other":
+      return "📌";
+    default:
+      return "🧹";
+  }
+}
+
+function missionTypeClass(serviceType?: string): string {
+  switch (serviceType) {
+    case "garden_lawn":
+      return "bg-emerald-50 text-emerald-800 ring-emerald-100";
+    case "deep_cleaning":
+      return "bg-violet-50 text-violet-800 ring-violet-100";
+    case "linen_laundry":
+      return "bg-sky-50 text-sky-800 ring-sky-100";
+    case "inventory_check":
+      return "bg-amber-50 text-amber-900 ring-amber-100";
+    case "maintenance_check":
+      return "bg-orange-50 text-orange-900 ring-orange-100";
+    case "other":
+      return "bg-slate-50 text-slate-700 ring-slate-100";
+    default:
+      return "bg-slate-50 text-slate-700 ring-slate-100";
+  }
+}
+
 function reservationChecksInOn(reservation: Row, dayKey: string): boolean {
   if (!reservation.checkin_at) return false;
   return parisDateKey(reservation.checkin_at) === dayKey;
@@ -920,6 +979,12 @@ export default async function AdminOperationsPage({
                                       ].join("\n")}
                                       className="flex w-full flex-col items-center gap-1"
                                     >
+                                      <span
+                                        className={`w-full rounded-full px-2 py-1 text-center text-[10px] font-black leading-tight ring-1 ${missionTypeClass(request.service_type)}`}
+                                      >
+                                        {missionTypeIcon(request.service_type)} {missionTypeLabel(request)}
+                                      </span>
+
                                       {cleanerPhoto(cleaner, "h-8 w-8")}
 
                                       <span

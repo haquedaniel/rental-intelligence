@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOrUpdateCleaningRequest } from "./actions";
+import MissionProfileFields from "./MissionProfileFields";
 
 export const dynamic = "force-dynamic";
 
@@ -337,34 +338,18 @@ export default async function CreateCleaningRequestPage({
               <input type="hidden" name="reservation_id" value={reservation?.id ?? ""} />
               <input type="hidden" name="property_id" value={propertyId} />
 
-              <section className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Type de mission
-                  </label>
-                  <select
-                    name="service_type"
-                    defaultValue={reservation ? "standard_cleaning" : "deep_cleaning"}
-                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
-                  >
-                    {SERVICE_OPTIONS.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Titre
-                  </label>
-                  <input
-                    name="title"
-                    placeholder={reservation ? "Ménage après séjour" : "Grand ménage, jardin, contrôle linge..."}
-                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
-                  />
-                </div>
+              <section>
+                <label className="block text-sm font-semibold text-slate-800">
+                  Titre optionnel
+                </label>
+                <input
+                  name="title"
+                  placeholder={reservation ? "Ménage après séjour" : "Grand ménage, jardin, contrôle linge..."}
+                  className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Laissez vide pour utiliser le nom du type de mission choisi.
+                </p>
               </section>
 
               <section>
@@ -420,38 +405,20 @@ export default async function CreateCleaningRequestPage({
                 </div>
               </section>
 
+              <MissionProfileFields
+                profiles={profileRows.map((profile) => ({
+                  id: profile.id,
+                  code: profile.code,
+                  label: profile.label,
+                  service_type: profile.service_type,
+                  estimated_hours: profile.estimated_hours,
+                  default_linen_required: profile.default_linen_required,
+                  default_laundry_required: profile.default_laundry_required,
+                }))}
+                defaultProfileId={defaultProfileId}
+              />
+
               <section className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Profil
-                  </label>
-                  <select
-                    name="profile_id"
-                    defaultValue={defaultProfileId}
-                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
-                  >
-                    {profileRows.map((profile) => (
-                      <option key={profile.id} value={profile.id}>
-                        {profile.label ?? profile.code} · {profile.estimated_hours}h
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-800">
-                    Durée estimée
-                  </label>
-                  <input
-                    name="estimated_hours"
-                    type="number"
-                    step="0.25"
-                    min="0.25"
-                    defaultValue={defaultProfile?.estimated_hours ?? 2}
-                    className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-slate-800">
                     Date prévue
@@ -499,18 +466,6 @@ export default async function CreateCleaningRequestPage({
                     className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
                   />
                 </div>
-              </section>
-
-              <section className="grid gap-3 md:grid-cols-2">
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-                  <input type="checkbox" name="linen_required" defaultChecked={Boolean(reservation)} />
-                  Linge à prévoir
-                </label>
-
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-                  <input type="checkbox" name="laundry_required" defaultChecked={Boolean(reservation)} />
-                  Lessive / retour linge
-                </label>
               </section>
 
               <div>
