@@ -117,7 +117,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "premieres_taches",
       title: "Premières tâches",
-      primary_check_label: "Premières tâches effectuées",
+      high_level_check_label: "Premières tâches effectuées",
       sort_order: 10,
       photo_requirement: "none",
       detail_items: [
@@ -133,7 +133,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "sanitaires",
       title: "Sanitaires",
-      primary_check_label: "Sanitaires propres",
+      high_level_check_label: "Sanitaires propres",
       sort_order: 20,
       photo_requirement: "none",
       detail_items: [
@@ -149,7 +149,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "cuisine",
       title: "Cuisine",
-      primary_check_label: "Cuisine propre",
+      high_level_check_label: "Cuisine propre",
       sort_order: 30,
       photo_requirement: "none",
       detail_items: [
@@ -166,7 +166,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "sols_poussieres",
       title: "Sols et poussières",
-      primary_check_label: "Sols et surfaces propres",
+      high_level_check_label: "Sols et surfaces propres",
       sort_order: 40,
       photo_requirement: "none",
       detail_items: [
@@ -182,7 +182,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "preparation",
       title: "Préparation",
-      primary_check_label: "Logement préparé",
+      high_level_check_label: "Logement préparé",
       sort_order: 50,
       photo_requirement: "none",
       detail_items: [
@@ -198,7 +198,7 @@ export async function createStandardChecklistForProfile(formData: FormData) {
     {
       section_key: "controle_final",
       title: "Contrôle final",
-      primary_check_label: "Logement prêt",
+      high_level_check_label: "Logement prêt",
       sort_order: 60,
       photo_requirement: "optional",
       detail_items: [
@@ -349,7 +349,7 @@ export async function addChecklistSection(formData: FormData) {
 
   const templateId = textValue(formData, "template_id");
   const title = textValue(formData, "title");
-  const primaryCheckLabel = textValue(formData, "primary_check_label");
+  const primaryCheckLabel = textValue(formData, "high_level_check_label");
   const sortOrder = numberValue(textValue(formData, "sort_order"), 100);
 
   if (!templateId || !title || !primaryCheckLabel) {
@@ -362,7 +362,7 @@ export async function addChecklistSection(formData: FormData) {
     template_id: templateId,
     section_key: sectionKey,
     title,
-    primary_check_label: primaryCheckLabel,
+    high_level_check_label: primaryCheckLabel,
     sort_order: sortOrder,
     photo_requirement: textValue(formData, "photo_requirement") || "none",
     detail_items: linesValue(formData, "detail_items"),
@@ -385,7 +385,7 @@ export async function updateChecklistSection(formData: FormData) {
 
   const id = textValue(formData, "id");
   const title = textValue(formData, "title");
-  const primaryCheckLabel = textValue(formData, "primary_check_label");
+  const primaryCheckLabel = textValue(formData, "high_level_check_label");
   const sortOrder = numberValue(textValue(formData, "sort_order"), 100);
 
   if (!id || !title || !primaryCheckLabel) {
@@ -396,7 +396,7 @@ export async function updateChecklistSection(formData: FormData) {
     .from("cleaning_checklist_sections")
     .update({
       title,
-      primary_check_label: primaryCheckLabel,
+      high_level_check_label: primaryCheckLabel,
       sort_order: sortOrder,
       photo_requirement: textValue(formData, "photo_requirement") || "none",
       detail_items: linesValue(formData, "detail_items"),

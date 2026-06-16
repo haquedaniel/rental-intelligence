@@ -282,11 +282,13 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
   const total = subtotal + urgencyBonus;
 
   const now = new Date();
+  const effectiveServiceType = profile.service_type || serviceType;
+
   const title =
     explicitTitle ??
     (missionOrigin === "turnover"
       ? "Ménage après séjour"
-      : SERVICE_LABELS[serviceType] ?? "Mission ponctuelle");
+      : SERVICE_LABELS[effectiveServiceType] ?? "Mission ponctuelle");
 
   const payload = {
     property_id: property.id,
@@ -294,7 +296,7 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
     cleaning_profile_id: profile.id,
     assigned_cleaner_id: cleaner.id,
     mission_origin: missionOrigin,
-    service_type: serviceType,
+    service_type: effectiveServiceType,
     title,
     admin_notes: adminNotes,
     scheduled_start_at: scheduledStartAt.toISOString(),

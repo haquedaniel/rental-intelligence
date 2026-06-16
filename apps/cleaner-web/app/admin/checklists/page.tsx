@@ -109,8 +109,8 @@ function sectionForm(section: Row) {
             Case principale
           </label>
           <input
-            name="primary_check_label"
-            defaultValue={section.primary_check_label ?? ""}
+            name="high_level_check_label"
+            defaultValue={section.high_level_check_label ?? ""}
             className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
           />
         </div>
@@ -562,7 +562,7 @@ export default async function AdminChecklistsPage({
                     Case principale à valider
                   </label>
                   <input
-                    name="primary_check_label"
+                    name="high_level_check_label"
                     placeholder="Ex : Terrasse propre et rangée"
                     className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
                   />
