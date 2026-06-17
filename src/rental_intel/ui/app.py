@@ -10,6 +10,7 @@ from rental_intel.ui.page_modules.operations import render_operations_page
 from rental_intel.ui.page_modules.outlook import render_outlook_page
 from rental_intel.ui.page_modules.profitability import render_profitability_page
 from rental_intel.ui.page_modules.cleaning_reports import render_cleaning_reports_page
+from rental_intel.ui.page_modules.web_analytics import render_web_analytics_page
 
 
 st.set_page_config(
@@ -30,6 +31,7 @@ PAGES = {
     "05 · Rentabilité": render_profitability_page,
     "06 · Opérations": render_operations_page,
     "07 · Rapports ménage": render_cleaning_reports_page,
+    "08 · Web analytics": render_web_analytics_page,
 }
 
 

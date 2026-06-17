@@ -1,0 +1,45 @@
+create table public.site_pageviews (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  site text not null,
+  path text,
+  page_title text,
+  referrer text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  utm_term text,
+  language text,
+  viewport_width int
+);
+
+alter table public.site_pageviews enable row level security;
+
+create policy "Allow anonymous pageview inserts"
+on public.site_pageviews
+for insert
+to anon
+with check (site = 'leclosdelavoilerie');
+
+
+
+alter table public.site_pageviews
+add constraint site_pageviews_site_check
+check (site in ('leclosdelavoilerie', 'lapeskerezh'));
+
+alter table public.site_pageviews
+add constraint site_pageviews_path_length_check
+check (char_length(path) <= 300);
+
+alter table public.site_pageviews
+add constraint site_pageviews_referrer_length_check
+check (referrer is null or char_length(referrer) <= 500);
+
+alter table public.site_pageviews
+add constraint site_pageviews_utm_length_check
+check (
+  (utm_source is null or char_length(utm_source) <= 100)
+  and (utm_medium is null or char_length(utm_medium) <= 100)
+  and (utm_campaign is null or char_length(utm_campaign) <= 150)
+);
