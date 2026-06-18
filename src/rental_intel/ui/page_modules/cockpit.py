@@ -281,8 +281,8 @@ def _extract_listing_meta_rows(source: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["listing_id", "listing_name", "subtitle", "image_url"])
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def _load_supabase_listing_meta() -> pd.DataFrame:
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_supabase_listing_meta(cache_version: str = "thumb-v7-restore") -> pd.DataFrame:
     """Load listing thumbnails from Supabase reference photos.
 
     The cleaner/admin app stores cover photos in:
@@ -303,6 +303,7 @@ def _load_supabase_listing_meta() -> pd.DataFrame:
     key = (
         os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
         or os.environ.get("SUPABASE_SERVICE_KEY")
+        or os.environ.get("SUPABASE_KEY")
         or os.environ.get("SUPABASE_ANON_KEY")
         or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
     )
@@ -554,7 +555,7 @@ def _build_listing_meta(reservations: pd.DataFrame) -> pd.DataFrame:
         return meta
 
     external = pd.concat(
-        [_load_processed_listing_meta(), _load_supabase_listing_meta()],
+        [_load_processed_listing_meta(), _load_supabase_listing_meta("thumb-v7-restore")],
         ignore_index=True,
     ).drop_duplicates("listing_id")
 
@@ -690,81 +691,6 @@ def _cleaning_events_from_due(
 
     return pd.DataFrame(rows, columns=columns)
 
-
-def _inject_sticky_period_css() -> None:
-    """Pin the period selector while scrolling.
-
-    Uses the keyed Streamlit container class. Unlike the previous attempt, this
-    uses position: fixed rather than sticky, because Streamlit's scrollable app
-    container can prevent sticky positioning from engaging on mobile browsers.
-    """
-    st.markdown(
-        """
-        <style>
-        .st-key-period-controls {
-            position: fixed !important;
-            top: 0.35rem !important;
-            left: max(1rem, calc((100vw - 1220px) / 2 + 1rem)) !important;
-            right: max(1rem, calc((100vw - 1220px) / 2 + 1rem)) !important;
-            z-index: 100000 !important;
-            background: rgba(247, 243, 236, 0.97) !important;
-            -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(222, 213, 200, 0.95) !important;
-            border-radius: 22px !important;
-            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12) !important;
-            padding: 0.68rem 1rem 0.38rem 1rem !important;
-        }
-
-        .st-key-period-controls [data-testid="stSlider"] {
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-
-        .st-key-period-controls [data-testid="stSlider"] > label,
-        .st-key-period-controls label {
-            margin-bottom: 0.1rem !important;
-            font-weight: 800 !important;
-            color: #24313a !important;
-        }
-
-        .period-controls-spacer {
-            height: 7.2rem;
-        }
-
-        @media (max-width: 768px) {
-            .st-key-period-controls {
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                border-radius: 0 0 20px 20px !important;
-                padding: calc(env(safe-area-inset-top, 0px) + 0.55rem) 1rem 0.45rem 1rem !important;
-                box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14) !important;
-            }
-
-            .st-key-period-controls [data-testid="stSlider"] > label,
-            .st-key-period-controls label {
-                font-size: 0.95rem !important;
-            }
-
-            .period-controls-spacer {
-                height: 7.8rem;
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def _period_controls_container():
-    """Return a keyed container when supported, otherwise a normal container."""
-    try:
-        return st.container(key="period-controls")
-    except TypeError:
-        return st.container()
-
-
 def render_cockpit_page() -> None:
     dashboard = read_processed_csv("dashboard_kpis.csv")
     listing_financials = read_processed_csv("listing_month_financials.csv")
@@ -793,16 +719,13 @@ def render_cockpit_page() -> None:
         "La vue s’ouvre sur le mois en cours. Déplacez les poignées pour analyser une autre période."
     )
 
-    _inject_sticky_period_css()
-    with _period_controls_container():
-        period_start, period_end = st.slider(
-            "Période analysée",
-            min_value=min_date,
-            max_value=max_date,
-            value=(default_start, default_end),
-            format="DD/MM/YYYY",
-        )
-    st.markdown("<div class='period-controls-spacer'></div>", unsafe_allow_html=True)
+    period_start, period_end = st.slider(
+        "Période analysée",
+        min_value=min_date,
+        max_value=max_date,
+        value=(default_start, default_end),
+        format="DD/MM/YYYY",
+    )
 
     if period_end <= period_start:
         st.error("La date de fin doit être après la date de début.")
