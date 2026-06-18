@@ -84,9 +84,6 @@ def _empty_cleanings() -> pd.DataFrame:
             "supabase_property_id",
             "cleaning_request_id",
             "public_token",
-            "updated_at",
-            "accepted_at",
-            "total_cost_eur",
         ]
     )
 
@@ -598,7 +595,6 @@ def load_cleaning_calendar_events(
         "accepted_at",
         "refused_at",
         "total_cost_eur",
-        "updated_at",
     ]
     request_rows = _execute_data(
         client.table("cleaning_requests")
@@ -676,9 +672,6 @@ def load_cleaning_calendar_events(
                 "supabase_property_id": pid,
                 "cleaning_request_id": str(request.get("id") or ""),
                 "public_token": str(request.get("public_token") or ""),
-                "updated_at": str(request.get("updated_at") or ""),
-                "accepted_at": str(request.get("accepted_at") or ""),
-                "total_cost_eur": request.get("total_cost_eur"),
             }
         )
 

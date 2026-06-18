@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 st.set_page_config(page_title="Web analytics", layout="wide")
 
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 SITE = "leclosdelavoilerie"
 

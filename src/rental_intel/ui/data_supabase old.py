@@ -12,52 +12,6 @@ import pandas as pd
 
 PHOTO_BUCKET_DEFAULT = "cleaning-reference-photos"
 
-_ENV_FILES_LOADED = False
-
-
-def _load_env_files_once() -> None:
-    """Load local .env files when running diagnostics/scripts outside Docker.
-
-    Docker/production should pass environment variables explicitly. Locally,
-    Streamlit/scripts are often launched without sourcing .env, so we try common
-    repo locations without overriding already-set shell variables.
-    """
-    global _ENV_FILES_LOADED
-    if _ENV_FILES_LOADED:
-        return
-    _ENV_FILES_LOADED = True
-
-    try:
-        from pathlib import Path
-        from dotenv import load_dotenv
-    except Exception:
-        return
-
-    cwd = Path.cwd().resolve()
-    roots = [cwd, *cwd.parents]
-    candidates = []
-    for root in roots[:6]:
-        candidates.extend(
-            [
-                root / ".env",
-                root / ".env.local",
-                root / "apps" / "cleaner-web" / ".env",
-                root / "apps" / "cleaner-web" / ".env.local",
-                root / "app" / ".env",
-                root / "app" / ".env.local",
-            ]
-        )
-
-    seen = set()
-    for candidate in candidates:
-        key = str(candidate)
-        if key in seen:
-            continue
-        seen.add(key)
-        if candidate.exists():
-            load_dotenv(candidate, override=False)
-
-
 
 @dataclass
 class OperatingMapInputs:
@@ -84,9 +38,6 @@ def _empty_cleanings() -> pd.DataFrame:
             "supabase_property_id",
             "cleaning_request_id",
             "public_token",
-            "updated_at",
-            "accepted_at",
-            "total_cost_eur",
         ]
     )
 
@@ -197,7 +148,6 @@ def _safe_iso(value: object) -> str:
 
 
 def _get_supabase_credentials() -> tuple[str, str]:
-    _load_env_files_once()
     url = os.environ.get("SUPABASE_URL") or os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or ""
     # Important: this project historically uses SUPABASE_KEY. Prefer it before
     # SERVICE_ROLE to avoid an obsolete/invalid service key shadowing the good key.
@@ -598,7 +548,6 @@ def load_cleaning_calendar_events(
         "accepted_at",
         "refused_at",
         "total_cost_eur",
-        "updated_at",
     ]
     request_rows = _execute_data(
         client.table("cleaning_requests")
@@ -616,24 +565,9 @@ def load_cleaning_calendar_events(
     cleaners_by_id: dict[str, str] = {}
     if cleaner_ids:
         cleaner_rows: list[dict[str, Any]] = []
-        # Keep this deliberately defensive: the Next.js app only guarantees
-        # id/first_name/last_name. Selecting optional columns that do not exist
-        # makes PostgREST reject the whole query, so try the known schema first
-        # and only fall back to broader variants if needed.
-        cleaner_selects = [
-            "id,first_name,last_name",
-            "id,first_name,last_name,phone,status,active",
-            "id,name,display_name",
-            "*",
-        ]
         for chunk in _chunks(cleaner_ids, 150):
-            chunk_rows: list[dict[str, Any]] = []
-            for select_expr in cleaner_selects:
-                chunk_rows = _execute_data(client.table("cleaners").select(select_expr).in_("id", chunk))
-                if chunk_rows:
-                    break
-            cleaner_rows.extend(chunk_rows)
-        cleaners_by_id = {str(r.get("id")): _cleaner_name(r) for r in cleaner_rows if r.get("id")}
+            cleaner_rows.extend(_execute_data(client.table("cleaners").select("id,first_name,last_name,name,display_name").in_("id", chunk)))
+        cleaners_by_id = {str(r.get("id")): _cleaner_name(r) for r in cleaner_rows}
 
     property_to_listing = dict(zip(property_bridge_df["supabase_property_id"].astype(str), property_bridge_df["listing_id"].astype(str)))
 
@@ -676,9 +610,6 @@ def load_cleaning_calendar_events(
                 "supabase_property_id": pid,
                 "cleaning_request_id": str(request.get("id") or ""),
                 "public_token": str(request.get("public_token") or ""),
-                "updated_at": str(request.get("updated_at") or ""),
-                "accepted_at": str(request.get("accepted_at") or ""),
-                "total_cost_eur": request.get("total_cost_eur"),
             }
         )
 

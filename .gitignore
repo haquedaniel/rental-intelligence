@@ -32,4 +32,5 @@ data/manual/*
 !data/manual/reservations/
 !data/manual/reservations/.gitkeep
 
+outputs/logs/apps/cleaner-web.zip
 outputs/logs/
