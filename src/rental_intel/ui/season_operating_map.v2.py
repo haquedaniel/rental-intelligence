@@ -418,9 +418,6 @@ def _build_css(n_weeks: int, total_days: int, single_listing: bool) -> str:
 .opmap-signal-dot.over {{background:var(--ri-orange);}}
 .opmap-signal-dot.risk {{background:transparent;color:var(--ri-red);font-size:18px;}}
 .opmap-grid {{min-width:{max(1040, n_weeks * 86 + 240)}px;}}
-.opmap-timeline-wrap {{min-width:0;}}
-.opmap-mobile-weeks {{display:none;}}
-.opmap-mobile-hint {{display:none;}}
 .opmap-week-head {{display:grid;grid-template-columns:240px 1fr;border-bottom:1px solid var(--ri-line);}}
 .opmap-week-spacer {{border-right:1px solid var(--ri-line);}}
 .opmap-weeks {{display:grid;grid-template-columns:repeat({n_weeks}, minmax(86px, 1fr));}}
@@ -462,117 +459,9 @@ def _build_css(n_weeks: int, total_days: int, single_listing: bool) -> str:
 .opmap-single .opmap-grid {{min-width:{max(1080, n_weeks * 94 + 240)}px;}}
 .opmap-single .opmap-listing {{align-items:flex-start;padding-top:26px;}}
 @media (max-width: 760px) {{
-  .opmap-card {{
-    padding:14px;
-    border-radius:18px;
-    overflow-x:hidden;
-    box-shadow:0 10px 28px rgba(20,30,40,.055);
-  }}
-  .opmap-titlebar {{
-    flex-direction:column;
-    gap:10px;
-    margin-bottom:10px;
-  }}
-  .opmap-title h3 {{font-size:22px;line-height:1.05;}}
-  .opmap-title p {{font-size:12.5px;line-height:1.35;}}
-  .opmap-toggle {{gap:7px;font-size:12px;}}
-  .opmap-pill {{padding:7px 10px;border-radius:11px;}}
-  .opmap-legend {{
-    justify-content:flex-start !important;
-    flex-wrap:nowrap;
-    overflow-x:auto;
-    gap:8px;
-    padding:9px 0;
-    margin:0;
-    scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-  }}
-  .opmap-legend::-webkit-scrollbar {{display:none;}}
-  .opmap-leg {{
-    font-size:11.5px;
-    gap:5px;
-    padding:5px 8px;
-    border:1px solid #e2e8ee;
-    background:#f8fafc;
-    border-radius:999px;
-  }}
-  .opmap-swatch {{width:13px;height:13px;border-radius:4px;}}
-  .opmap-signal-dot {{width:17px;height:17px;font-size:10px;}}
-  .opmap-signal-dot.risk {{font-size:15px;}}
-  .opmap-mobile-hint {{
-    display:block;
-    margin:9px 0 4px;
-    color:#71808c;
-    font-size:11.5px;
-    font-weight:650;
-  }}
-  .opmap-grid {{
-    min-width:0 !important;
-    width:100%;
-  }}
-  .opmap-week-head {{display:none;}}
-  .opmap-row {{
-    display:block;
-    min-height:0;
-    border:1px solid var(--ri-line);
-    border-radius:18px;
-    margin:12px 0;
-    overflow:hidden;
-    background:#fff;
-  }}
-  .opmap-row:last-child {{border-bottom:1px solid var(--ri-line);}}
-  .opmap-listing {{
-    border-right:0;
-    border-bottom:1px solid var(--ri-line);
-    padding:11px 12px;
-    gap:10px;
-  }}
-  .opmap-thumb,.opmap-thumb-fallback {{
-    width:58px;
-    height:44px;
-    border-radius:12px;
-    flex:0 0 auto;
-  }}
-  .opmap-thumb-fallback {{font-size:21px;}}
-  .opmap-listing-name {{font-size:15px;}}
-  .opmap-listing-sub {{font-size:11.5px;margin-top:2px;}}
-  .opmap-timeline-wrap {{
-    overflow-x:auto;
-    overflow-y:hidden;
-    -webkit-overflow-scrolling:touch;
-    padding:0 0 11px;
-    background:linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0)) left top/18px 100% no-repeat,
-               linear-gradient(270deg, rgba(255,255,255,1), rgba(255,255,255,0)) right top/18px 100% no-repeat;
-  }}
-  .opmap-timeline-wrap::-webkit-scrollbar {{height:5px;}}
-  .opmap-timeline-wrap::-webkit-scrollbar-thumb {{background:#d5dde4;border-radius:999px;}}
-  .opmap-mobile-weeks {{display:block;min-width:{max(700, n_weeks * 72)}px;}}
-  .opmap-mobile-weeks .opmap-weeks {{
-    display:grid;
-    grid-template-columns:repeat({n_weeks}, minmax(72px, 1fr));
-    min-width:{max(700, n_weeks * 72)}px;
-    border-bottom:1px solid var(--ri-line);
-  }}
-  .opmap-mobile-weeks .opmap-week {{min-height:44px;padding:6px 3px 3px;}}
-  .opmap-mobile-weeks .opmap-month {{font-size:11.5px;line-height:15px;min-height:15px;}}
-  .opmap-mobile-weeks .opmap-week-label {{font-size:11px;}}
-  .opmap-timeline {{
-    min-width:{max(700, n_weeks * 72)}px;
-    width:{max(700, n_weeks * 72)}px;
-    min-height:112px;
-  }}
-  .opmap-track-base,.opmap-seg {{top:25px;height:26px;border-radius:6px;}}
-  .opmap-boundary {{top:23px;height:30px;}}
-  .opmap-turnover-line {{top:21px;height:34px;}}
-  .opmap-price {{top:12px;width:21px;height:21px;font-size:10px;}}
-  .opmap-risk {{top:55px;font-size:15px;}}
-  .opmap-clean-window {{top:89px;height:8px;}}
-  .opmap-event.arrival,.opmap-event.departure,.opmap-event.turnover {{top:61px;}}
-  .opmap-event.cleaning,.opmap-event.cleaning-confirm {{top:80px;}}
-  .opmap-event .event-dot {{width:20px;height:20px;font-size:11px;}}
-  .opmap-event .event-label {{display:none;}}
-  .opmap-res-label {{font-size:10.5px;left:6px;right:6px;}}
-  .opmap-single .opmap-grid {{min-width:0 !important;}}
+  .opmap-card {{padding:14px;border-radius:18px;}}
+  .opmap-titlebar {{flex-direction:column;}}
+  .opmap-grid {{min-width:900px;}}
 }}
 </style>
 """
@@ -796,12 +685,9 @@ def render_season_operating_map(
                   <div class="opmap-listing-sub">{escape(listing.subtitle)}</div>
                 </div>
               </div>
-              <div class="opmap-timeline-wrap">
-                <div class="opmap-mobile-weeks"><div class="opmap-weeks">{''.join(week_cells)}</div></div>
-                <div class="opmap-timeline">
-                  {''.join(segs)}
-                  {''.join(markers)}
-                </div>
+              <div class="opmap-timeline">
+                {''.join(segs)}
+                {''.join(markers)}
               </div>
             </div>
             """
@@ -823,7 +709,6 @@ def render_season_operating_map(
         </div>
       </div>
       {legend}
-      <div class="opmap-mobile-hint">Glissez les lignes horizontalement pour voir la suite →</div>
       <div class="opmap-grid">
         <div class="opmap-week-head">
           <div class="opmap-week-spacer"></div>
