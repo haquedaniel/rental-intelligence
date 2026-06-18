@@ -28,6 +28,10 @@ except ImportError:
     # If you later move it to src/rental_intel/ui/components/
     from rental_intel.ui.components.season_operating_map import render_season_operating_map
 
+try:
+    from rental_intel.ui.data_supabase import build_operating_map_inputs
+except Exception:
+    build_operating_map_inputs = None
 
 
 def _safe_int(value: object) -> int:
@@ -301,9 +305,9 @@ def _load_supabase_listing_meta(cache_version: str = "thumb-v7-restore") -> pd.D
         or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
     )
     key = (
-        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        os.environ.get("SUPABASE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
         or os.environ.get("SUPABASE_SERVICE_KEY")
-        or os.environ.get("SUPABASE_KEY")
         or os.environ.get("SUPABASE_ANON_KEY")
         or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
     )
@@ -802,9 +806,32 @@ def render_cockpit_page() -> None:
         "semaine par semaine, avec positionnement réel des jours",
     )
 
+    # Start with the existing local adapters, then enrich them through the
+    # read-only Supabase bridge if available. The bridge is deliberately
+    # conservative: if it fails, the cockpit still renders the local view.
     listing_meta = _build_listing_meta(reservations)
     pricing_signals = _pricing_signals_from_attention(summary.get("attention", []), reservations)
     cleaning_events = _cleaning_events_from_due(cleaner_due, reservations)
+
+    if build_operating_map_inputs is not None:
+        try:
+            bridge_inputs = build_operating_map_inputs(
+                reservations,
+                period_start,
+                period_end,
+                base_listing_meta_df=listing_meta,
+                fallback_cleaning_df=cleaning_events,
+            )
+            if bridge_inputs.listing_meta_df is not None and not bridge_inputs.listing_meta_df.empty:
+                listing_meta = bridge_inputs.listing_meta_df
+            if bridge_inputs.cleaning_df is not None and not bridge_inputs.cleaning_df.empty:
+                cleaning_events = bridge_inputs.cleaning_df
+
+            if os.environ.get("RENTAL_INTEL_DEBUG_SUPABASE_BRIDGE") == "1":
+                st.caption(f"Bridge Supabase: {bridge_inputs.diagnostics}")
+        except Exception as exc:
+            if os.environ.get("RENTAL_INTEL_DEBUG_SUPABASE_BRIDGE") == "1":
+                st.warning(f"Bridge Supabase indisponible: {exc}")
 
     render_season_operating_map(
         reservations_df=reservations,
