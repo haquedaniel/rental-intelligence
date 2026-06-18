@@ -4,8 +4,6 @@ import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 import os
-import re
-import unicodedata
 
 from rental_intel.ui.analysis.cockpit import build_cockpit_summary
 from rental_intel.ui.components import (
@@ -122,67 +120,14 @@ def _first_existing_col(df: pd.DataFrame, names: list[str]) -> str | None:
 
 
 def _normalised_key(value: object) -> str:
-    """Loose comparison key used to match Streamlit listings with Supabase properties."""
-    text = str(value or "").strip().lower()
-    text = unicodedata.normalize("NFD", text)
-    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
-    text = text.replace("&", " et ")
-    text = re.sub(r"[^a-z0-9]+", "_", text)
-    return re.sub(r"_+", "_", text).strip("_")
-
-
-def _alias_keys(*values: object) -> set[str]:
-    """Return tolerant aliases for matching different naming systems.
-
-    The Streamlit metrics often use compact labels such as `Apt 2`, while the
-    cleaning app stores properties with richer names such as
-    `Voilerie 2 · Un jardin sur la mer`. This creates bridge aliases for both.
-    """
-    aliases: set[str] = set()
-    blob_parts: list[str] = []
-
-    for value in values:
-        raw = str(value or "").strip()
-        if not raw or raw.lower() == "nan":
-            continue
-        blob_parts.append(raw)
-        norm = _normalised_key(raw)
-        if norm:
-            aliases.add(norm)
-
-        # Split rich names into useful pieces.
-        for part in re.split(r"[·•|,/()\[\]—–-]+", raw):
-            part_norm = _normalised_key(part)
-            if part_norm:
-                aliases.add(part_norm)
-
-    blob = _normalised_key(" ".join(blob_parts))
-
-    # Numeric apartment aliases: apt2, Apt 2, Voilerie 2, etc.
-    numbers = set(re.findall(r"(?:apt|appartement|apartment|voilerie)?_?(\d+)\b", blob))
-    for n in numbers:
-        aliases.update({
-            f"apt_{n}",
-            f"apt{n}",
-            f"appartement_{n}",
-            f"apartment_{n}",
-            f"voilerie_{n}",
-            f"voilerie{n}",
-            f"le_clos_de_la_voilerie_{n}",
-        })
-
-    # Known friendly names from the current portfolio. These are harmless for
-    # other clients because they are only aliases, not displayed values.
-    if "jardin" in blob or "apt_2" in aliases or "voilerie_2" in aliases:
-        aliases.update({"un_jardin_sur_la_mer", "jardin_sur_la_mer", "apt_2", "voilerie_2", "voilerie2"})
-    if "balcon" in blob or "apt_4" in aliases or "voilerie_4" in aliases:
-        aliases.update({"un_balcon_sur_la_mer", "balcon_sur_la_mer", "apt_4", "voilerie_4", "voilerie4"})
-    if "toits" in blob or "refuge" in blob or "apt_5" in aliases or "voilerie_5" in aliases:
-        aliases.update({"le_refuge_sous_les_toits", "refuge_sous_les_toits", "sous_les_toits", "apt_5", "voilerie_5", "voilerie5"})
-    if "peskerezh" in blob or "house" in blob:
-        aliases.update({"la_peskerezh", "peskerezh", "peskerezh_house", "maison_peskerezh"})
-
-    return {a for a in aliases if a}
+    return (
+        str(value or "")
+        .strip()
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("·", "_")
+    )
 
 
 def _listing_lookup(reservations: pd.DataFrame) -> dict[str, str]:
@@ -281,209 +226,43 @@ def _extract_listing_meta_rows(source: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["listing_id", "listing_name", "subtitle", "image_url"])
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def _load_supabase_listing_meta() -> pd.DataFrame:
-    """Load listing thumbnails from Supabase reference photos.
+    """Optional thumbnail loader. Safe no-op if Supabase is unavailable.
 
-    The cleaner/admin app stores cover photos in:
-      - table: property_reference_photos
-      - bucket: cleaning-reference-photos
-      - columns: property_id, storage_bucket, storage_path, is_cover, is_active
-
-    We build signed image URLs from storage_path, then try to map the Supabase
-    property_id back to the Streamlit listing_id using common property/listing
-    tables and fallback direct key matching.
+    It tries common property/listing table names and common image columns.
+    If your Supabase schema uses different names, the component will still work;
+    just pass listing_meta with image_url later or add the table/column here.
     """
-    empty = pd.DataFrame(columns=["listing_id", "listing_name", "subtitle", "image_url"])
-
-    url = (
-        os.environ.get("SUPABASE_URL")
-        or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
-    )
-    key = (
-        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-        or os.environ.get("SUPABASE_SERVICE_KEY")
-        or os.environ.get("SUPABASE_ANON_KEY")
-        or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-    )
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
     if not url or not key:
-        return empty
+        return pd.DataFrame(columns=["listing_id", "listing_name", "subtitle", "image_url"])
 
     try:
         from supabase import create_client
     except Exception:
-        return empty
+        return pd.DataFrame(columns=["listing_id", "listing_name", "subtitle", "image_url"])
 
     try:
         client = create_client(url, key)
     except Exception:
-        return empty
+        return pd.DataFrame(columns=["listing_id", "listing_name", "subtitle", "image_url"])
 
-    def _storage_url(bucket: str, storage_path: str) -> str:
-        bucket = str(bucket or "cleaning-reference-photos").strip()
-        storage_path = str(storage_path or "").strip()
-        if not bucket or not storage_path:
-            return ""
-
-        # The bucket may be private, so prefer a signed URL. Fallback to public URL
-        # if the bucket is public or if the installed supabase-py version differs.
-        try:
-            signed = client.storage.from_(bucket).create_signed_url(storage_path, 60 * 60 * 24)
-            if isinstance(signed, dict):
-                for key_name in ["signedURL", "signedUrl", "signed_url", "url"]:
-                    value = signed.get(key_name)
-                    if value:
-                        return str(value)
-                data = signed.get("data")
-                if isinstance(data, dict):
-                    for key_name in ["signedURL", "signedUrl", "signed_url", "url"]:
-                        value = data.get(key_name)
-                        if value:
-                            return str(value)
-            value = getattr(signed, "signed_url", None) or getattr(signed, "signedURL", None)
-            if value:
-                return str(value)
-        except Exception:
-            pass
-
-        try:
-            public_url = client.storage.from_(bucket).get_public_url(storage_path)
-            if isinstance(public_url, str):
-                return public_url
-            if isinstance(public_url, dict):
-                return str(public_url.get("publicURL") or public_url.get("publicUrl") or public_url.get("url") or "")
-        except Exception:
-            pass
-
-        return ""
-
-    # 1) Load cover photos exactly as saved by the Next.js admin app.
-    photo_by_property: dict[str, str] = {}
-    try:
-        result = (
-            client.table("property_reference_photos")
-            .select("property_id,title,storage_bucket,storage_path,is_cover,is_active,display_order,updated_at")
-            .eq("is_active", True)
-            .execute()
-        )
-        photos = getattr(result, "data", None) or []
-    except Exception:
-        photos = []
-
-    def _photo_sort_key(row: dict) -> tuple[int, int, str]:
-        # Covers first, then explicit display order, then newest-ish string fallback.
-        return (
-            0 if bool(row.get("is_cover")) else 1,
-            int(row.get("display_order") or 999),
-            str(row.get("updated_at") or ""),
-        )
-
-    for row in sorted(photos, key=_photo_sort_key):
-        property_id = str(row.get("property_id") or "").strip()
-        if not property_id or property_id in photo_by_property:
-            continue
-        image_url = _storage_url(
-            str(row.get("storage_bucket") or "cleaning-reference-photos"),
-            str(row.get("storage_path") or ""),
-        )
-        if image_url:
-            photo_by_property[property_id] = image_url
-
-    if not photo_by_property:
-        # Still try older/direct property metadata tables with image columns.
-        frames: list[pd.DataFrame] = []
-        for table in ["properties", "rental_properties", "listings", "rental_listings", "property_profiles"]:
-            try:
-                result = client.table(table).select("*").execute()
-                data = getattr(result, "data", None) or []
-                if data:
-                    frames.append(_extract_listing_meta_rows(pd.DataFrame(data)))
-            except Exception:
-                continue
-        frames = [f for f in frames if f is not None and not f.empty]
-        if not frames:
-            return empty
-        return pd.concat(frames, ignore_index=True).drop_duplicates("listing_id")
-
-    # 2) Build many match keys per property so it can join against either
-    # listing_id, listing_name, source_property_id, source_room_id, slug, etc.
-    rows: list[dict[str, str]] = []
-
-    def _add_meta_row(key_value: object, *, name: object = "", subtitle: object = "", image_url: str = "") -> None:
-        key_value = str(key_value or "").strip()
-        if not key_value or not image_url:
-            return
-        rows.append(
-            {
-                "listing_id": key_value,
-                "listing_name": str(name or key_value).strip() or key_value,
-                "subtitle": str(subtitle or "").strip(),
-                "image_url": image_url,
-            }
-        )
-
-    # Direct fallback: if Supabase property_id is already your listing_id.
-    for property_id, image_url in photo_by_property.items():
-        _add_meta_row(property_id, name=property_id, image_url=image_url)
-
-    property_tables = [
-        "properties",
-        "rental_properties",
-        "listings",
-        "rental_listings",
-        "property_profiles",
-        "cleaning_properties",
-    ]
-    key_cols = [
-        "id",
-        "property_id",
-        "listing_id",
-        "property_key",
-        "property_slug",
-        "slug",
-        "source_property_id",
-        "source_room_id",
-        "beds24_property_id",
-        "beds24_room_id",
-        "room_id",
-    ]
-    name_cols = ["listing_name", "name", "title", "property_name", "display_name", "label"]
-    subtitle_cols = ["subtitle", "capacity_label", "type", "category", "kind"]
-
-    for table in property_tables:
+    frames: list[pd.DataFrame] = []
+    for table in ["properties", "rental_properties", "listings", "rental_listings", "property_profiles"]:
         try:
             result = client.table(table).select("*").execute()
             data = getattr(result, "data", None) or []
+            if data:
+                frames.append(_extract_listing_meta_rows(pd.DataFrame(data)))
         except Exception:
             continue
-        if not data:
-            continue
 
-        df = pd.DataFrame(data)
-        id_col = _candidate_column(df, ["id", "property_id"])
-        name_col = _candidate_column(df, name_cols)
-        subtitle_col = _candidate_column(df, subtitle_cols)
-
-        for _, row in df.iterrows():
-            supabase_property_id = str(row.get(id_col, "") if id_col else "").strip()
-            image_url = photo_by_property.get(supabase_property_id)
-            if not image_url:
-                continue
-
-            name = row.get(name_col, supabase_property_id) if name_col else supabase_property_id
-            subtitle = row.get(subtitle_col, "") if subtitle_col else ""
-
-            # Add every useful key as a possible match target.
-            for col in key_cols:
-                if col in df.columns:
-                    _add_meta_row(row.get(col), name=name, subtitle=subtitle, image_url=image_url)
-            if name:
-                _add_meta_row(name, name=name, subtitle=subtitle, image_url=image_url)
-
-    if not rows:
-        return empty
-
-    return pd.DataFrame(rows, columns=["listing_id", "listing_name", "subtitle", "image_url"]).drop_duplicates("listing_id")
+    frames = [f for f in frames if f is not None and not f.empty]
+    if not frames:
+        return pd.DataFrame(columns=["listing_id", "listing_name", "subtitle", "image_url"])
+    return pd.concat(frames, ignore_index=True).drop_duplicates("listing_id")
 
 
 def _load_processed_listing_meta() -> pd.DataFrame:
@@ -561,25 +340,18 @@ def _build_listing_meta(reservations: pd.DataFrame) -> pd.DataFrame:
     if external.empty:
         return meta
 
-    # Match external metadata by exact ids/names plus aliases. This is what
-    # bridges compact metric labels like `Apt 2` to Supabase names like
-    # `Voilerie 2 · Un jardin sur la mer`.
+    # Match external metadata by id first, then by normalised listing name.
     by_key: dict[str, dict] = {}
     for _, row in external.iterrows():
-        payload = row.to_dict()
-        for key in _alias_keys(row.get("listing_id"), row.get("listing_name"), row.get("subtitle")):
-            # Keep the first image-bearing match for deterministic behaviour.
-            by_key.setdefault(key, payload)
+        for key in [row.get("listing_id"), row.get("listing_name")]:
+            norm = _normalised_meta_key(key)
+            if norm:
+                by_key[norm] = row.to_dict()
 
     enriched: list[dict[str, str]] = []
     for _, row in meta.iterrows():
         out = row.to_dict()
-        match = None
-        for key in _alias_keys(row.get("listing_id"), row.get("listing_name"), label_value(row.get("listing_id"), LISTING_LABELS)):
-            match = by_key.get(key)
-            if match:
-                break
-
+        match = by_key.get(_normalised_meta_key(row.get("listing_id"))) or by_key.get(_normalised_meta_key(row.get("listing_name")))
         if match:
             if match.get("image_url"):
                 out["image_url"] = str(match.get("image_url"))
