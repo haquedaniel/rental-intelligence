@@ -755,10 +755,10 @@ def render_season_operating_map(
             else:
                 if not cleaning_date:
                     continue
-                event_title = "Ménage confirmé"
+                title = "Ménage confirmé"
                 if cleaner_name:
-                    event_title += f" · {cleaner_name}"
-                events.append((cleaning_date, "cleaning", "✓", event_title))
+                    title += f" · {cleaner_name}"
+                events.append((cleaning_date, "cleaning", "✓", title))
 
         # Derived cleaning windows for departures without explicit cleaning data.
         for dep in sorted(set(listing_res["departure"].tolist())):
