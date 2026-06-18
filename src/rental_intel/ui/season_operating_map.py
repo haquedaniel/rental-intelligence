@@ -268,7 +268,18 @@ def _normalise_price_signals(pricing_signals_df: Optional[pd.DataFrame]) -> pd.D
 
 
 def _normalise_cleanings(cleaning_df: Optional[pd.DataFrame]) -> pd.DataFrame:
-    cols = ["listing_id", "date", "status", "label", "cleaner_name", "window_start", "window_end"]
+    cols = [
+        "listing_id",
+        "date",
+        "status",
+        "label",
+        "cleaner_name",
+        "window_start",
+        "window_end",
+        "cleaning_request_id",
+        "public_token",
+        "total_cost_eur",
+    ]
     if cleaning_df is None or cleaning_df.empty:
         return pd.DataFrame(columns=cols)
 
@@ -280,6 +291,9 @@ def _normalise_cleanings(cleaning_df: Optional[pd.DataFrame]) -> pd.DataFrame:
     cleaner_col = _first_existing_col(df, ["cleaner_name", "cleaner", "assignee", "assigned_to", "provider_name"])
     window_start_col = _first_existing_col(df, ["window_start", "start", "earliest_date", "available_from", "from_date"])
     window_end_col = _first_existing_col(df, ["window_end", "deadline", "latest_date", "available_until", "to_date", "next_arrival"])
+    request_id_col = _first_existing_col(df, ["cleaning_request_id", "request_id", "mission_id", "id"])
+    token_col = _first_existing_col(df, ["public_token", "mission_token", "token"])
+    total_cost_col = _first_existing_col(df, ["total_cost_eur", "total_cost", "price", "amount"])
 
     if not listing_col or not date_col and not window_start_col:
         return pd.DataFrame(columns=cols)
@@ -292,6 +306,9 @@ def _normalise_cleanings(cleaning_df: Optional[pd.DataFrame]) -> pd.DataFrame:
     out["cleaner_name"] = df[cleaner_col].astype(str) if cleaner_col else ""
     out["window_start"] = pd.to_datetime(df[window_start_col], errors="coerce").dt.date if window_start_col else out["date"]
     out["window_end"] = pd.to_datetime(df[window_end_col], errors="coerce").dt.date if window_end_col else pd.NaT
+    out["cleaning_request_id"] = df[request_id_col].astype(str) if request_id_col else ""
+    out["public_token"] = df[token_col].astype(str) if token_col else ""
+    out["total_cost_eur"] = df[total_cost_col] if total_cost_col else ""
 
     # Fill useful defaults without making assumptions about the cleaner app schema.
     out["window_start"] = out.apply(lambda r: r["window_start"] if pd.notna(r["window_start"]) else r["date"], axis=1)
@@ -307,9 +324,56 @@ def _normalise_cleanings(cleaning_df: Optional[pd.DataFrame]) -> pd.DataFrame:
 
 def _cleaning_status_kind(status: object) -> str:
     s = str(status).lower().strip()
-    if any(token in s for token in ["confirm", "propose", "created", "pending", "todo", "à confirmer", "a confirmer", "proposé", "proposee", "proposée"]):
+    pending_tokens = [
+        "confirm",
+        "propose",
+        "created",
+        "pending",
+        "todo",
+        "sent",
+        "refused",
+        "à confirmer",
+        "a confirmer",
+        "proposé",
+        "proposee",
+        "proposée",
+    ]
+    if any(token in s for token in pending_tokens):
         return "confirm"
     return "planned"
+
+
+def _cleaner_phrase(cleaner_name: str) -> str:
+    cleaner_name = str(cleaner_name or "").strip()
+    return cleaner_name if cleaner_name and cleaner_name.lower() not in {"nan", "none"} else ""
+
+
+def _pending_cleaning_title(status: object, cleaner_name: str, window_end: date) -> str:
+    s = str(status or "").lower().strip()
+    cleaner = _cleaner_phrase(cleaner_name)
+    deadline = f" · échéance {window_end:%d/%m/%Y}" if window_end else ""
+    if "sent" in s:
+        return f"Ménage envoyé à {cleaner} · en attente d’acceptation{deadline}" if cleaner else f"Ménage envoyé · en attente d’acceptation{deadline}"
+    if "refused" in s or "refus" in s:
+        return f"Mission refusée par {cleaner}{deadline}" if cleaner else f"Mission refusée{deadline}"
+    if "created" in s:
+        return f"Ménage créé · à envoyer / confirmer{deadline}"
+    return f"Ménage à confirmer{deadline}"
+
+
+def _planned_cleaning_title(status: object, cleaner_name: str) -> str:
+    s = str(status or "").lower().strip()
+    cleaner = _cleaner_phrase(cleaner_name)
+    suffix = f" · {cleaner}" if cleaner else ""
+    if "accepted" in s:
+        return f"Ménage accepté{suffix}"
+    if "report_submitted" in s or "rapport" in s:
+        return f"Rapport envoyé{suffix}"
+    if "problem" in s or "probl" in s:
+        return f"Problème signalé{suffix}"
+    if "completed" in s or "done" in s or "termin" in s:
+        return f"Ménage terminé{suffix}"
+    return f"Ménage confirmé{suffix}"
 
 
 def _detect_one_night_gaps(listing_res: pd.DataFrame, period_start: date, period_end: date) -> list[tuple[date, date]]:
@@ -732,8 +796,17 @@ def render_season_operating_map(
             if display_start <= d < display_end:
                 events.append((d, "turnover", "⇅", "Départ + arrivée le même jour"))
 
-        # Cleaning: confirmed/planned = fixed date. Pending = window until deadline.
-        explicit_cleaning_dates = set(d for d in listing_cleanings["date"].tolist() if isinstance(d, date))
+        # Cleaning: accepted/submitted/completed = fixed date.
+        # Pending/sent missions only draw a window when Supabase gives a real deadline
+        # after the proposed date; otherwise they appear as a single proposed-date marker.
+        explicit_cleaning_dates: set[date] = set()
+        explicit_window_starts: set[date] = set()
+
+        if not listing_cleanings.empty:
+            listing_cleanings = listing_cleanings.drop_duplicates(
+                subset=[col for col in ["listing_id", "date", "status", "cleaning_request_id"] if col in listing_cleanings.columns]
+            )
+
         for _, c in listing_cleanings.iterrows():
             kind = _cleaning_status_kind(c.get("status", "planned"))
             cleaning_date = _optional_date(c.get("date"))
@@ -741,28 +814,42 @@ def render_season_operating_map(
             raw_window_end = _optional_date(c.get("window_end"))
             cleaner_name = str(c.get("cleaner_name", "") or "").strip()
 
+            if cleaning_date:
+                explicit_cleaning_dates.add(cleaning_date)
+            if window_start:
+                explicit_window_starts.add(window_start)
+
             if kind == "confirm":
                 if not window_start:
                     continue
-                window_end = _clean_window_end(listing_res, window_start, raw_window_end, display_end)
-                if display_start <= window_start < display_end and window_end > window_start:
-                    markers.append(
-                        f"<div class='opmap-clean-window' style='{_segment_style(window_start, window_end, display_start, display_end, min_width=0.8)}' title='Ménage à confirmer · possible jusqu’au {window_end:%d/%m/%Y}'></div>"
-                    )
-                mid = window_start + timedelta(days=max(0, (window_end - window_start).days // 2))
+
+                has_real_window = bool(raw_window_end and raw_window_end > window_start)
+                if has_real_window:
+                    window_end = min(raw_window_end, display_end)
+                    if display_start <= window_start < display_end and window_end > window_start:
+                        window_title = _pending_cleaning_title(c.get("status", "planned"), cleaner_name, window_end)
+                        markers.append(
+                            f"<div class='opmap-clean-window' style='{_segment_style(window_start, window_end, display_start, display_end, min_width=0.8)}' title='{escape(window_title)}'></div>"
+                        )
+                    mid = window_start + timedelta(days=max(0, (window_end - window_start).days // 2))
+                    event_title = _pending_cleaning_title(c.get("status", "planned"), cleaner_name, window_end)
+                else:
+                    mid = window_start
+                    # Keep wording clear: this is a proposed/sent mission, not a confirmed cleaning.
+                    event_title = _pending_cleaning_title(c.get("status", "planned"), cleaner_name, window_start)
+
                 if display_start <= mid < display_end:
-                    events.append((mid, "cleaning-confirm", "?", f"Ménage à confirmer · échéance {window_end:%d/%m/%Y}"))
+                    events.append((mid, "cleaning-confirm", "?", event_title))
             else:
                 if not cleaning_date:
                     continue
-                event_title = "Ménage confirmé"
-                if cleaner_name:
-                    event_title += f" · {cleaner_name}"
+                event_title = _planned_cleaning_title(c.get("status", "planned"), cleaner_name)
                 events.append((cleaning_date, "cleaning", "✓", event_title))
 
         # Derived cleaning windows for departures without explicit cleaning data.
+        # These are true unknowns: show the possible range up to the next arrival.
         for dep in sorted(set(listing_res["departure"].tolist())):
-            if display_start <= dep < display_end and dep not in explicit_cleaning_dates:
+            if display_start <= dep < display_end and dep not in explicit_cleaning_dates and dep not in explicit_window_starts:
                 window_end = _next_arrival_after(listing_res, dep, display_end)
                 if window_end > dep:
                     markers.append(
@@ -835,8 +922,8 @@ def render_season_operating_map(
         <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#2fb96d">↑</span>Arrivée</span>
         <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#ff941f">↓</span>Départ</span>
         <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#17283f">⇅</span>Départ + arrivée</span>
-        <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#e9f8ef;color:#1c8f55;border:1px solid #a9e4bf">✓</span>Ménage confirmé</span>
-        <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#fff;color:#8057c8;border:1px dashed #d9c7ff">?</span>Ménage à confirmer</span>
+        <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#e9f8ef;color:#1c8f55;border:1px solid #a9e4bf">✓</span>Ménage accepté / rapport</span>
+        <span class="opmap-leg"><span class="opmap-signal-dot" style="background:#fff;color:#8057c8;border:1px dashed #d9c7ff">?</span>Envoyé / à confirmer</span>
       </div>
     </div>
     """

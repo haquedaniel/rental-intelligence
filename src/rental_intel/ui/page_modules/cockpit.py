@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 import os
 import re
 import unicodedata
+from html import escape
 
 from rental_intel.ui.analysis.cockpit import build_cockpit_summary
 from rental_intel.ui.components import (
@@ -32,6 +34,15 @@ try:
     from rental_intel.ui.data_supabase import build_operating_map_inputs
 except Exception:
     build_operating_map_inputs = None
+
+
+def _render_inline_html(html: str) -> None:
+    """Render small dashboard HTML without Streamlit turning indented blocks into code."""
+    html = (html or "").strip()
+    if hasattr(st, "html"):
+        st.html(html)
+    else:
+        st.markdown(html, unsafe_allow_html=True)
 
 
 def _safe_int(value: object) -> int:
@@ -114,6 +125,295 @@ def _target_text(target: float) -> str:
     if not target:
         return ""
     return f"Objectif {_money0(target)}"
+
+
+def _repo_root_candidates() -> list[Path]:
+    roots: list[Path] = []
+    try:
+        here = Path(__file__).resolve()
+        roots.extend([here.parent, *here.parents])
+    except Exception:
+        pass
+    try:
+        cwd = Path.cwd().resolve()
+        roots.extend([cwd, *cwd.parents])
+    except Exception:
+        pass
+
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        key = str(root)
+        if key not in seen:
+            unique.append(root)
+            seen.add(key)
+    return unique[:10]
+
+
+def _find_processed_file(filename: str) -> Path | None:
+    candidates: list[Path] = []
+    for root in _repo_root_candidates():
+        candidates.extend(
+            [
+                root / "outputs" / "processed" / filename,
+                root / "data" / "processed" / filename,
+                root / "processed" / filename,
+            ]
+        )
+    for candidate in candidates:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        except Exception:
+            continue
+    return None
+
+
+def _latest_processed_file(patterns: list[str]) -> Path | None:
+    matches: list[Path] = []
+    for root in _repo_root_candidates():
+        for base in [root / "outputs" / "processed", root / "data" / "processed", root / "processed"]:
+            try:
+                if base.exists():
+                    for pattern in patterns:
+                        matches.extend([p for p in base.glob(pattern) if p.is_file()])
+            except Exception:
+                continue
+    if not matches:
+        return None
+    return max(matches, key=lambda p: p.stat().st_mtime)
+
+
+def _file_mtime(path: Path | None) -> datetime | None:
+    if path is None:
+        return None
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime)
+    except Exception:
+        return None
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    try:
+        if value is None or pd.isna(value):
+            return None
+    except Exception:
+        pass
+    try:
+        ts = pd.to_datetime(value, utc=False, errors="coerce")
+        if pd.isna(ts):
+            return None
+        # Display in server/local time when possible; strip tz to keep comparisons simple.
+        if getattr(ts, "tzinfo", None) is not None:
+            try:
+                ts = ts.tz_convert(None)
+            except Exception:
+                ts = ts.tz_localize(None)
+        return ts.to_pydatetime()
+    except Exception:
+        return None
+
+
+def _format_dt(value: datetime | None) -> str:
+    if value is None:
+        return "non trouvé"
+    return value.strftime("%d/%m %H:%M")
+
+
+def _age_label(value: datetime | None) -> str:
+    if value is None:
+        return "à vérifier"
+    delta = datetime.now() - value
+    total_minutes = max(0, int(delta.total_seconds() // 60))
+    if total_minutes < 2:
+        return "à l’instant"
+    if total_minutes < 60:
+        return f"il y a {total_minutes} min"
+    hours = total_minutes // 60
+    if hours < 24:
+        return f"il y a {hours} h"
+    days = hours // 24
+    if days == 1:
+        return "hier"
+    return f"il y a {days} j"
+
+
+def _latest_datetime_from_df(df: pd.DataFrame, cols: list[str]) -> datetime | None:
+    if df is None or df.empty:
+        return None
+    dates: list[datetime] = []
+    for col in cols:
+        if col not in df.columns:
+            continue
+        values = pd.to_datetime(df[col], errors="coerce", utc=False).dropna()
+        for value in values.tolist():
+            parsed = _parse_datetime(value)
+            if parsed is not None:
+                dates.append(parsed)
+    return max(dates) if dates else None
+
+
+def _has_streamlit_secret(name: str) -> bool:
+    try:
+        return bool(st.secrets.get(name))
+    except Exception:
+        return False
+
+
+def _render_source_health_panel(
+    *,
+    reservations: pd.DataFrame,
+    listing_financials: pd.DataFrame,
+    variable_costs: pd.DataFrame,
+    cleaner_due: pd.DataFrame,
+    cleaning_events: pd.DataFrame,
+    bridge_diagnostics: dict,
+) -> None:
+    reservation_mtime = _file_mtime(_find_processed_file("normalized_reservations.csv"))
+    finance_mtime = max(
+        [dt for dt in [
+            _file_mtime(_find_processed_file("listing_month_financials.csv")),
+            _file_mtime(_find_processed_file("monthly_profitability.csv")),
+            _file_mtime(_find_processed_file("dashboard_kpis.csv")),
+        ] if dt is not None],
+        default=None,
+    )
+    costs_mtime = _file_mtime(_find_processed_file("variable_period_costs.csv"))
+    local_ops_mtime = _file_mtime(_find_processed_file("cleaner_payment_due.csv"))
+    market_mtime = _file_mtime(
+        _latest_processed_file(["market_benchmark.csv", "*benchmark*.csv", "market*.csv", "competitor*.csv"])
+    )
+    ops_latest = _latest_datetime_from_df(cleaning_events, ["updated_at", "accepted_at", "date", "window_start"])
+
+    web_analytics_ok = _has_streamlit_secret("SUPABASE_URL") and (
+        _has_streamlit_secret("SUPABASE_SERVICE_ROLE_KEY") or _has_streamlit_secret("SUPABASE_KEY")
+    )
+    supabase_ok = bool(bridge_diagnostics.get("supabase_client", True)) if bridge_diagnostics else False
+
+    rows = [
+        ("Réservations", reservation_mtime, f"{len(reservations):,}".replace(",", " ") + " lignes"),
+        ("Finances", finance_mtime, f"{len(listing_financials):,}".replace(",", " ") + " lignes"),
+        ("Coûts", costs_mtime, f"{len(variable_costs):,}".replace(",", " ") + " lignes"),
+        ("Marché", market_mtime, "benchmark" if market_mtime else "non trouvé"),
+        ("Ops Supabase", ops_latest, "connecté" if supabase_ok else "non connecté"),
+        ("Web analytics", None, "secrets OK" if web_analytics_ok else "secrets manquants"),
+    ]
+
+    cards: list[str] = []
+    for label, updated_at, detail in rows:
+        stamp = _format_dt(updated_at) if updated_at else ("configuré" if label == "Web analytics" and web_analytics_ok else "non trouvé")
+        age = _age_label(updated_at) if updated_at else ("prêt" if label == "Web analytics" and web_analytics_ok else "à vérifier")
+        cards.append(
+            "<div class='ri-source-card'>"
+            f"<div class='ri-source-label'>{escape(str(label))}</div>"
+            f"<div class='ri-source-time'>{escape(str(stamp))}</div>"
+            f"<div class='ri-source-meta'>{escape(str(age))} · {escape(str(detail))}</div>"
+            "</div>"
+        )
+
+    _render_inline_html(
+        """
+<style>
+.ri-source-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:8px 0 16px;}
+.ri-source-card{background:#fff;border:1px solid #dde4ea;border-radius:16px;padding:12px 12px;box-shadow:0 8px 22px rgba(20,30,40,.045);}
+.ri-source-label{font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em;color:#6c7a85;margin-bottom:5px;}
+.ri-source-time{font-size:16px;font-weight:900;color:#13212b;letter-spacing:-.02em;}
+.ri-source-meta{font-size:12px;color:#687782;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:760px){.ri-source-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ri-source-card{padding:10px}.ri-source-time{font-size:14px}.ri-source-meta{font-size:11px;}}
+</style>
+"""
+        + f"<div class='ri-source-grid'>{''.join(cards)}</div>"
+    )
+
+
+def _status_counts(df: pd.DataFrame) -> dict[str, int]:
+    if df is None or df.empty or "status" not in df.columns:
+        return {}
+    return df["status"].fillna("").astype(str).str.lower().value_counts().to_dict()
+
+
+def _render_proof_panel(
+    *,
+    reservations: pd.DataFrame,
+    listing_meta: pd.DataFrame,
+    cleaning_events: pd.DataFrame,
+    bridge_diagnostics: dict,
+    property_bridge_df: pd.DataFrame,
+) -> None:
+    diagnostics = bridge_diagnostics or {}
+    if diagnostics.get("local_listings") is not None:
+        local_listings = int(diagnostics.get("local_listings") or 0)
+    elif reservations is not None and not reservations.empty and "listing_id" in reservations.columns:
+        local_listings = int(reservations["listing_id"].nunique())
+    else:
+        local_listings = 0
+    matched = int(diagnostics.get("matched_listings") or 0)
+    alias_matches = int(diagnostics.get("matched_by_alias") or 0)
+    source_matches = int(diagnostics.get("matched_by_source_booking_id") or 0)
+    source_rows = int(diagnostics.get("supabase_reservations_loaded") or 0)
+    covers = int(diagnostics.get("cover_photos") or 0)
+    cleaning_mapped = int(diagnostics.get("cleaning_requests_mapped") or (len(cleaning_events) if cleaning_events is not None else 0))
+    with_image = int(listing_meta.get("image_url", pd.Series(dtype=str)).fillna("").astype(str).str.len().gt(0).sum()) if listing_meta is not None and not listing_meta.empty else 0
+    with_cleaner = int(cleaning_events.get("cleaner_name", pd.Series(dtype=str)).fillna("").astype(str).str.len().gt(0).sum()) if cleaning_events is not None and not cleaning_events.empty else 0
+    statuses = _status_counts(cleaning_events)
+
+    status_text = []
+    for key, label in [("sent", "envoyés"), ("accepted", "acceptés"), ("report_submitted", "rapports"), ("completed", "terminés"), ("problem_reported", "problèmes")]:
+        if statuses.get(key):
+            status_text.append(f"{statuses[key]} {label}")
+    status_line = " · ".join(status_text) if status_text else "aucun statut actif"
+
+    bridge_quality = "Excellent" if matched and matched == local_listings and alias_matches == 0 else "Partiel"
+    bridge_detail = f"{matched}/{local_listings} logements reliés"
+    if alias_matches:
+        bridge_detail += f" · {alias_matches} alias"
+    else:
+        bridge_detail += " · 0 alias"
+
+    cards = [
+        ("Pont propriétés", bridge_quality, bridge_detail, f"{source_matches} par source_booking_id · {source_rows} réservations Supabase"),
+        ("Réservations", f"{len(reservations)}", "lignes normalisées", f"{reservations['source_booking_id'].notna().sum() if 'source_booking_id' in reservations.columns else 0} avec source_booking_id"),
+        ("Photos", f"{with_image}/{local_listings}", "couvertures affichables", f"{covers} URLs signées Supabase"),
+        ("Ménages", f"{cleaning_mapped}", "missions reliées", f"{with_cleaner} avec intervenant · {status_line}"),
+    ]
+
+    html_cards: list[str] = []
+    for title, value, meta, detail in cards:
+        html_cards.append(
+            "<div class='ri-proof-card'>"
+            f"<div class='ri-proof-title'>{escape(str(title))}</div>"
+            f"<div class='ri-proof-value'>{escape(str(value))}</div>"
+            f"<div class='ri-proof-meta'>{escape(str(meta))}</div>"
+            f"<div class='ri-proof-detail'>{escape(str(detail))}</div>"
+            "</div>"
+        )
+
+    badge = "OK" if diagnostics.get("supabase_client", True) else "hors ligne"
+    _render_inline_html(
+        """
+<style>
+.ri-proof-wrap{background:#fff;border:1px solid #dde4ea;border-radius:22px;padding:16px 16px 14px;margin:4px 0 18px;box-shadow:0 12px 30px rgba(20,30,40,.055);}
+.ri-proof-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;}
+.ri-proof-head h3{margin:0;font-size:19px;letter-spacing:-.02em;color:#13212b;}
+.ri-proof-head p{margin:3px 0 0;color:#667580;font-size:13px;}
+.ri-proof-badge{font-size:12px;font-weight:850;color:#1c6b42;background:#e9f8ef;border:1px solid #bfe8cc;border-radius:999px;padding:6px 10px;white-space:nowrap;}
+.ri-proof-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.ri-proof-card{background:linear-gradient(180deg,#fbfcfd,#ffffff);border:1px solid #e3e8ed;border-radius:16px;padding:13px 13px;}
+.ri-proof-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.045em;color:#6d7a85;margin-bottom:6px;}
+.ri-proof-value{font-size:22px;font-weight:950;color:#13212b;letter-spacing:-.03em;line-height:1.05;}
+.ri-proof-meta{font-size:13px;color:#354653;font-weight:750;margin-top:3px;}
+.ri-proof-detail{font-size:12px;color:#6a7883;margin-top:7px;line-height:1.25;}
+@media(max-width:760px){.ri-proof-wrap{padding:14px;border-radius:18px}.ri-proof-head{flex-direction:column}.ri-proof-grid{grid-template-columns:1fr 1fr}.ri-proof-value{font-size:19px}.ri-proof-detail{font-size:11px}}
+</style>
+"""
+        + "<div class='ri-proof-wrap'>"
+        + "<div class='ri-proof-head'>"
+        + "<div><h3>Preuve des données</h3><p>Ce que la carte opérationnelle relie réellement : réservations, propriétés, photos et missions ménage.</p></div>"
+        + f"<div class='ri-proof-badge'>Bridge Supabase · {escape(badge)}</div>"
+        + "</div>"
+        + f"<div class='ri-proof-grid'>{''.join(html_cards)}</div>"
+        + "</div>"
+    )
 
 
 def _first_existing_col(df: pd.DataFrame, names: list[str]) -> str | None:
@@ -812,6 +1112,8 @@ def render_cockpit_page() -> None:
     listing_meta = _build_listing_meta(reservations)
     pricing_signals = _pricing_signals_from_attention(summary.get("attention", []), reservations)
     cleaning_events = _cleaning_events_from_due(cleaner_due, reservations)
+    bridge_diagnostics: dict = {"supabase_client": False}
+    property_bridge_df = pd.DataFrame()
 
     if build_operating_map_inputs is not None:
         try:
@@ -826,6 +1128,8 @@ def render_cockpit_page() -> None:
                 listing_meta = bridge_inputs.listing_meta_df
             if bridge_inputs.cleaning_df is not None and not bridge_inputs.cleaning_df.empty:
                 cleaning_events = bridge_inputs.cleaning_df
+            bridge_diagnostics = dict(getattr(bridge_inputs, "diagnostics", {}) or {})
+            property_bridge_df = getattr(bridge_inputs, "property_bridge_df", pd.DataFrame())
 
             if os.environ.get("RENTAL_INTEL_DEBUG_SUPABASE_BRIDGE") == "1":
                 st.caption(f"Bridge Supabase: {bridge_inputs.diagnostics}")
@@ -846,6 +1150,23 @@ def render_cockpit_page() -> None:
     )
 
     st.markdown("<div style='height: 1.25rem'></div>", unsafe_allow_html=True)
+
+    section_title("Fraîcheur & preuve", "quand les sources ont été mises à jour et comment elles sont reliées")
+    _render_source_health_panel(
+        reservations=reservations,
+        listing_financials=listing_financials,
+        variable_costs=variable_costs,
+        cleaner_due=cleaner_due,
+        cleaning_events=cleaning_events,
+        bridge_diagnostics=bridge_diagnostics,
+    )
+    _render_proof_panel(
+        reservations=reservations,
+        listing_meta=listing_meta,
+        cleaning_events=cleaning_events,
+        bridge_diagnostics=bridge_diagnostics,
+        property_bridge_df=property_bridge_df,
+    )
 
     left, right = st.columns([1.05, 1], gap="large")
 
