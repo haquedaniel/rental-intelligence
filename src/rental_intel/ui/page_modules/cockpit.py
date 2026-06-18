@@ -690,6 +690,73 @@ def _cleaning_events_from_due(
 
     return pd.DataFrame(rows, columns=columns)
 
+
+def _inject_sticky_period_css() -> None:
+    """Make the period selector stay visible while scrolling.
+
+    Streamlit adds a CSS class from the container key, so the selector can be
+    pinned without affecting other sliders on the page. If an older Streamlit
+    version ignores container keys, the page still works normally.
+    """
+    st.markdown(
+        """
+        <style>
+        .st-key-period-controls {
+            position: sticky;
+            top: 0.35rem;
+            z-index: 999;
+            background: rgba(247, 243, 236, 0.96);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(222, 213, 200, 0.9);
+            border-radius: 22px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.10);
+            padding: 0.7rem 1rem 0.45rem 1rem !important;
+            margin: 0.75rem 0 1.15rem 0;
+        }
+
+        .st-key-period-controls [data-testid="stSlider"] {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        .st-key-period-controls [data-testid="stSlider"] > label {
+            margin-bottom: 0.15rem;
+            font-weight: 700;
+            color: #24313a;
+        }
+
+        .st-key-period-controls [data-testid="stSlider"] [data-testid="stTickBar"] {
+            margin-top: 0 !important;
+        }
+
+        @media (max-width: 768px) {
+            .st-key-period-controls {
+                top: 0.25rem;
+                margin: 0.35rem -0.15rem 1rem -0.15rem;
+                padding: 0.55rem 0.8rem 0.35rem 0.8rem !important;
+                border-radius: 18px;
+                box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
+            }
+
+            .st-key-period-controls [data-testid="stSlider"] > label {
+                font-size: 0.95rem;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _period_controls_container():
+    """Return a keyed container when supported, otherwise a normal container."""
+    try:
+        return st.container(key="period-controls")
+    except TypeError:
+        return st.container()
+
+
 def render_cockpit_page() -> None:
     dashboard = read_processed_csv("dashboard_kpis.csv")
     listing_financials = read_processed_csv("listing_month_financials.csv")
@@ -718,13 +785,15 @@ def render_cockpit_page() -> None:
         "La vue s’ouvre sur le mois en cours. Déplacez les poignées pour analyser une autre période."
     )
 
-    period_start, period_end = st.slider(
-        "Période analysée",
-        min_value=min_date,
-        max_value=max_date,
-        value=(default_start, default_end),
-        format="DD/MM/YYYY",
-    )
+    _inject_sticky_period_css()
+    with _period_controls_container():
+        period_start, period_end = st.slider(
+            "Période analysée",
+            min_value=min_date,
+            max_value=max_date,
+            value=(default_start, default_end),
+            format="DD/MM/YYYY",
+        )
 
     if period_end <= period_start:
         st.error("La date de fin doit être après la date de début.")
