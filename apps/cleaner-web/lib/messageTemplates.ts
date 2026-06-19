@@ -27,6 +27,7 @@ function renderTemplate(key: TemplateKey, vars: Vars = {}, isTest = false): stri
 export function missionOfferCleanerMessage(args: {
   propertyName: string;
   missionUrl: string;
+  cleanerFirstName?: string | null;
   isTest?: boolean;
 }) {
   return renderTemplate(
@@ -34,6 +35,7 @@ export function missionOfferCleanerMessage(args: {
     {
       property_name: args.propertyName,
       mission_url: args.missionUrl,
+      cleaner_first_name: args.cleanerFirstName || "Bonjour",
     },
     args.isTest,
   );
@@ -127,6 +129,7 @@ export function missionRefusedOwnerNoBackupMessage(args: {
 export function backupMissionOfferMessage(args: {
   propertyName: string;
   missionUrl: string;
+  cleanerFirstName?: string | null;
   isTest?: boolean;
 }) {
   return renderTemplate(
@@ -134,6 +137,7 @@ export function backupMissionOfferMessage(args: {
     {
       property_name: args.propertyName,
       mission_url: args.missionUrl,
+      cleaner_first_name: args.cleanerFirstName || "Bonjour",
     },
     args.isTest,
   );

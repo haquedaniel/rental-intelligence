@@ -458,6 +458,7 @@ export async function refuseMissionFromReadyDay(formData: FormData) {
       body: backupMissionOfferMessage({
         propertyName,
         missionUrl: `${baseUrl}/mission/${backupToken}/ready-day`,
+        cleanerFirstName: backupCleaner.first_name,
         isTest: Boolean(request.test_scenario_id),
       }),
     });

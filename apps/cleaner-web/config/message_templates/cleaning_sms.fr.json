@@ -1,19 +1,23 @@
 {
   "mission_offer_cleaner": [
-    "Nouvelle mission",
-    "{{property_name}}",
+    "Bonjour {{cleaner_first_name}} 👋",
+    "Nouvelle mission ménage proposée.",
+    "🏠 {{property_name}}",
     "Le logement devra être prêt avant 16h.",
-    "Choisissez le jour qui vous convient : {{mission_url}}"
+    "Répondre ici :",
+    "{{mission_url}}"
   ],
   "mission_modified_cleaner": [
-    "Mission modifiée",
-    "{{property_name}}",
-    "Le planning de cette mission a été modifié.",
-    "Merci de vérifier ici : {{mission_url}}"
+    "Bonjour {{cleaner_first_name}} 👋",
+    "Mission ménage modifiée.",
+    "🏠 {{property_name}}",
+    "Merci de vérifier / confirmer ici :",
+    "{{mission_url}}"
   ],
   "mission_cancelled_cleaner": [
-    "Mission annulée",
-    "{{property_name}}",
+    "Bonjour {{cleaner_first_name}} 👋",
+    "Mission ménage annulée.",
+    "🏠 {{property_name}}",
     "Vous n’avez plus à intervenir pour cette mission.",
     "{{planning_url}}"
   ],
@@ -47,10 +51,12 @@
     "Aucun backup disponible automatiquement. Action manuelle nécessaire."
   ],
   "backup_mission_offer": [
-    "Nouvelle mission",
-    "{{property_name}}",
+    "Bonjour {{cleaner_first_name}} 👋",
+    "Nouvelle mission ménage proposée.",
+    "🏠 {{property_name}}",
     "Le logement devra être prêt avant 16h.",
-    "Choisissez le jour qui vous convient : {{mission_url}}"
+    "Répondre ici :",
+    "{{mission_url}}"
   ],
   "planning_changed_cleaner": [
     "Planning modifié",

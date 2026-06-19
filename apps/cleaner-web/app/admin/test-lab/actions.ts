@@ -287,6 +287,7 @@ export async function createTestScenario(formData: FormData) {
     body: missionOfferCleanerMessage({
       propertyName: property.name ?? "Logement",
       missionUrl: `${baseUrl}/mission/${missionToken}/ready-day`,
+      cleanerFirstName: cleaner.first_name,
       isTest: true,
     }),
   });
