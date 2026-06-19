@@ -1,159 +1,187 @@
-type Prefixable = {
-  isTest?: boolean;
-};
+import templates from "../config/message_templates/cleaning_sms.fr.json";
 
-function prefix(label: string, isTest?: boolean): string {
-  return isTest ? `TEST · ${label}` : label;
+type TemplateKey = keyof typeof templates;
+
+type Vars = Record<string, string | number | null | undefined>;
+
+function renderTemplate(key: TemplateKey, vars: Vars = {}, isTest = false): string {
+  const lines = templates[key] as string[];
+
+  const rendered = lines
+    .map((line) =>
+      line.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, name: string) => {
+        const value = vars[name];
+        return value === null || value === undefined ? "" : String(value);
+      }),
+    )
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (isTest && rendered.length > 0) {
+    rendered[0] = `TEST · ${rendered[0]}`;
+  }
+
+  return rendered.join("\n");
 }
 
-function cleanLines(lines: Array<string | null | undefined>): string {
-  return lines
-    .map((line) => String(line ?? "").trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
-export function missionOfferCleanerMessage({
-  propertyName,
-  missionUrl,
-  isTest,
-}: Prefixable & {
+export function missionOfferCleanerMessage(args: {
   propertyName: string;
   missionUrl: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Nouvelle mission", isTest),
-    `${propertyName} · prêt avant 16h`,
-    `Choisir le jour : ${missionUrl}`,
-  ]);
+  return renderTemplate(
+    "mission_offer_cleaner",
+    {
+      property_name: args.propertyName,
+      mission_url: args.missionUrl,
+    },
+    args.isTest,
+  );
 }
 
-export function missionAcceptedCleanerMessage({
-  propertyName,
-  readyByLabel,
-  reportUrl,
-  isTest,
-}: Prefixable & {
+export function missionAcceptedCleanerMessage(args: {
   propertyName: string;
   readyByLabel: string;
   reportUrl: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Mission confirmée", isTest),
-    propertyName,
-    `Vous vous engagez à rendre le logement prêt avant 16h le ${readyByLabel}.`,
-    `Rapport : ${reportUrl}`,
-  ]);
+  return renderTemplate(
+    "mission_accepted_cleaner",
+    {
+      property_name: args.propertyName,
+      ready_by_label: args.readyByLabel,
+      report_url: args.reportUrl,
+    },
+    args.isTest,
+  );
 }
 
-export function missionAcceptedOwnerMessage({
-  propertyName,
-  cleanerName,
-  readyByLabel,
-  isTest,
-}: Prefixable & {
+export function missionAcceptedOwnerMessage(args: {
   propertyName: string;
   cleanerName: string;
   readyByLabel: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Mission acceptée", isTest),
-    `${cleanerName} a accepté la mission ${propertyName}.`,
-    `Logement prévu prêt avant 16h le ${readyByLabel}.`,
-  ]);
+  return renderTemplate(
+    "mission_accepted_owner",
+    {
+      property_name: args.propertyName,
+      cleaner_name: args.cleanerName,
+      ready_by_label: args.readyByLabel,
+    },
+    args.isTest,
+  );
 }
 
-export function missionRefusedCleanerMessage({
-  propertyName,
-  refusalReason,
-  isTest,
-}: Prefixable & {
+export function missionRefusedCleanerMessage(args: {
   propertyName: string;
   refusalReason: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Refus enregistré", isTest),
-    propertyName,
-    "Votre refus a bien été pris en compte.",
-    `Raison : ${refusalReason}`,
-  ]);
+  return renderTemplate(
+    "mission_refused_cleaner",
+    {
+      property_name: args.propertyName,
+      refusal_reason: args.refusalReason,
+    },
+    args.isTest,
+  );
 }
 
-export function missionRefusedOwnerWithBackupMessage({
-  propertyName,
-  primaryCleanerName,
-  backupCleanerName,
-  refusalReason,
-  isTest,
-}: Prefixable & {
+export function missionRefusedOwnerWithBackupMessage(args: {
   propertyName: string;
   primaryCleanerName: string;
   backupCleanerName: string;
   refusalReason: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Mission refusée", isTest),
-    `${primaryCleanerName} a refusé la mission ${propertyName}.`,
-    `Raison : ${refusalReason}`,
-    `La mission a été proposée à ${backupCleanerName}.`,
-  ]);
+  return renderTemplate(
+    "mission_refused_owner_backup",
+    {
+      property_name: args.propertyName,
+      primary_cleaner_name: args.primaryCleanerName,
+      backup_cleaner_name: args.backupCleanerName,
+      refusal_reason: args.refusalReason,
+    },
+    args.isTest,
+  );
 }
 
-export function missionRefusedOwnerNoBackupMessage({
-  propertyName,
-  primaryCleanerName,
-  refusalReason,
-  isTest,
-}: Prefixable & {
+export function missionRefusedOwnerNoBackupMessage(args: {
   propertyName: string;
   primaryCleanerName: string;
   refusalReason: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Mission refusée", isTest),
-    `${primaryCleanerName} a refusé la mission ${propertyName}.`,
-    `Raison : ${refusalReason}`,
-    "Aucun backup disponible automatiquement. Action manuelle nécessaire.",
-  ]);
+  return renderTemplate(
+    "mission_refused_owner_no_backup",
+    {
+      property_name: args.propertyName,
+      primary_cleaner_name: args.primaryCleanerName,
+      refusal_reason: args.refusalReason,
+    },
+    args.isTest,
+  );
 }
 
-export function backupMissionOfferMessage({
-  propertyName,
-  missionUrl,
-  isTest,
-}: Prefixable & {
+export function backupMissionOfferMessage(args: {
   propertyName: string;
   missionUrl: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Nouvelle mission", isTest),
-    `${propertyName} · prêt avant 16h`,
-    `Choisir le jour : ${missionUrl}`,
-  ]);
+  return renderTemplate(
+    "backup_mission_offer",
+    {
+      property_name: args.propertyName,
+      mission_url: args.missionUrl,
+    },
+    args.isTest,
+  );
 }
 
-export function planningChangedCleanerMessage({
-  propertyName,
-  isTest,
-}: Prefixable & {
+export function planningChangedCleanerMessage(args: {
   propertyName: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Planning modifié", isTest),
-    `Le planning du logement ${propertyName} a changé.`,
-    "Nous vérifions l’organisation et revenons vers vous rapidement.",
-  ]);
+  return renderTemplate(
+    "planning_changed_cleaner",
+    {
+      property_name: args.propertyName,
+    },
+    args.isTest,
+  );
 }
 
-export function planningChangedOwnerMessage({
-  propertyName,
-  isTest,
-}: Prefixable & {
+export function planningChangedOwnerMessage(args: {
   propertyName: string;
+  isTest?: boolean;
 }) {
-  return cleanLines([
-    prefix("Planning modifié", isTest),
-    `Une nouvelle réservation affecte la mission ${propertyName}.`,
-    "Organisation à vérifier manuellement.",
-  ]);
+  return renderTemplate(
+    "planning_changed_owner",
+    {
+      property_name: args.propertyName,
+    },
+    args.isTest,
+  );
+}
+
+export function paymentRequestOwnerMessage(args: {
+  cleanerName: string;
+  periodLabel: string;
+  amountEur: string;
+  dueDays: number;
+  paymentUrl: string;
+  isTest?: boolean;
+}) {
+  return renderTemplate(
+    "payment_request_owner",
+    {
+      cleaner_name: args.cleanerName,
+      period_label: args.periodLabel,
+      amount_eur: args.amountEur,
+      due_days: args.dueDays,
+      payment_url: args.paymentUrl,
+    },
+    args.isTest,
+  );
 }

@@ -1,0 +1,71 @@
+{
+  "mission_offer_cleaner": [
+    "Nouvelle mission",
+    "{{property_name}}",
+    "Le logement devra être prêt avant 16h.",
+    "Choisissez le jour qui vous convient : {{mission_url}}"
+  ],
+  "mission_modified_cleaner": [
+    "Mission modifiée",
+    "{{property_name}}",
+    "Le planning de cette mission a été modifié.",
+    "Merci de vérifier ici : {{mission_url}}"
+  ],
+  "mission_cancelled_cleaner": [
+    "Mission annulée",
+    "{{property_name}}",
+    "Vous n’avez plus à intervenir pour cette mission.",
+    "{{planning_url}}"
+  ],
+  "mission_accepted_cleaner": [
+    "Mission confirmée",
+    "{{property_name}}",
+    "Vous vous engagez à rendre le logement prêt avant 16h le {{ready_by_label}}.",
+    "Rapport : {{report_url}}"
+  ],
+  "mission_accepted_owner": [
+    "Mission acceptée",
+    "{{cleaner_name}} a accepté la mission {{property_name}}.",
+    "Logement prévu prêt avant 16h le {{ready_by_label}}."
+  ],
+  "mission_refused_cleaner": [
+    "Refus enregistré",
+    "{{property_name}}",
+    "Votre refus a bien été pris en compte.",
+    "Raison : {{refusal_reason}}"
+  ],
+  "mission_refused_owner_backup": [
+    "Mission refusée",
+    "{{primary_cleaner_name}} a refusé la mission {{property_name}}.",
+    "Raison : {{refusal_reason}}",
+    "La mission a été proposée à {{backup_cleaner_name}}."
+  ],
+  "mission_refused_owner_no_backup": [
+    "Mission refusée",
+    "{{primary_cleaner_name}} a refusé la mission {{property_name}}.",
+    "Raison : {{refusal_reason}}",
+    "Aucun backup disponible automatiquement. Action manuelle nécessaire."
+  ],
+  "backup_mission_offer": [
+    "Nouvelle mission",
+    "{{property_name}}",
+    "Le logement devra être prêt avant 16h.",
+    "Choisissez le jour qui vous convient : {{mission_url}}"
+  ],
+  "planning_changed_cleaner": [
+    "Planning modifié",
+    "Le planning du logement {{property_name}} a changé.",
+    "Nous vérifions l’organisation et revenons vers vous rapidement."
+  ],
+  "planning_changed_owner": [
+    "Planning modifié",
+    "Une nouvelle réservation affecte la mission {{property_name}}.",
+    "Organisation à vérifier manuellement."
+  ],
+  "payment_request_owner": [
+    "Demande de paiement reçue",
+    "{{cleaner_name}} vous a envoyé sa demande pour {{period_label}}.",
+    "Montant : {{amount_eur}} €",
+    "À régler sous {{due_days}} jours : {{payment_url}}"
+  ]
+}

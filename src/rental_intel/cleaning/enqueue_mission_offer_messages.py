@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 from rental_intel.cleaning.db import get_supabase_client
+from rental_intel.cleaning.message_templates import render_sms_template
 
 load_dotenv()
 
@@ -38,23 +39,18 @@ def phone_for_sms(phone: str | None) -> str | None:
 
 def money(value) -> str:
     try:
-        return f"{float(value):.2f} €"
+        return f"{float(value):.2f}"
     except Exception:
         return "montant à confirmer"
 
 
-def scheduled_text(request: dict) -> str:
-    scheduled_start = parse_dt(request.get("scheduled_start_at"))
-
-    if not scheduled_start:
-        return "date à confirmer"
-
-    scheduled_local = scheduled_start.astimezone(PARIS)
-    return scheduled_local.strftime("%d/%m/%Y à %Hh%M")
+def property_name(property_: dict | None) -> str:
+    return (property_ or {}).get("name") or "Logement"
 
 
 def mission_link(request: dict) -> str:
-    return f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}"
+    # New cleaner commitment page: the cleaner chooses the ready-before-16h day here.
+    return f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}/ready-day"
 
 
 def calendar_link(cleaner: dict | None) -> str:
@@ -69,6 +65,9 @@ def state_fingerprint(request: dict) -> str:
         "assigned_cleaner_id": request.get("assigned_cleaner_id"),
         "scheduled_start_at": request.get("scheduled_start_at"),
         "scheduled_end_at": request.get("scheduled_end_at"),
+        "work_window_start_at": request.get("work_window_start_at"),
+        "work_window_end_at": request.get("work_window_end_at"),
+        "completion_deadline_at": request.get("completion_deadline_at"),
         "urgent": request.get("urgent"),
         "number_of_guests": request.get("number_of_guests"),
         "linen_required": request.get("linen_required"),
@@ -95,29 +94,14 @@ def build_offer_body(
     property_: dict | None,
     cleaner: dict | None,
 ) -> str:
-    cleaner_first_name = (cleaner or {}).get("first_name") or "Bonjour"
-    property_name = (property_ or {}).get("name") or "Logement"
-
-    guest_text = ""
-    if reservation and reservation.get("guest_name"):
-        guest_text = f"Client: {reservation['guest_name']}\n"
-
-    planning = calendar_link(cleaner)
-    planning_text = f"\nPlanning:\n{planning}\n" if planning else ""
-
-    return (
-        f"Bonjour {cleaner_first_name} 👋\n"
-        "\n"
-        "Nouvelle mission ménage proposée.\n"
-        "\n"
-        f"🏠 {property_name}\n"
-        f"{guest_text}"
-        f"📅 {scheduled_text(request)}\n"
-        f"💶 {money(request.get('total_cost_eur'))}\n"
-        "\n"
-        "Répondre ici:\n"
-        f"{mission_link(request)}\n"
-        f"{planning_text}"
+    return render_sms_template(
+        "mission_offer_cleaner",
+        {
+            "property_name": property_name(property_),
+            "mission_url": mission_link(request),
+            "cleaner_name": full_name(cleaner),
+            "amount_eur": money(request.get("total_cost_eur")),
+        },
     )
 
 
@@ -127,29 +111,14 @@ def build_modified_body(
     property_: dict | None,
     cleaner: dict | None,
 ) -> str:
-    cleaner_first_name = (cleaner or {}).get("first_name") or "Bonjour"
-    property_name = (property_ or {}).get("name") or "Logement"
-
-    guest_text = ""
-    if reservation and reservation.get("guest_name"):
-        guest_text = f"Client: {reservation['guest_name']}\n"
-
-    planning = calendar_link(cleaner)
-    planning_text = f"\nPlanning:\n{planning}\n" if planning else ""
-
-    return (
-        f"Bonjour {cleaner_first_name} 👋\n"
-        "\n"
-        "Mission ménage modifiée.\n"
-        "\n"
-        f"🏠 {property_name}\n"
-        f"{guest_text}"
-        f"Nouvelle date: {scheduled_text(request)}\n"
-        f"Montant: {money(request.get('total_cost_eur'))}\n"
-        "\n"
-        "Merci de vérifier / confirmer ici:\n"
-        f"{mission_link(request)}\n"
-        f"{planning_text}"
+    return render_sms_template(
+        "mission_modified_cleaner",
+        {
+            "property_name": property_name(property_),
+            "mission_url": mission_link(request),
+            "cleaner_name": full_name(cleaner),
+            "amount_eur": money(request.get("total_cost_eur")),
+        },
     )
 
 
@@ -159,22 +128,13 @@ def build_cancelled_body(
     property_: dict | None,
     cleaner: dict | None,
 ) -> str:
-    cleaner_first_name = (cleaner or {}).get("first_name") or "Bonjour"
-    property_name = (property_ or {}).get("name") or "Logement"
-
-    planning = calendar_link(cleaner)
-    planning_text = f"\nPlanning:\n{planning}\n" if planning else ""
-
-    return (
-        f"Bonjour {cleaner_first_name} 👋\n"
-        "\n"
-        "Mission ménage annulée.\n"
-        "\n"
-        f"🏠 {property_name}\n"
-        f"📅 {scheduled_text(request)}\n"
-        "\n"
-        "Vous n'avez plus à intervenir pour cette mission.\n"
-        f"{planning_text}"
+    return render_sms_template(
+        "mission_cancelled_cleaner",
+        {
+            "property_name": property_name(property_),
+            "planning_url": calendar_link(cleaner),
+            "cleaner_name": full_name(cleaner),
+        },
     )
 
 
@@ -182,6 +142,7 @@ def insert_message(
     supabase,
     request: dict,
     cleaner: dict,
+    property_: dict | None,
     message_type: str,
     body: str,
     event_key: str,
@@ -203,18 +164,31 @@ def insert_message(
     if existing and existing.data:
         return False
 
-    supabase.table("outbound_messages").insert(
-        {
-            "cleaning_request_id": request["id"],
-            "channel": "sms",
-            "message_type": message_type,
-            "recipient_phone": recipient_phone,
-            "body": body,
-            "status": "pending",
-            "provider": "twilio",
-            "event_key": event_key,
-        }
-    ).execute()
+    payload = {
+        "cleaning_request_id": request["id"],
+        "channel": "sms",
+        "message_type": message_type,
+        "recipient_phone": recipient_phone,
+        "body": body,
+        "status": "pending",
+        "provider": "twilio",
+        "event_key": event_key,
+    }
+
+    if cleaner.get("id"):
+        payload["cleaner_id"] = cleaner["id"]
+
+    if property_ and property_.get("owner_id"):
+        payload["owner_id"] = property_["owner_id"]
+
+    if request.get("test_scenario_id"):
+        # Safety: test scenarios should never go to Twilio.
+        payload["is_test"] = True
+        payload["status"] = "sent"
+        payload["provider"] = "test_lab"
+        payload["test_scenario_id"] = request["test_scenario_id"]
+
+    supabase.table("outbound_messages").insert(payload).execute()
 
     return True
 
@@ -348,6 +322,7 @@ def main() -> None:
                 supabase=supabase,
                 request=request,
                 cleaner=cleaner,
+                property_=property_,
                 message_type="mission_cancelled",
                 body=build_cancelled_body(request, reservation, property_, cleaner),
                 event_key=event_key,
@@ -372,6 +347,7 @@ def main() -> None:
                 supabase=supabase,
                 request=request,
                 cleaner=cleaner,
+                property_=property_,
                 message_type="mission_offer",
                 body=build_offer_body(request, reservation, property_, cleaner),
                 event_key=current_event_key,
@@ -409,6 +385,7 @@ def main() -> None:
                 supabase=supabase,
                 request=request,
                 cleaner=cleaner,
+                property_=property_,
                 message_type="mission_modified",
                 body=build_modified_body(request, reservation, property_, cleaner),
                 event_key=current_event_key,
