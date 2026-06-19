@@ -95,12 +95,14 @@ async function fakeSms({
 }) {
   const supabase = getSupabaseAdmin();
 
-  await supabase.from("outbound_messages").insert({
-    channel: "fake_sms",
+  const { error } = await supabase.from("outbound_messages").insert({
+    // Keep this as a normal SMS-shaped row so it passes DB constraints,
+    // but mark it as test + already sent so the real sender ignores it.
+    channel: "sms",
     message_type: "test_lab",
     recipient_phone: phone || "+33000000000",
     body,
-    status: "pending",
+    status: "sent",
     provider: "test_lab",
     cleaning_request_id: cleaningRequestId ?? null,
     cleaner_id: cleanerId ?? null,
@@ -108,6 +110,10 @@ async function fakeSms({
     test_scenario_id: testScenarioId,
     event_key: `test_lab:${testScenarioId}:${crypto.randomUUID()}`,
   });
+
+  if (error) {
+    throw new Error(`Impossible de créer le faux SMS : ${error.message}`);
+  }
 }
 
 export async function createTestScenario(formData: FormData) {
