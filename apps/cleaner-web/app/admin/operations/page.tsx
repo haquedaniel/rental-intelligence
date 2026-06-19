@@ -183,6 +183,20 @@ function smsHasFailed(messages: Row[]): boolean {
 }
 
 function cleaningDisplayStatus(request: Row, messages: Row[]) {
+  if (request.schedule_status === "needs_manual_reassignment") {
+    return {
+      label: "Action requise",
+      className: "bg-red-600 text-white ring-red-700",
+    };
+  }
+
+  if (request.schedule_status === "planning_changed") {
+    return {
+      label: "Planning modifié",
+      className: "bg-red-600 text-white ring-red-700",
+    };
+  }
+
   if (smsHasFailed(messages) && ["created", "sent"].includes(request.status)) {
     return {
       label: "SMS échoué",
@@ -392,6 +406,31 @@ function manualMissionHref(propertyId: string, dateKey: string): string {
   return `/admin/operations/create-cleaning-request?${params.toString()}`;
 }
 
+function manualActionNeeded(request: Row): boolean {
+  return ["needs_manual_reassignment", "planning_changed"].includes(request.schedule_status);
+}
+
+function manualReassignmentHref(request: Row): string {
+  const params = new URLSearchParams();
+
+  if (request.property_id) {
+    params.set("property_id", String(request.property_id));
+  }
+
+  if (request.reservation_id) {
+    params.set("reservation_id", String(request.reservation_id));
+  }
+
+  if (request.scheduled_start_at) {
+    params.set("date", parisDateKey(request.scheduled_start_at));
+  }
+
+  params.set("reason", String(request.schedule_status || "needs_manual_reassignment"));
+  params.set("source_request_id", String(request.id));
+
+  return `/admin/operations/create-cleaning-request?${params.toString()}`;
+}
+
 function propertyFilterHref(start: string, propertyId?: string) {
   const params = new URLSearchParams();
   params.set("start", start);
@@ -587,6 +626,27 @@ export default async function AdminOperationsPage({
 
   const alerts: { level: "red" | "orange" | "blue"; title: string; detail: string; href?: string }[] = [];
 
+  const manualActionAlertIds = new Set<string>();
+
+  for (const request of requests) {
+    if (!manualActionNeeded(request)) continue;
+
+    manualActionAlertIds.add(String(request.id));
+
+    const property = propertyById[request.property_id];
+    const cleaner = cleanerById[request.assigned_cleaner_id];
+    const dateLabel = request.scheduled_start_at
+      ? compactDateLabel(parisDateKey(request.scheduled_start_at))
+      : "date à confirmer";
+
+    alerts.push({
+      level: "red",
+      title: request.schedule_status === "planning_changed" ? "Planning modifié" : "Action requise",
+      detail: `${property?.name ?? "Logement"} · ${dateLabel} · ${fullName(cleaner)}`,
+      href: manualReassignmentHref(request),
+    });
+  }
+
   for (const reservation of departuresInRange) {
     const request = requestByReservationId[reservation.id];
     const property = propertyById[reservation.property_id];
@@ -611,7 +671,7 @@ export default async function AdminOperationsPage({
       });
     }
 
-    if (request.status === "refused") {
+    if (request.status === "refused" && !manualActionNeeded(request)) {
       alerts.push({
         level: "red",
         title: "Mission refusée",
@@ -619,7 +679,7 @@ export default async function AdminOperationsPage({
       });
     }
 
-    if (["created", "sent"].includes(request.status)) {
+    if (["created", "sent"].includes(request.status) && !manualActionNeeded(request)) {
       alerts.push({
         level: "orange",
         title: "À confirmer",
@@ -968,7 +1028,10 @@ export default async function AdminOperationsPage({
                                   const cleaner = cleanerById[request.assigned_cleaner_id];
                                   const messages = outboundByRequestId[request.id] ?? [];
                                   const displayStatus = cleaningDisplayStatus(request, messages);
-                                  const href = reportHref(request);
+                                  const actionHref = manualActionNeeded(request)
+                                    ? manualReassignmentHref(request)
+                                    : null;
+                                  const href = reportHref(request) ?? actionHref;
 
                                   const content = (
                                     <div
@@ -976,6 +1039,7 @@ export default async function AdminOperationsPage({
                                         fullName(cleaner),
                                         `Ménage: ${timeLabel(request.scheduled_start_at)}`,
                                         `Statut: ${displayStatus.label}`,
+                                        request.schedule_status ? `Planning: ${request.schedule_status}` : "",
                                       ].join("\n")}
                                       className="flex w-full flex-col items-center gap-1"
                                     >
