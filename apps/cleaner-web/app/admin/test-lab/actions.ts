@@ -1,8 +1,10 @@
-"use server";
+import { missionOfferCleanerMessage } from "@/lib/messageTemplates";\n"use server";
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { missionOfferCleanerMessage } from "@/lib/messageTemplates";
+
 import {
   addDaysToDateKey,
   buildReadyDayOptions,
@@ -96,8 +98,6 @@ async function fakeSms({
   const supabase = getSupabaseAdmin();
 
   const { error } = await supabase.from("outbound_messages").insert({
-    // Keep this as a normal SMS-shaped row so it passes DB constraints,
-    // but mark it as test + already sent so the real sender ignores it.
     channel: "sms",
     message_type: "test_lab",
     recipient_phone: phone || "+33000000000",
@@ -284,11 +284,11 @@ export async function createTestScenario(formData: FormData) {
     cleaningRequestId: cleaningRequest.id,
     cleanerId: assignedCleanerId,
     phone: cleaner.phone,
-    body: [
-      `TEST · Nouvelle mission`,
-      `${property.name ?? "Logement"} · prêt avant 16h`,
-      `Choisir le jour: ${baseUrl}/mission/${missionToken}/ready-day`,
-    ].join("\n"),
+    body: missionOfferCleanerMessage({
+      propertyName: property.name ?? "Logement",
+      missionUrl: `${baseUrl}/mission/${missionToken}/ready-day`,
+      isTest: true,
+    }),
   });
 
   if (scenarioType === "planning_change") {
