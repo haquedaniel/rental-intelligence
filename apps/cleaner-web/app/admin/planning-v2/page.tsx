@@ -160,6 +160,42 @@ export default async function PlanningV2Page({
     visiblePropertyIds.includes(request.property_id),
   );
 
+  // Notifications are operational and should not disappear just because the calendar period changes.
+  // Use a rolling operational watch window instead of the selected planning period.
+  const alertStart = addDays(today, -7);
+  const alertEnd = addDays(today, 90);
+
+  const { data: alertRequestsData, error: alertRequestsError } = await supabase
+    .from("cleaning_requests")
+    .select("*")
+    .gte("scheduled_start_at", toIsoStart(alertStart))
+    .lte("scheduled_start_at", toIsoEnd(alertEnd))
+    .order("scheduled_start_at", { ascending: true });
+
+  if (alertRequestsError) {
+    throw new Error(`Impossible de charger les alertes missions : ${alertRequestsError.message}`);
+  }
+
+  const { data: alertReservationsData, error: alertReservationsError } = await supabase
+    .from("reservations")
+    .select("*")
+    .neq("status", "cancelled")
+    .gte("checkout_at", toIsoStart(alertStart))
+    .lte("checkout_at", toIsoEnd(alertEnd))
+    .order("checkout_at", { ascending: true });
+
+  if (alertReservationsError) {
+    throw new Error(`Impossible de charger les alertes réservations : ${alertReservationsError.message}`);
+  }
+
+  const alertRequests = (alertRequestsData ?? []).filter((request) =>
+    visiblePropertyIds.includes(request.property_id),
+  );
+
+  const alertReservations = (alertReservationsData ?? []).filter((reservation) =>
+    visiblePropertyIds.includes(reservation.property_id),
+  );
+
   const { data: analyticsDailyData, error: analyticsDailyError } = await supabase
     .from("analytics_daily_calendar")
     .select("*")
@@ -225,7 +261,9 @@ export default async function PlanningV2Page({
   );
 
 
-  const requestIds = requests.map((request) => request.id);
+  const requestIds = Array.from(
+    new Set([...requests, ...alertRequests].map((request) => request.id)),
+  );
 
   let outboundRows: Row[] = [];
   if (requestIds.length > 0) {
@@ -280,12 +318,23 @@ export default async function PlanningV2Page({
     return !request || request.status === "cancelled";
   });
 
-  const manualActionRequests = requests.filter(manualActionNeeded);
-  const pendingRequests = requests.filter((request) =>
+  const alertRequestByReservationId = Object.fromEntries(
+    alertRequests
+      .filter((request) => request.reservation_id)
+      .map((request) => [request.reservation_id, request]),
+  );
+
+  const alertMissingCleanings = alertReservations.filter((reservation) => {
+    const request = alertRequestByReservationId[reservation.id];
+    return !request || request.status === "cancelled";
+  });
+
+  const manualActionRequests = alertRequests.filter(manualActionNeeded);
+  const pendingRequests = alertRequests.filter((request) =>
     ["created", "sent"].includes(request.status) && !manualActionNeeded(request),
   );
 
-  const smsFailedRequests = requests.filter((request) =>
+  const smsFailedRequests = alertRequests.filter((request) =>
     (outboundByRequestId[request.id] ?? []).some((message) => message.status === "failed"),
   );
 
@@ -293,7 +342,7 @@ export default async function PlanningV2Page({
     ...manualActionRequests.map((request) =>
       notificationForManualAction(request, propertyById[request.property_id]),
     ),
-    ...missingCleanings.map((reservation) => ({
+    ...alertMissingCleanings.map((reservation) => ({
       key: `missing-${reservation.id}`,
       severity: "red" as const,
       title: "Créer une mission ménage",
@@ -332,19 +381,17 @@ export default async function PlanningV2Page({
             </p>
           </div>
 
-          <Link
-            href="/admin/operations"
-            className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:px-4 sm:text-sm"
-          >
-            Ancien
-          </Link>
-        </header>
+          <div className="flex shrink-0 items-center gap-2">
+            <NotificationFeed items={notifications} />
 
-        <PeriodRangeSlider
-          start={start}
-          end={end}
-          selectedPropertyId={selectedPropertyId}
-        />
+            <Link
+              href="/admin/operations"
+              className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:px-4 sm:text-sm"
+            >
+              Ancien
+            </Link>
+          </div>
+        </header>
 
         <KpiStrip
           dailyRows={analyticsDaily}
@@ -357,7 +404,12 @@ export default async function PlanningV2Page({
           selectedPropertyId={selectedPropertyId}
         />
 
-        <NotificationFeed items={notifications} />
+        <PeriodRangeSlider
+          start={start}
+          end={end}
+          selectedPropertyId={selectedPropertyId}
+          properties={visibleProperties}
+        />
 
         <div id="calendar">
           <OwnerTimeline

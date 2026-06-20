@@ -241,7 +241,7 @@ function PropertyTimelineCard({
                 <div
                   key={unit.key}
                   title={`Tension marché ${tensionLabel(score)} · ${score}/100`}
-                  className={`rounded-xl px-1.5 py-1 text-center ring-1 ring-white ${tensionClass(score)}`}
+                  className="rounded-xl bg-white px-1.5 py-1 text-center ring-1 ring-slate-100"
                 >
                   <p className="text-[8px] font-black uppercase leading-none text-slate-500">
                     {unit.mode === "daily" ? unit.label.slice(0, 3) : unit.label.slice(0, 4)}
@@ -263,7 +263,7 @@ function PropertyTimelineCard({
                 return (
                   <div
                     key={`${unit.key}-bg`}
-                    className={`rounded-xl ${tensionClass(score)}`}
+                    className="rounded-xl bg-white/60"
                   />
                 );
               })}

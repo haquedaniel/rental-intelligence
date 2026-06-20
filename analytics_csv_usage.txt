@@ -1,0 +1,35 @@
+Binary file src/rental_intel/ui/__pycache__/data.cpython-314.pyc matches
+src/rental_intel/ui/data.py:18:    return pd.read_csv(path)
+Binary file src/rental_intel/ui/__pycache__/data.cpython-314.pyc matches
+src/rental_intel/ui/data.py:18:    return pd.read_csv(path)
+src/rental_intel/scripts/build_cockpit_summary.py:16:    return pd.read_csv(path)
+src/rental_intel/scripts/build_data_quality_report.py:17:    return pd.read_csv(path)
+src/rental_intel/scripts/extract_gap_offers.py:121:    availability = pd.read_csv(availability_path)
+src/rental_intel/scripts/build_profitability_drilldown.py:15:    return pd.read_csv(path)
+src/rental_intel/scripts/build_portfolio_profitability.py:18:    return pd.read_csv(path)
+src/rental_intel/scripts/sync_cleaning_reservations.py:12:CSV_PATH = Path("outputs/processed/normalized_reservations.csv")
+src/rental_intel/scripts/sync_cleaning_reservations.py:95:    df = pd.read_csv(CSV_PATH)
+src/rental_intel/scripts/build_profitability.py:46:    return pd.read_csv(path)
+src/rental_intel/scripts/extract_own_price_scenarios.py:24:    return pd.read_csv(path)
+src/rental_intel/scripts/extract_own_price_scenarios.py:35:        existing = pd.read_csv(path)
+src/rental_intel/scripts/build_metrics.py:21:    daily = pd.read_csv(daily_path)
+src/rental_intel/scripts/extract_market_thais_prices.py:56:        existing = pd.read_csv(path)
+Binary file src/rental_intel/scripts/__pycache__/sync_cleaning_reservations.cpython-314.pyc matches
+src/rental_intel/scripts/reconcile_excel_reservations.py:197:    df = pd.read_csv(path)
+src/rental_intel/scripts/reconcile_excel_reservations.py:311:        default="outputs/processed/normalized_reservations.csv",
+src/rental_intel/scripts/build_forward_position.py:19:    return pd.read_csv(path)
+src/rental_intel/scripts/build_own_price_summary.py:16:    return pd.read_csv(path)
+src/rental_intel/scripts/build_variable_period_costs.py:19:    return pd.read_csv(path)
+src/rental_intel/scripts/build_price_floors.py:39:    return pd.read_csv(path)
+src/rental_intel/scripts/build_restriction_diagnostics.py:31:    offers = pd.read_csv(offers_path)
+src/rental_intel/scripts/build_restriction_diagnostics.py:32:    availability = pd.read_csv(availability_path)
+src/rental_intel/scripts/build_recommendations.py:33:    return pd.read_csv(path)
+src/rental_intel/scripts/build_recommendations.py:463:    return pd.read_csv(path)
+src/rental_intel/scripts/build_financial_views.py:16:    return pd.read_csv(path)
+src/rental_intel/scripts/import_legacy_reservations_to_beds24.py:588:        print("Review outputs/processed/legacy_reservation_import_plan.csv")
+src/rental_intel/scripts/build_dashboard_kpis.py:18:    return pd.read_csv(path)
+src/rental_intel/scripts/build_market_benchmark.py:18:    return pd.read_csv(path)
+src/rental_intel/scripts/extract_market_airbnb_prices.py:29:    return pd.read_csv(path, dtype={"airbnb_id": str})
+src/rental_intel/scripts/extract_market_airbnb_prices.py:372:        existing = pd.read_csv(path)
+scripts/cockpit_refresh.sh:46:if docker compose exec -T cockpit test -f /app/outputs/processed/future_offers.csv; then
+scripts/cockpit_refresh.sh:49:  echo "===== $(date -Is) skipping build_recommendations: missing /app/outputs/processed/future_offers.csv ====="

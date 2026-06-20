@@ -25,7 +25,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
   return (
     <Link
       href={item.href}
-      className="block rounded-xl bg-white px-2.5 py-2 ring-1 ring-slate-100"
+      className="block rounded-xl bg-white px-2.5 py-2 ring-1 ring-slate-100 transition hover:bg-slate-50"
     >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotClass(item.severity)}`} />
@@ -54,60 +54,63 @@ export function NotificationFeed({
 }: {
   items: NotificationItem[];
 }) {
-  if (items.length === 0) {
-    return (
-      <section className="rounded-[1.25rem] bg-white p-2.5 shadow-sm ring-1 ring-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-black text-emerald-800">
-            ✓
-          </span>
-          <div>
-            <p className="text-xs font-black text-slate-950">Rien d’urgent</p>
-            <p className="text-[11px] text-slate-500">Aucune action immédiate.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const groups: NotificationItem["severity"][] = ["red", "amber", "slate"];
+  const urgentCount = items.filter((item) => item.severity === "red").length;
+  const count = items.length;
 
   return (
-    <section className="rounded-[1.25rem] bg-slate-100/70 p-2 shadow-sm ring-1 ring-slate-200">
-      <div className="mb-1.5 flex items-center justify-between px-0.5">
-        <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">
-          Alertes
-        </p>
-        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white">
-          {items.length}
-        </span>
-      </div>
+    <details className="relative">
+      <summary className="list-none">
+        <div className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white text-lg shadow-sm ring-1 ring-slate-200">
+          🔔
+          {count > 0 && (
+            <span className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white ${urgentCount ? "bg-red-600" : "bg-amber-500"}`}>
+              {count}
+            </span>
+          )}
+        </div>
+      </summary>
 
-      <div className="space-y-2">
-        {groups.map((severity) => {
-          const groupItems = items.filter((item) => item.severity === severity);
-          if (groupItems.length === 0) return null;
+      <div className="fixed right-3 top-24 z-50 w-[calc(100vw-1.5rem)] max-w-[360px] rounded-[1.25rem] bg-slate-100 p-2 shadow-xl ring-1 ring-slate-200 sm:absolute sm:right-0 sm:top-auto sm:mt-2 sm:w-[360px]">
+        <div className="mb-1.5 flex items-center justify-between px-1">
+          <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">
+            Notifications
+          </p>
+          <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
+            {count}
+          </span>
+        </div>
 
-          return (
-            <div key={severity}>
-              <div className="mb-1 flex items-center gap-1.5 px-1">
-                <span className={`h-1.5 w-1.5 rounded-full ${dotClass(severity)}`} />
-                <p className="text-[10px] font-black uppercase text-slate-500">
-                  {groupLabel(severity)} · {groupItems.length}
-                </p>
-              </div>
+        {items.length === 0 ? (
+          <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-100">
+            <p className="text-xs font-black text-slate-950">Rien d’urgent</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Aucune action immédiate.</p>
+          </div>
+        ) : (
+          <div className="max-h-[70vh] space-y-2 overflow-auto">
+            {(["red", "amber", "slate"] as const).map((severity) => {
+              const groupItems = items.filter((item) => item.severity === severity);
+              if (groupItems.length === 0) return null;
 
-              <div className="-space-y-1">
-                {groupItems.slice(0, 4).map((item) => (
-                  <div key={item.key} className="relative">
-                    <NotificationRow item={item} />
+              return (
+                <div key={severity}>
+                  <div className="mb-1 flex items-center gap-1.5 px-1">
+                    <span className={`h-1.5 w-1.5 rounded-full ${dotClass(severity)}`} />
+                    <p className="text-[10px] font-black uppercase text-slate-500">
+                      {groupLabel(severity)} · {groupItems.length}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+
+                  <div className="-space-y-1">
+                    {groupItems.slice(0, 6).map((item) => (
+                      <NotificationRow key={item.key} item={item} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </section>
+    </details>
   );
 }

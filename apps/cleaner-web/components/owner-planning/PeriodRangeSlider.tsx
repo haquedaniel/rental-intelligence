@@ -8,6 +8,7 @@ import {
   dateAtNoonUtc,
   dateKeyFromUtcDate,
   daysBetweenInclusive,
+  type Row,
 } from "./timelineUtils";
 
 function offsetFromYearStart(dateKey: string, yearStart: string): number {
@@ -24,10 +25,12 @@ export function PeriodRangeSlider({
   start,
   end,
   selectedPropertyId,
+  properties,
 }: {
   start: string;
   end: string;
   selectedPropertyId?: string;
+  properties: Row[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -42,6 +45,7 @@ export function PeriodRangeSlider({
 
   const [left, setLeft] = useState(Math.min(initialStartOffset, initialEndOffset));
   const [right, setRight] = useState(Math.max(initialStartOffset, initialEndOffset));
+  const [propertyId, setPropertyId] = useState(selectedPropertyId || "");
 
   const selectedStart = dateFromOffset(yearStart, left);
   const selectedEnd = dateFromOffset(yearStart, right);
@@ -58,11 +62,11 @@ export function PeriodRangeSlider({
     ];
   }, [year, yearStart, yearEnd]);
 
-  function apply(nextStart = selectedStart, nextEnd = selectedEnd) {
+  function apply(nextStart = selectedStart, nextEnd = selectedEnd, nextPropertyId = propertyId) {
     const params = new URLSearchParams();
     params.set("start", nextStart);
     params.set("end", nextEnd);
-    if (selectedPropertyId) params.set("property", selectedPropertyId);
+    if (nextPropertyId) params.set("property", nextPropertyId);
 
     startTransition(() => {
       router.push(`/admin/planning-v2?${params.toString()}`);
@@ -78,86 +82,108 @@ export function PeriodRangeSlider({
   }
 
   return (
-    <section className="rounded-[1.35rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
-            Période
-          </p>
-          <p className="truncate text-sm font-black text-slate-950">
-            {compactDateLabel(selectedStart)} → {compactDateLabel(selectedEnd)}
-          </p>
+    <section className="rounded-[1.25rem] bg-white p-3 shadow-sm ring-1 ring-slate-200">
+      <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto] lg:items-end">
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Période
+              </p>
+              <p className="truncate text-sm font-black text-slate-950">
+                {compactDateLabel(selectedStart)} → {compactDateLabel(selectedEnd)}
+              </p>
+            </div>
+
+            {isPending && (
+              <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-900 ring-1 ring-amber-100">
+                Mise à jour…
+              </span>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <div className="relative h-9 rounded-2xl bg-slate-50 px-2 py-1 ring-1 ring-slate-100">
+              <div className="absolute left-3 right-3 top-4 h-1.5 rounded-full bg-slate-200" />
+              <div
+                className="absolute top-4 h-1.5 rounded-full bg-slate-950"
+                style={{ left: `calc(${leftPct}% + 0.75rem)`, width: `calc(${Math.max(0, rightPct - leftPct)}% - 1.5rem)` }}
+              />
+
+              <input
+                type="range"
+                min={0}
+                max={max}
+                value={left}
+                onChange={(event) => {
+                  const value = Math.min(Number(event.target.value), right - 1);
+                  setLeft(value);
+                }}
+                className="pointer-events-none absolute inset-x-2 top-0 z-20 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
+              />
+
+              <input
+                type="range"
+                min={0}
+                max={max}
+                value={right}
+                onChange={(event) => {
+                  const value = Math.max(Number(event.target.value), left + 1);
+                  setRight(value);
+                }}
+                className="pointer-events-none absolute inset-x-2 top-0 z-30 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
+              />
+            </div>
+
+            <div className="mt-1 flex justify-between px-1 text-[9px] font-bold text-slate-400">
+              <span>janv.</span>
+              <span>avr.</span>
+              <span>juil.</span>
+              <span>oct.</span>
+              <span>déc.</span>
+            </div>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => apply()}
-          disabled={isPending}
-          className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60"
-        >
-          {isPending ? "Mise à jour…" : "Appliquer"}
-        </button>
-      </div>
-
-      <div className="mt-3">
-        <div className="relative h-8">
-          <div className="absolute left-0 right-0 top-3 h-2 rounded-full bg-slate-100" />
-          <div
-            className="absolute top-3 h-2 rounded-full bg-slate-950"
-            style={{ left: `${leftPct}%`, width: `${Math.max(0, rightPct - leftPct)}%` }}
-          />
-
-          <input
-            type="range"
-            min={0}
-            max={max}
-            value={left}
-            onChange={(event) => {
-              const value = Math.min(Number(event.target.value), right - 1);
-              setLeft(value);
-            }}
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 h-8 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
-          />
-
-          <input
-            type="range"
-            min={0}
-            max={max}
-            value={right}
-            onChange={(event) => {
-              const value = Math.max(Number(event.target.value), left + 1);
-              setRight(value);
-            }}
-            className="pointer-events-none absolute inset-x-0 top-0 z-30 h-8 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
-          />
-        </div>
-
-        <div className="mt-1 flex justify-between text-[9px] font-bold text-slate-400">
-          <span>janv.</span>
-          <span>avr.</span>
-          <span>juil.</span>
-          <span>oct.</span>
-          <span>déc.</span>
-        </div>
-      </div>
-
-      {isPending && (
-        <p className="mt-2 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black text-amber-900 ring-1 ring-amber-100">
-          Mise à jour de la période…
-        </p>
-      )}
-
-      <div className="mt-2 flex gap-1.5 overflow-x-auto">
-        {presets.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            onClick={() => applyPreset(preset)}
-            className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-700"
+        <label className="block">
+          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            Logement
+          </span>
+          <select
+            value={propertyId}
+            onChange={(event) => setPropertyId(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
           >
-            {preset.label}
+            <option value="">Tous les logements</option>
+            {properties.map((property) => (
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex gap-2 overflow-x-auto lg:justify-end">
+          {presets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyPreset(preset)}
+              className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1.5 text-[10px] font-black text-slate-700"
+            >
+              {preset.label}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => apply()}
+            disabled={isPending}
+            className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60"
+          >
+            Appliquer
           </button>
-        ))}
+        </div>
       </div>
     </section>
   );

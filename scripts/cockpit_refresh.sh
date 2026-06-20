@@ -1,42 +1,3 @@
-
-#!/usr/bin/env bash
-set -euo pipefail
-
-cd /opt/rental-intelligence
-mkdir -p logs
-
-exec 9>/tmp/rental_intelligence_cockpit_refresh.lock
-if ! flock -n 9; then
-  echo "===== $(date -Is) cockpit_refresh already running; exiting ====="
-  exit 0
-fi
-
-run_required() {
-  echo
-  echo "===== $(date -Is) running $* ====="
-  docker compose exec -T cockpit "$@"
-}
-
-run_optional() {
-  echo
-  echo "===== $(date -Is) optional: $* ====="
-  if ! docker compose exec -T cockpit "$@"; then
-    echo "===== $(date -Is) WARNING optional step failed: $* ====="
-  fi
-}
-
-echo "===== $(date -Is) starting cockpit_refresh ====="
-
-# Core booking / financial refresh
-run_required python -m rental_intel.scripts.extract_bookings
-run_required python -m rental_intel.scripts.build_metrics
-run_required python -m rental_intel.scripts.build_profitability
-run_required python -m rental_intel.scripts.build_portfolio_profitability
-run_required python -m rental_intel.scripts.build_variable_period_costs
-run_required python -m rental_intel.scripts.build_financial_views
-run_required python -m rental_intel.scripts.build_price_floors
-run_required python -m rental_intel.scripts.build_dashboard_kpis
-
 # Availability / forward-looking cockpit data
 run_optional python -m rental_intel.scripts.extract_availability
 run_optional python -m rental_intel.scripts.extract_gap_offers
@@ -50,6 +11,11 @@ else
 fi
 
 run_optional python -m rental_intel.scripts.build_data_quality_report
+
+# Sync analytics CSV outputs to Supabase for the Next.js owner cockpit
+echo
+echo "===== $(date -Is) syncing analytics CSVs to Supabase ====="
+run_optional python -m rental_intel.analytics.sync_csv_to_supabase
 
 # Refresh Streamlit app process
 echo

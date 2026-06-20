@@ -100,6 +100,7 @@ def build_offer_body(
             "property_name": property_name(property_),
             "mission_url": mission_link(request),
             "cleaner_name": full_name(cleaner),
+            "cleaner_first_name": (cleaner or {}).get("first_name") or "Bonjour",
             "amount_eur": money(request.get("total_cost_eur")),
         },
     )
@@ -117,6 +118,7 @@ def build_modified_body(
             "property_name": property_name(property_),
             "mission_url": mission_link(request),
             "cleaner_name": full_name(cleaner),
+            "cleaner_first_name": (cleaner or {}).get("first_name") or "Bonjour",
             "amount_eur": money(request.get("total_cost_eur")),
         },
     )
@@ -134,6 +136,7 @@ def build_cancelled_body(
             "property_name": property_name(property_),
             "planning_url": calendar_link(cleaner),
             "cleaner_name": full_name(cleaner),
+            "cleaner_first_name": (cleaner or {}).get("first_name") or "Bonjour",
         },
     )
 
