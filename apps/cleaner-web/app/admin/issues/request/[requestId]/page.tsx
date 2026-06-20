@@ -143,9 +143,87 @@ function messageTitle(message: Row): string {
   return `${channel} ${direction}`;
 }
 
+function latestRelevantSms(messages: Row[]): Row | null {
+  const smsMessages = messages
+    .filter((message) => {
+      const channel = String(message.channel ?? "").toLowerCase();
+      const type = String(message.message_type ?? "").toLowerCase();
+      return channel === "sms" || type.includes("mission");
+    })
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
+
+  return smsMessages[0] ?? null;
+}
+
+function hasUnresolvedSmsFailure(request: Row, messages: Row[]): boolean {
+  // Once the cleaner has accepted, an older failed SMS is history, not the current issue.
+  if (["accepted", "report_submitted", "completed"].includes(request.status)) return false;
+
+  const latest = latestRelevantSms(messages);
+  return latest?.status === "failed";
+}
+
+function missionAmount(request: Row): any {
+  return (
+    request.total_cost_eur ??
+    request.cleaner_fee_eur ??
+    request.estimated_cost_eur ??
+    request.cleaning_cost_eur ??
+    request.estimated_amount
+  );
+}
+
+function durationLabel(request: Row): string {
+  const hours =
+    request.estimated_hours ??
+    request.estimated_cleaning_hours ??
+    request.cleaning_hours ??
+    request.duration_hours;
+
+  if (hours !== undefined && hours !== null && String(hours).trim() !== "") {
+    return `${String(hours).replace(".", ",")} h`;
+  }
+
+  const minutes =
+    request.estimated_minutes ??
+    request.estimated_duration_minutes ??
+    request.duration_minutes ??
+    request.estimated_cleaning_minutes;
+
+  if (minutes !== undefined && minutes !== null && Number(minutes) > 0) {
+    return `${Math.round(Number(minutes))} min`;
+  }
+
+  return "—";
+}
+
+function readyByLabel(request: Row): string {
+  if (request.ready_by_at) return dateTime(request.ready_by_at);
+  if (request.ready_by_date) return `${compactDate(request.ready_by_date)} · avant 16h`;
+  return "À choisir";
+}
+
+function deadlineLabel(request: Row): string {
+  return dateTime(
+    request.work_window_end_at ||
+      request.completion_deadline_at ||
+      request.deadline_at ||
+      request.scheduled_end_at,
+  );
+}
+
+function workWindowStartLabel(request: Row, reservation?: Row | null): string {
+  if (reservation?.checkout_at) {
+    return `${compactDate(reservation.checkout_at)} · ${timeOnly(reservation.checkout_at)}`;
+  }
+
+  return dateTime(request.work_window_start_at || request.scheduled_start_at);
+}
+
 function problemTitle(request: Row, messages: Row[]): string {
-  if (messages.some((message) => message.status === "failed")) return "SMS échoué";
+  if (request.status === "accepted" || request.schedule_status === "scheduled") return "Mission confirmée";
   if (request.status === "refused") return "Mission refusée";
+  if (hasUnresolvedSmsFailure(request, messages)) return "SMS échoué";
   if (["created", "sent"].includes(request.status)) return "Mission en attente";
   if (request.status === "problem_reported") return "Problème signalé";
   if (request.schedule_status === "planning_changed") return "Planning modifié";
@@ -261,7 +339,24 @@ function ResolutionPanel({
   cleanerById: Record<string, Row>;
   allKnownCleanersRefused: boolean;
 }) {
-  const smsFailed = messages.some((message) => message.status === "failed");
+  const smsFailed = hasUnresolvedSmsFailure(request, messages);
+
+  if (request.status === "accepted" || request.schedule_status === "scheduled") {
+    return (
+      <ActionPanel>
+        <p className="text-sm font-semibold text-white/80">
+          La mission est confirmée. L’intervenante a choisi son échéance de préparation.
+        </p>
+
+        <div className="mt-4 rounded-2xl bg-white/10 p-3 text-sm font-semibold text-white/80">
+          <p><span className="text-white/50">Prêt avant :</span> {readyByLabel(request)}</p>
+          <p className="mt-1"><span className="text-white/50">Montant :</span> {moneyOrDash(missionAmount(request))}</p>
+        </div>
+
+        <SecondaryLinks request={request} />
+      </ActionPanel>
+    );
+  }
 
   if (smsFailed) {
     return (
@@ -548,7 +643,7 @@ export default async function RequestIssuePage({
     );
 
   const title = problemTitle(request, messages);
-  const subtitle = `${property?.name ?? "Logement"} · ${compactDate(request.scheduled_start_at)} · ${fullName(cleaner)}`;
+  const subtitle = `${property?.name ?? "Logement"} · ${readyByLabel(request)} · ${fullName(cleaner)}`;
   const severity = title.includes("échoué") || title.includes("refusée") ? "red" : "amber";
 
   const decisionEvent = requestDecisionEvent(request);
@@ -602,7 +697,7 @@ export default async function RequestIssuePage({
         ? cleanerById[String(item.assigned_cleaner_id)]
         : null,
     ),
-    detail: `${dateTime(item.scheduled_start_at)} · ${item.refusal_reason ? `Motif : ${item.refusal_reason}` : "Pas de motif"}`,
+    detail: `${readyByLabel(item)} · ${moneyOrDash(missionAmount(item))} · ${item.refusal_reason ? `Motif : ${item.refusal_reason}` : "Pas de motif"}`,
     meta: item.id === request.id ? "Mission actuelle" : "Autre proposition liée à cette réservation",
     status: item.status,
   }));
@@ -617,9 +712,11 @@ export default async function RequestIssuePage({
               <Field label="Planning" value={request.schedule_status || "Normal"} />
               <Field label="Logement" value={property?.name ?? "—"} />
               <Field label="Intervenante" value={fullName(cleaner)} />
-              <Field label="Début prévu" value={dateTime(request.scheduled_start_at)} />
-              <Field label="Fin prévue" value={dateTime(request.scheduled_end_at)} />
-              <Field label="Montant estimé" value={moneyOrDash(request.estimated_amount)} />
+              <Field label="Fenêtre ouverte" value={workWindowStartLabel(request, reservation)} />
+              <Field label="Date limite" value={deadlineLabel(request)} />
+              <Field label="Choix intervenante" value={readyByLabel(request)} />
+              <Field label="Durée estimée" value={durationLabel(request)} />
+              <Field label="Rémunération prévue" value={moneyOrDash(missionAmount(request))} />
               <Field label="Réservation liée" value={reservation?.source_booking_id || reservation?.id || "—"} />
               <Field label="Titre" value={request.title || "Mission ménage"} />
             </FieldGrid>
