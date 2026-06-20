@@ -402,9 +402,9 @@ export function tensionLabel(score: number): string {
 
 
 export function requestIssueHref(request: Row): string {
-  return `/admin/issues/request/${request.id}`;
+  return `/owner/issues/request/${request.id}`;
 }
 
 export function missingIssueHref(reservation: Row): string {
-  return `/admin/issues/missing/${reservation.id}`;
+  return `/owner/issues/missing/${reservation.id}`;
 }
