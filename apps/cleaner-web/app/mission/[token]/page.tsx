@@ -1,6 +1,7 @@
 import { acceptMission, refuseMission } from "./actions";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,8 @@ export default async function MissionPage({ params }: PageProps) {
       id,
       property_id,
       status,
+      schedule_status,
+      ready_by_at,
       urgent,
       scheduled_start_at,
       scheduled_end_at,
@@ -151,6 +154,16 @@ export default async function MissionPage({ params }: PageProps) {
         </div>
       </main>
     );
+  }
+
+  const shouldChooseReadyDay =
+    mission.status === "sent" ||
+    (mission.status === "accepted" &&
+      mission.schedule_status === "waiting_for_ready_day" &&
+      !mission.ready_by_at);
+
+  if (shouldChooseReadyDay) {
+    redirect(`/mission/${token}/ready-day`);
   }
 
   const property = Array.isArray(mission.properties)

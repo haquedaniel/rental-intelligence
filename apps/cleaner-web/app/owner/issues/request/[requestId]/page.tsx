@@ -69,7 +69,7 @@ function buildMissionBody({
   const guestName = reservation?.guest_name || reservation?.guest_full_name || "";
 
   const guestLine = guestName ? `Client : ${guestName}\n` : "";
-  const link = `${baseUrl()}/mission/${request.public_token}`;
+  const link = `${baseUrl()}/mission/${request.public_token}/ready-day`;
 
   return (
     `Bonjour ${firstName} 👋\n\n` +
@@ -266,7 +266,7 @@ export default async function OwnerRequestIssuePage({
   }
 
   const missionLink = request?.public_token
-    ? `${baseUrl()}/mission/${request.public_token}`
+    ? `${baseUrl()}/mission/${request.public_token}/ready-day`
     : null;
 
   return (
