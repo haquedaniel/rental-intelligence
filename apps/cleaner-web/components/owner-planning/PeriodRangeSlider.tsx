@@ -69,7 +69,7 @@ export function PeriodRangeSlider({
     if (nextPropertyId) params.set("property", nextPropertyId);
 
     startTransition(() => {
-      router.push(`/admin/planning-v2?${params.toString()}`);
+      router.push(`/owner/cockpit?${params.toString()}`);
     });
   }
 

@@ -29,7 +29,7 @@ function planningHref(reservation: Row): string {
   params.set("start", date);
   params.set("end", date);
   if (reservation.property_id) params.set("property", String(reservation.property_id));
-  return `/admin/planning-v2?${params.toString()}`;
+  return `/owner/cockpit?${params.toString()}`;
 }
 
 export default async function MissingCleaningIssuePage({

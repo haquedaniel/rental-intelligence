@@ -34,7 +34,7 @@ function planningHref(request: Row): string {
   params.set("start", date);
   params.set("end", date);
   if (request.property_id) params.set("property", String(request.property_id));
-  return `/admin/planning-v2?${params.toString()}`;
+  return `/owner/cockpit?${params.toString()}`;
 }
 
 function payloadOf(row: Row): Row {

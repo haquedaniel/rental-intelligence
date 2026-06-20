@@ -435,3 +435,258 @@ export async function archiveChecklistSection(formData: FormData) {
 
   revalidatePath("/admin/checklists");
 }
+
+
+const MASTER_CLEANING_SECTIONS = [
+  {
+    section_key: "premieres_taches",
+    title: "Premières tâches",
+    high_level_check_label: "Premières tâches effectuées",
+    sort_order: 10,
+    photo_requirement: "none",
+    detail_items: [
+      "Couper les radiateurs",
+      "Ouvrir toutes les fenêtres pour aérer",
+      "Couper et débrancher tous les appareils inutiles",
+      "Vider le logement des poubelles et du linge sale",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+  {
+    section_key: "sanitaires",
+    title: "Sanitaires",
+    high_level_check_label: "Sanitaires propres",
+    sort_order: 20,
+    photo_requirement: "none",
+    detail_items: [
+      "WC, lunette et brosse propres",
+      "Lavabo, douche ou baignoire propres",
+      "Bondes d’évacuation vidées",
+      "Surfaces vitrées propres",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+  {
+    section_key: "cuisine",
+    title: "Cuisine",
+    high_level_check_label: "Cuisine propre",
+    sort_order: 30,
+    photo_requirement: "none",
+    detail_items: [
+      "Frigo vidé et propre",
+      "Four et micro-ondes propres",
+      "Placards intérieurs et extérieurs vérifiés",
+      "Plans de travail propres",
+      "Poubelle nettoyée",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+  {
+    section_key: "poussieres_sols",
+    title: "Poussières / sols",
+    high_level_check_label: "Sols et surfaces propres",
+    sort_order: 40,
+    photo_requirement: "none",
+    detail_items: [
+      "TV, meubles et étagères dépoussiérés",
+      "Coussins du canapé secoués",
+      "Traces grossières sur les vitres retirées",
+      "Aspirateur passé",
+      "Serpillière passée",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+  {
+    section_key: "preparation",
+    title: "Préparation",
+    high_level_check_label: "Logement préparé",
+    sort_order: 50,
+    photo_requirement: "none",
+    detail_items: [
+      "Lits faits si linge prévu",
+      "Serviettes de toilette en place",
+      "Torchons en place",
+      "Produits d’accueil réapprovisionnés",
+      "Mobilier repositionné avec soin",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+  {
+    section_key: "controle_final",
+    title: "Contrôle final",
+    high_level_check_label: "Logement prêt",
+    sort_order: 60,
+    photo_requirement: "optional",
+    detail_items: [
+      "Toutes les fenêtres fermées",
+      "Chauffage coupé",
+      "Lumières éteintes",
+      "Logement aéré puis refermé",
+      "Logement prêt pour l’arrivée des voyageurs",
+    ],
+    required: true,
+    visible_to_cleaner: true,
+    active: true,
+  },
+];
+
+export async function createSimpleChecklist(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const propertyId = textValue(formData, "property_id");
+  const label = textValue(formData, "label") || "Nouvelle checklist";
+  const code = textValue(formData, "code") || slugify(label);
+  const serviceType = textValue(formData, "service_type") || "standard_cleaning";
+  const estimatedHours = numberValue(textValue(formData, "estimated_hours"), 2);
+  const sortOrder = numberValue(textValue(formData, "sort_order"), 100);
+  const useMaster = boolValue(formData, "use_master");
+
+  if (!propertyId) {
+    throw new Error("Logement manquant.");
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("property_cleaning_profiles")
+    .insert({
+      property_id: propertyId,
+      label,
+      code,
+      service_type: serviceType,
+      estimated_hours: estimatedHours,
+      sort_order: sortOrder,
+      default_linen_required: boolValue(formData, "default_linen_required"),
+      default_laundry_required: boolValue(formData, "default_laundry_required"),
+      active: true,
+    })
+    .select("*")
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error(`Impossible de créer la checklist : ${profileError?.message}`);
+  }
+
+  const { data: template, error: templateError } = await supabase
+    .from("cleaning_checklist_templates")
+    .insert({
+      property_id: propertyId,
+      cleaning_profile_id: profile.id,
+      name: label,
+      estimated_minutes: Math.round(estimatedHours * 60),
+      active: true,
+    })
+    .select("*")
+    .single();
+
+  if (templateError || !template) {
+    throw new Error(`Impossible de créer le contenu de checklist : ${templateError?.message}`);
+  }
+
+  if (useMaster) {
+    const { error: sectionsError } = await supabase
+      .from("cleaning_checklist_sections")
+      .insert(
+        MASTER_CLEANING_SECTIONS.map((section) => ({
+          ...section,
+          template_id: template.id,
+        })),
+      );
+
+    if (sectionsError) {
+      throw new Error(`Impossible de créer les sections : ${sectionsError.message}`);
+    }
+  }
+
+  revalidatePath("/admin/checklists");
+}
+
+export async function updateSimpleChecklist(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const profileId = textValue(formData, "profile_id");
+  const templateId = textValue(formData, "template_id");
+  const label = textValue(formData, "label");
+  const code = textValue(formData, "code") || slugify(label);
+  const estimatedHours = numberValue(textValue(formData, "estimated_hours"), 2);
+
+  if (!profileId || !templateId || !label) {
+    throw new Error("Checklist, contenu ou nom manquant.");
+  }
+
+  const { error: profileError } = await supabase
+    .from("property_cleaning_profiles")
+    .update({
+      label,
+      code,
+      service_type: textValue(formData, "service_type") || "standard_cleaning",
+      estimated_hours: estimatedHours,
+      sort_order: numberValue(textValue(formData, "sort_order"), 100),
+      default_linen_required: boolValue(formData, "default_linen_required"),
+      default_laundry_required: boolValue(formData, "default_laundry_required"),
+      active: boolValue(formData, "active"),
+    })
+    .eq("id", profileId);
+
+  if (profileError) {
+    throw new Error(`Impossible d’enregistrer la checklist : ${profileError.message}`);
+  }
+
+  const { error: templateError } = await supabase
+    .from("cleaning_checklist_templates")
+    .update({
+      name: label,
+      estimated_minutes: Math.round(estimatedHours * 60),
+      active: boolValue(formData, "active"),
+    })
+    .eq("id", templateId);
+
+  if (templateError) {
+    throw new Error(`Impossible d’enregistrer le contenu : ${templateError.message}`);
+  }
+
+  revalidatePath("/admin/checklists");
+}
+
+export async function archiveSimpleChecklist(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const profileId = textValue(formData, "profile_id");
+  const templateId = textValue(formData, "template_id");
+
+  if (!profileId) {
+    throw new Error("Checklist manquante.");
+  }
+
+  const { error: profileError } = await supabase
+    .from("property_cleaning_profiles")
+    .update({ active: false })
+    .eq("id", profileId);
+
+  if (profileError) {
+    throw new Error(`Impossible de désactiver la checklist : ${profileError.message}`);
+  }
+
+  if (templateId) {
+    await supabase
+      .from("cleaning_checklist_templates")
+      .update({ active: false })
+      .eq("id", templateId);
+  }
+
+  revalidatePath("/admin/checklists");
+}

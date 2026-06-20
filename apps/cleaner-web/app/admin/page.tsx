@@ -1,98 +1,52 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
-import { logoutAdmin } from "./login/actions";
+
 export const dynamic = "force-dynamic";
+
 export default async function AdminHomePage() {
   await requireAdmin();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8">
-      <div className="mx-auto max-w-3xl space-y-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-              Back office
-            </p>
-            <h1 className="mt-1 text-3xl font-bold text-slate-950">
-              Réglages ménage
-            </h1>
-          </div>
+    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <header>
+          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            Accueil
+          </p>
+          <h1 className="text-3xl font-black tracking-tight">
+            Pilotys
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+            Deux espaces : le cockpit propriétaire pour le quotidien, le back office pour configurer le système.
+          </p>
+        </header>
 
-          <form action={logoutAdmin}>
-            <button
-              type="submit"
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-            >
-              Déconnexion
-            </button>
-          </form>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-4">            
+        <div className="grid gap-3 sm:grid-cols-2">
           <Link
-              href="/admin/checklists"
-              className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-lg font-bold text-slate-950">Checklists</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Modifier les rubriques et les points à vérifier pour chaque logement.
-              </p>
-            </Link>
-
-          <Link
-            href="/admin/photos"
-            className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-bold text-slate-950">
-              Photos modèles
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Ajouter les photos de couverture et les photos modèles par rubrique.
+            href="/owner/cockpit"
+            className="rounded-[1.5rem] bg-slate-950 p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="text-3xl">🧭</div>
+            <h2 className="mt-4 text-xl font-black">Cockpit propriétaire</h2>
+            <p className="mt-1 text-sm font-semibold text-white/70">
+              KPIs, calendrier, alertes, missions et décisions opérationnelles.
             </p>
+            <p className="mt-4 text-xs font-black text-white/50">Ouvrir →</p>
           </Link>
+
           <Link
-          href="/admin/cleaners"
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-        >
-          <h2 className="text-lg font-bold text-slate-950">Intervenantes</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Coordonnées, tarifs et affectation des intervenantes par logement.
-          </p>
-        </Link>
-        <Link
-          href="/admin/cleaner-assignments"
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-        >
-          <h2 className="text-lg font-bold text-slate-950">Affectations ménage</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Définir l’intervenante principale, les remplaçantes et la familiarité par logement.
-          </p>
-        </Link>
-
-        <Link
-          href="/admin/cleaner-availability"
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-        >
-          <h2 className="text-lg font-bold text-slate-950">Disponibilités ménage</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Semaine type, vacances et périodes d’indisponibilité des intervenantes.
-          </p>
-        </Link>
-
-        <Link
-          href="/admin/operations"
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
-        >
-          <h2 className="text-lg font-bold text-slate-950">
-            Planning opérations
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Séjours, départs, ménages, intervenantes et alertes opérationnelles.
-          </p>
-        </Link>
-
+            href="/admin/settings"
+            className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="text-3xl">⚙️</div>
+            <h2 className="mt-4 text-xl font-black">Back office</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Configurer les rappels, intervenantes, logements, paiements, accès et outils.
+            </p>
+            <p className="mt-4 text-xs font-black text-slate-400">Ouvrir →</p>
+          </Link>
         </div>
-
-        </div>
-
+      </div>
     </main>
   );
 }

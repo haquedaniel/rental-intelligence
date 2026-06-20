@@ -399,7 +399,7 @@ export default async function PlanningV2Page({
             <NotificationFeed items={notifications} />
 
             <Link
-              href="/admin/settings/reminders"
+              href="/admin/settings"
               className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:px-4 sm:text-sm"
             >
               Rappels

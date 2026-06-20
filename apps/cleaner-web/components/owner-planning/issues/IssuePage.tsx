@@ -153,7 +153,7 @@ export function IssueShell({
           </div>
 
           <Link
-            href="/admin/planning-v2"
+            href="/owner/cockpit"
             className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
           >
             Planning
@@ -318,7 +318,7 @@ export function EmptyState({
         <h1 className="text-xl font-black">{title}</h1>
         <p className="mt-2 text-sm font-semibold text-slate-500">{detail}</p>
         <Link
-          href="/admin/planning-v2"
+          href="/owner/cockpit"
           className="mt-4 inline-flex rounded-full bg-slate-950 px-3 py-2 text-xs font-black text-white"
         >
           Retour planning

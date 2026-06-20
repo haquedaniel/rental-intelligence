@@ -321,7 +321,7 @@ export default async function ReminderSettingsPage() {
           </div>
 
           <Link
-            href="/admin/planning-v2"
+            href="/owner/cockpit"
             className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
           >
             Retour planning
