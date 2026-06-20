@@ -260,6 +260,20 @@ export default async function PlanningV2Page({
     !row.property_id || visiblePropertyIds.includes(row.property_id),
   );
 
+  const { data: analyticsTargetsData, error: analyticsTargetsError } = await supabase
+    .from("analytics_listing_month_targets")
+    .select("*")
+    .gte("year_month", yearStart.slice(0, 7))
+    .lte("year_month", yearEnd.slice(0, 7));
+
+  if (analyticsTargetsError) {
+    throw new Error(`Impossible de charger analytics_listing_month_targets : ${analyticsTargetsError.message}`);
+  }
+
+  const analyticsTargets = (analyticsTargetsData ?? []).filter((row) =>
+    !row.property_id || visiblePropertyIds.includes(row.property_id),
+  );
+
 
   const requestIds = Array.from(
     new Set([...requests, ...alertRequests].map((request) => request.id)),
@@ -398,6 +412,7 @@ export default async function PlanningV2Page({
           monthlyRows={analyticsMonthly}
           kpiRows={analyticsKpis}
           expenseRows={analyticsExpenses}
+          targetRows={analyticsTargets}
           start={start}
           end={end}
           selectedKpi={selectedKpi}

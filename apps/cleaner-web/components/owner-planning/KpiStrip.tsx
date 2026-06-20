@@ -450,6 +450,7 @@ export function KpiStrip({
   monthlyRows,
   kpiRows,
   expenseRows,
+  targetRows,
   start,
   end,
   selectedKpi: initialSelectedKpi,
@@ -458,6 +459,7 @@ export function KpiStrip({
   monthlyRows: Row[];
   kpiRows: Row[];
   expenseRows: Row[];
+  targetRows: Row[];
   start: string;
   end: string;
   selectedKpi?: string;
@@ -502,17 +504,23 @@ export function KpiStrip({
   const periodRevenue = sum(periodDaily, "host_payout_allocated");
   const periodAfterVariables = periodRevenue - exactExpenses.total;
 
-  const annualObjective = sum(kpiRows, "target_host_payout");
+  // Targets now come from the original listing/month YAML grid, synced to Supabase.
+  // No pro-rata: if the selected period touches a month, that month's seasonal target counts.
+  const year = start.slice(0, 4);
+  const annualTargetRows = targetRows.filter((row) =>
+    String(row.year_month ?? "").startsWith(year),
+  );
+  const periodTargetRows = targetRows.filter((row) => monthInRange(row, start, end));
 
-  // No pro-rata targets: targets are seasonal/monthly.
-  // For now we only know the dashboard current_month target rows imported from dashboard_kpis.
-  // Later we should import a proper monthly targets table.
-  const knownMonthlyTargetRows = kpiRows.filter((row) => {
-    const month = String(row.current_month ?? "");
-    return month >= start.slice(0, 7) && month <= end.slice(0, 7);
-  });
+  const annualObjective =
+    sum(annualTargetRows, "target_gross_booking_value") ||
+    sum(annualTargetRows, "target_host_payout") ||
+    sum(kpiRows, "target_host_payout");
 
-  const knownPeriodTarget = sum(knownMonthlyTargetRows, "current_month_target_host_payout") || null;
+  const knownPeriodTarget =
+    sum(periodTargetRows, "target_gross_booking_value") ||
+    sum(periodTargetRows, "target_host_payout") ||
+    null;
 
   const realisedObjective = knownPeriodTarget;
   const periodObjective = knownPeriodTarget;
@@ -540,7 +548,7 @@ export function KpiStrip({
           label="Réalisé à date"
           value={realisedToDate}
           objective={realisedObjective}
-          objectiveLabel={realisedObjective ? "Objectif mois connu" : "Objectif mensuel à connecter"}
+          objectiveLabel={realisedObjective ? "Objectif période" : "Objectif mensuel à connecter"}
           detail={`${periodLabel(start, end)} · jusqu’à aujourd’hui`}
           tone="blue"
         />
@@ -552,7 +560,7 @@ export function KpiStrip({
           label="CA période"
           value={periodRevenue}
           objective={periodObjective}
-          objectiveLabel={periodObjective ? "Objectif mois connu" : "Objectif mensuel à connecter"}
+          objectiveLabel={periodObjective ? "Objectif période" : "Objectif mensuel à connecter"}
           detail={periodLabel(start, end)}
           tone="amber"
         />

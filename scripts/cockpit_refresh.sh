@@ -16,6 +16,7 @@ run_optional python -m rental_intel.scripts.build_data_quality_report
 echo
 echo "===== $(date -Is) syncing analytics CSVs to Supabase ====="
 run_optional python -m rental_intel.analytics.sync_csv_to_supabase
+run_optional python -m rental_intel.analytics.sync_listing_targets_to_supabase
 
 # Refresh Streamlit app process
 echo
