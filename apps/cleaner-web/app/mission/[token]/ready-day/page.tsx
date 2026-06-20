@@ -68,7 +68,13 @@ export default async function MissionReadyDayPage({
 
   const propertyName = property?.name ?? "Logement";
 
-  const isAccepted = request.status === "accepted" || request.schedule_status === "scheduled";
+  const waitingForReadyDay =
+    request.schedule_status === "waiting_for_ready_day" && !request.ready_by_at;
+
+  const isAccepted =
+    (request.status === "accepted" && !waitingForReadyDay) ||
+    request.schedule_status === "scheduled";
+
   const isRefused = request.status === "refused";
   const planningChanged = request.schedule_status === "planning_changed";
 

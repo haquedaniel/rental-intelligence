@@ -128,20 +128,7 @@ export async function acceptMission(formData: FormData) {
     throw new Error("Cette mission ne peut plus être acceptée.");
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
-  const { error } = await supabaseAdmin
-    .from("cleaning_requests")
-    .update({
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
-    })
-    .eq("id", request.id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  redirect(`/mission/${token}`);
+  redirect(`/mission/${token}/ready-day`);
 }
 
 export async function refuseMission(formData: FormData) {
