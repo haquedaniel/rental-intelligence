@@ -15,6 +15,11 @@ load_dotenv()
 
 PARIS = ZoneInfo("Europe/Paris")
 CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
+SMS_PROPERTY_ID_FILTER = {
+    value.strip()
+    for value in os.getenv("CLEANING_SMS_PROPERTY_IDS", "").split(",")
+    if value.strip()
+}
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -46,6 +51,14 @@ def money(value) -> str:
 
 def property_name(property_: dict | None) -> str:
     return (property_ or {}).get("name") or "Logement"
+
+
+def property_allowed_for_sms(request: dict) -> bool:
+    if not SMS_PROPERTY_ID_FILTER:
+        return True
+
+    property_id = request.get("property_id")
+    return bool(property_id and str(property_id) in SMS_PROPERTY_ID_FILTER)
 
 
 def mission_link(request: dict) -> str:
@@ -206,6 +219,14 @@ def main() -> None:
         .execute()
     )
     requests = requests_result.data or []
+
+    if SMS_PROPERTY_ID_FILTER:
+        before_count = len(requests)
+        requests = [request for request in requests if property_allowed_for_sms(request)]
+        print(
+            "SMS property filter active: "
+            f"{len(requests)}/{before_count} cleaning requests kept"
+        )
 
     if not requests:
         print("No cleaning requests needing outbound SMS.")

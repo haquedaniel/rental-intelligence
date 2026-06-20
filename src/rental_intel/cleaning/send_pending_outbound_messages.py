@@ -17,6 +17,11 @@ load_dotenv()
 SEND_ENABLED = os.getenv("SMS_SEND_ENABLED", "false").lower() in {"1", "true", "yes"}
 SMS_TEST_RECIPIENT = os.getenv("SMS_TEST_RECIPIENT", "").strip()
 MAX_ATTEMPTS = int(os.getenv("SMS_MAX_ATTEMPTS", "5"))
+SMS_PROPERTY_ID_FILTER = {
+    value.strip()
+    for value in os.getenv("CLEANING_SMS_PROPERTY_IDS", "").split(",")
+    if value.strip()
+}
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
@@ -31,6 +36,53 @@ def normalize_phone(phone: str | None) -> str | None:
     if not phone:
         return None
     return phone.replace(" ", "").replace(".", "").replace("-", "").strip()
+
+
+def filter_messages_by_property(supabase, messages: list[dict]) -> list[dict]:
+    if not SMS_PROPERTY_ID_FILTER:
+        return messages
+
+    request_ids = [
+        message.get("cleaning_request_id")
+        for message in messages
+        if message.get("cleaning_request_id")
+    ]
+
+    if not request_ids:
+        print("SMS property filter active: 0 messages kept; no cleaning_request_id.")
+        return []
+
+    result = (
+        supabase.table("cleaning_requests")
+        .select("id,property_id")
+        .in_("id", request_ids)
+        .execute()
+    )
+
+    request_by_id = {
+        str(row["id"]): row
+        for row in (result.data or [])
+        if row.get("id")
+    }
+
+    filtered = []
+    skipped = 0
+
+    for message in messages:
+        request_id = message.get("cleaning_request_id")
+        request = request_by_id.get(str(request_id)) if request_id else None
+
+        if request and str(request.get("property_id")) in SMS_PROPERTY_ID_FILTER:
+            filtered.append(message)
+        else:
+            skipped += 1
+
+    print(
+        "SMS property filter active: "
+        f"{len(filtered)}/{len(messages)} pending messages kept, {skipped} skipped"
+    )
+
+    return filtered
 
 
 def twilio_send_sms(to_number: str, body: str) -> dict:
@@ -87,6 +139,7 @@ def main() -> None:
     )
 
     messages = result.data or []
+    messages = filter_messages_by_property(supabase, messages)
 
     if not messages:
         print("No pending SMS messages.")
