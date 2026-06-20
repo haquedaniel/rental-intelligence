@@ -2,7 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import AdminRequestIssuePage from "../../../../owner/issues/request/[requestId]/page";
+import AdminRequestIssuePage from "../../../../admin/issues/request/[requestId]/page";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -226,7 +226,7 @@ async function sendMissionSms(formData: FormData) {
     .eq("id", messageId);
 
   // Mark the offer as sent/proposed if it is still in the initial created state.
-  if (request.status === "created") {
+  if (["created", "proposed"].includes(request.status)) {
     await supabase
       .from("cleaning_requests")
       .update({ status: "sent" })
