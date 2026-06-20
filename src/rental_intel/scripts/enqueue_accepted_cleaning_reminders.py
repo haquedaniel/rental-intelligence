@@ -14,6 +14,11 @@ load_dotenv()
 PARIS = ZoneInfo("Europe/Paris")
 UTC = ZoneInfo("UTC")
 CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
+SMS_PROPERTY_ID_FILTER = {
+    value.strip()
+    for value in os.getenv("CLEANING_SMS_PROPERTY_IDS", "").split(",")
+    if value.strip()
+}
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -62,12 +67,31 @@ def phone_for_sms(cleaner: dict | None) -> str | None:
     return phone.replace(" ", "").replace(".", "").replace("-", "").strip()
 
 
+def property_allowed_for_sms(request: dict) -> bool:
+    if not SMS_PROPERTY_ID_FILTER:
+        return True
+
+    property_id = request.get("property_id")
+    return bool(property_id and str(property_id) in SMS_PROPERTY_ID_FILTER)
+
+
+def reminder_anchor_at(request: dict) -> datetime | None:
+    # New model: the accepted commitment is "ready before", not "starts at".
+    return (
+        parse_dt(request.get("ready_by_at"))
+        or parse_dt(request.get("completion_deadline_at"))
+        or parse_dt(request.get("work_window_end_at"))
+        or parse_dt(request.get("scheduled_end_at"))
+        or parse_dt(request.get("scheduled_start_at"))
+    )
+
+
 def scheduled_text(request: dict) -> str:
-    scheduled_start = parse_dt(request.get("scheduled_start_at"))
-    if not scheduled_start:
+    anchor = reminder_anchor_at(request)
+    if not anchor:
         return "date à confirmer"
 
-    return scheduled_start.astimezone(PARIS).strftime("%d/%m/%Y à %Hh%M")
+    return anchor.astimezone(PARIS).strftime("prêt avant le %d/%m/%Y à %Hh%M")
 
 
 def mission_link(request: dict) -> str:
@@ -96,23 +120,23 @@ def event_key(request: dict, rule: dict) -> str:
 
 
 def compute_due_at(request: dict, rule: dict) -> datetime | None:
-    scheduled_start = parse_dt(request.get("scheduled_start_at"))
-    if not scheduled_start:
+    anchor = reminder_anchor_at(request)
+    if not anchor:
         return None
 
-    scheduled_start_utc = scheduled_start.astimezone(UTC)
-    scheduled_local = scheduled_start.astimezone(PARIS)
+    anchor_utc = anchor.astimezone(UTC)
+    anchor_local = anchor.astimezone(PARIS)
 
     if rule.get("timing_type") == "minutes_before":
         minutes_before = int(rule.get("minutes_before") or 0)
-        return scheduled_start_utc - timedelta(minutes=minutes_before)
+        return anchor_utc - timedelta(minutes=minutes_before)
 
     if rule.get("timing_type") == "day_of_at_time":
         raw_time = str(rule.get("local_time") or "09:00")
         hh, mm, *_ = raw_time.split(":")
 
         local_due = datetime.combine(
-            scheduled_local.date(),
+            anchor_local.date(),
             time(hour=int(hh), minute=int(mm)),
             tzinfo=PARIS,
         )
@@ -197,18 +221,35 @@ def main() -> None:
         print("No enabled reminder rules.")
         return
 
-    window_start = (now - timedelta(hours=args.lookback_hours)).isoformat()
-    window_end = (now + timedelta(days=args.lookahead_days)).isoformat()
+    window_start = now - timedelta(hours=args.lookback_hours)
+    window_end = now + timedelta(days=args.lookahead_days)
 
     requests_result = (
         supabase.table("cleaning_requests")
         .select("*")
         .eq("status", "accepted")
-        .gte("scheduled_start_at", window_start)
-        .lte("scheduled_start_at", window_end)
         .execute()
     )
-    requests = requests_result.data or []
+
+    all_requests = requests_result.data or []
+    requests = []
+
+    for request in all_requests:
+        anchor = reminder_anchor_at(request)
+        if not anchor:
+            continue
+
+        anchor_utc = anchor.astimezone(UTC)
+        if window_start <= anchor_utc <= window_end:
+            requests.append(request)
+
+    if SMS_PROPERTY_ID_FILTER:
+        before_count = len(requests)
+        requests = [request for request in requests if property_allowed_for_sms(request)]
+        print(
+            "SMS property filter active for reminders: "
+            f"{len(requests)}/{before_count} accepted requests kept"
+        )
 
     if not requests:
         print("No accepted cleaning requests in reminder window.")
