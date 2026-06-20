@@ -872,7 +872,7 @@ def main() -> None:
                     request_id=request["id"],
                     cleaner_id=cleaner["id"],
                     checkout_at=checkout_at,
-                    deadline_at=payload["completion_deadline_at"],
+                    deadline_at=parse_dt(payload["completion_deadline_at"]),
                 )
 
             link = f"{CLEANER_WEB_BASE_URL}/mission/{token}/ready-day" if token else "no-token"
