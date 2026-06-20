@@ -19,7 +19,14 @@ JOB_NAME = "create_cleaning_requests_from_reservations"
 
 LOOKAHEAD_DAYS = int(os.getenv("CLEANING_REQUEST_LOOKAHEAD_DAYS", "365"))
 LOOKBACK_DAYS = int(os.getenv("CLEANING_REQUEST_LOOKBACK_DAYS", "2"))
-DEFAULT_PROFILE_CODE = os.getenv("CLEANING_PROFILE_CODE", "light")
+DEFAULT_PROFILE_CODE = os.getenv("CLEANING_PROFILE_CODE", "").strip()
+PROPERTY_ID_FILTER = {
+    value.strip()
+    for value in os.getenv("CLEANING_REQUEST_PROPERTY_IDS", "").split(",")
+    if value.strip()
+}
+READY_DAY_MAX_DAYS = int(os.getenv("CLEANING_READY_DAY_MAX_DAYS", "3"))
+READY_BY_HOUR = int(os.getenv("CLEANING_READY_BY_HOUR", "16"))
 DEFAULT_CLEANER_DISTANCE_KM = float(os.getenv("DEFAULT_CLEANER_DISTANCE_KM", "0.0"))
 CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
 
@@ -28,6 +35,7 @@ CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000"
 INITIAL_REQUEST_STATUS = os.getenv("CLEANING_REQUEST_INITIAL_STATUS", "created")
 
 FINAL_OR_HUMAN_LOCKED_STATUSES = {
+    "accepted",
     "refused",
     "completed",
     "report_submitted",
@@ -61,6 +69,9 @@ IMPORTANT_CHANGE_FIELDS = {
     "assigned_cleaner_id",
     "scheduled_start_at",
     "scheduled_end_at",
+    "work_window_start_at",
+    "work_window_end_at",
+    "completion_deadline_at",
     "urgent",
     "number_of_guests",
     "linen_required",
@@ -80,7 +91,7 @@ def comparable_value(key: str, value):
     if value is None:
         return None
 
-    if key in {"scheduled_start_at", "scheduled_end_at"}:
+    if key in {"scheduled_start_at", "scheduled_end_at", "work_window_start_at", "work_window_end_at", "completion_deadline_at"}:
         parsed = parse_dt(str(value))
         if not parsed:
             return None
@@ -205,15 +216,23 @@ def cleaner_is_active(cleaner: dict | None) -> bool:
 
 def get_profile_for_property(profiles: list[dict], property_id: str) -> dict | None:
     property_profiles = [
-        profile for profile in profiles if str(profile.get("property_id")) == property_id
+        profile
+        for profile in profiles
+        if str(profile.get("property_id")) == property_id
+        and profile.get("active") is not False
     ]
 
     if not property_profiles:
         return None
 
-    for profile in property_profiles:
-        if profile.get("code") == DEFAULT_PROFILE_CODE:
-            return profile
+    default_profiles = [profile for profile in property_profiles if profile.get("is_default") is True]
+    if default_profiles:
+        return default_profiles[0]
+
+    if DEFAULT_PROFILE_CODE:
+        for profile in property_profiles:
+            if profile.get("code") == DEFAULT_PROFILE_CODE:
+                return profile
 
     return property_profiles[0]
 
@@ -455,6 +474,95 @@ def select_available_cleaner(
     return None, None, rejection_reasons, scheduled_start_local, scheduled_end_local
 
 
+def ready_deadline_at(checkout_at: datetime, next_checkin_at: datetime | None) -> datetime:
+    checkout_local = checkout_at.astimezone(PARIS)
+
+    default_deadline_local = datetime.combine(
+        checkout_local.date() + timedelta(days=READY_DAY_MAX_DAYS),
+        time(hour=READY_BY_HOUR, minute=0),
+        tzinfo=PARIS,
+    )
+
+    default_deadline_utc = default_deadline_local.astimezone(timezone.utc)
+
+    if next_checkin_at:
+        next_checkin_utc = next_checkin_at.astimezone(timezone.utc)
+        return min(default_deadline_utc, next_checkin_utc)
+
+    return default_deadline_utc
+
+
+def ready_day_label(offset: int, ready_local: datetime) -> str:
+    if offset == 0:
+        return f"Jour du départ · prêt avant {READY_BY_HOUR}h"
+    if offset == 1:
+        return f"Le lendemain · prêt avant {READY_BY_HOUR}h"
+
+    return ready_local.strftime(f"%A %d/%m · prêt avant {READY_BY_HOUR}h")
+
+
+def build_ready_day_options(
+    request_id: str,
+    cleaner_id: str,
+    checkout_at: datetime,
+    deadline_at: datetime,
+) -> list[dict]:
+    checkout_local = checkout_at.astimezone(PARIS)
+    checkout_date = checkout_local.date()
+    deadline_utc = deadline_at.astimezone(timezone.utc)
+
+    options: list[dict] = []
+
+    for offset in range(0, READY_DAY_MAX_DAYS + 1):
+        ready_local = datetime.combine(
+            checkout_date + timedelta(days=offset),
+            time(hour=READY_BY_HOUR, minute=0),
+            tzinfo=PARIS,
+        )
+        ready_utc = ready_local.astimezone(timezone.utc)
+
+        if ready_utc > deadline_utc:
+            continue
+
+        options.append(
+            {
+                "cleaning_request_id": request_id,
+                "cleaner_id": cleaner_id,
+                "ready_by_date": ready_local.date().isoformat(),
+                "ready_by_at": ready_utc.isoformat(),
+                "label": ready_day_label(offset, ready_local),
+                "is_available": True,
+            }
+        )
+
+    return options
+
+
+def replace_ready_day_options(
+    supabase,
+    request_id: str,
+    cleaner_id: str,
+    checkout_at: datetime,
+    deadline_at: datetime,
+) -> int:
+    supabase.table("cleaning_request_ready_day_options").delete().eq(
+        "cleaning_request_id",
+        request_id,
+    ).execute()
+
+    options = build_ready_day_options(
+        request_id=request_id,
+        cleaner_id=cleaner_id,
+        checkout_at=checkout_at,
+        deadline_at=deadline_at,
+    )
+
+    if options:
+        supabase.table("cleaning_request_ready_day_options").insert(options).execute()
+
+    return len(options)
+
+
 def build_request_payload(
     reservation: dict,
     property_: dict,
@@ -473,6 +581,8 @@ def build_request_payload(
 
     scheduled_start_at = scheduled_start_local.astimezone(timezone.utc)
     scheduled_end_at = scheduled_end_local.astimezone(timezone.utc)
+    work_window_start_at = checkout_at.astimezone(timezone.utc)
+    completion_deadline_at = ready_deadline_at(checkout_at, next_checkin_at)
 
     urgent = False
     if next_checkin_at:
@@ -509,6 +619,10 @@ def build_request_payload(
         "assigned_cleaner_id": cleaner["id"],
         "scheduled_start_at": scheduled_start_at.isoformat(),
         "scheduled_end_at": scheduled_end_at.isoformat(),
+        "work_window_start_at": work_window_start_at.isoformat(),
+        "work_window_end_at": completion_deadline_at.isoformat(),
+        "completion_deadline_at": completion_deadline_at.isoformat(),
+        "schedule_status": "waiting_for_ready_day",
         "urgent": urgent,
         "response_deadline_at": response_deadline_at.isoformat(),
         "number_of_guests": reservation.get("number_of_guests") or 0,
@@ -559,6 +673,7 @@ def main() -> None:
         "skipped_no_candidate_cleaner": 0,
         "skipped_no_available_cleaner": 0,
         "skipped_existing_locked": 0,
+        "skipped_property_filter": 0,
     }
 
     def log(message: str) -> None:
@@ -644,6 +759,11 @@ def main() -> None:
                 continue
 
             property_id = str(reservation["property_id"])
+
+            if PROPERTY_ID_FILTER and property_id not in PROPERTY_ID_FILTER:
+                summary["skipped_property_filter"] += 1
+                continue
+
             property_ = properties.get(property_id)
 
             if not property_:
@@ -745,7 +865,17 @@ def main() -> None:
                 summary["created"] += 1
                 action = "Created"
 
-            link = f"{CLEANER_WEB_BASE_URL}/mission/{token}" if token else "no-token"
+            option_count = 0
+            if request and request.get("id"):
+                option_count = replace_ready_day_options(
+                    supabase=supabase,
+                    request_id=request["id"],
+                    cleaner_id=cleaner["id"],
+                    checkout_at=checkout_at,
+                    deadline_at=payload["completion_deadline_at"],
+                )
+
+            link = f"{CLEANER_WEB_BASE_URL}/mission/{token}/ready-day" if token else "no-token"
 
             assignment_description = (
                 f"{candidate['role']}"
@@ -759,7 +889,7 @@ def main() -> None:
                 f"{reservation.get('guest_name') or source_booking_id} · "
                 f"{meta['scheduled_start_local'].strftime('%d/%m/%Y %H:%M')} · "
                 f"{cleaner_name(cleaner)} ({assignment_description}) · "
-                f"{money(meta['total']):.2f} € · {link}"
+                f"{money(meta['total']):.2f} € · options={option_count} · {link}"
             )
 
         log("")
