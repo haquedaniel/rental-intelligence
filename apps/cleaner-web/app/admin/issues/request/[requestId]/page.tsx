@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
@@ -220,6 +221,123 @@ function workWindowStartLabel(request: Row, reservation?: Row | null): string {
   return dateTime(request.work_window_start_at || request.scheduled_start_at);
 }
 
+function numberFrom(value: any): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+async function changeMissionProfile(formData: FormData) {
+  "use server";
+
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const requestId = String(formData.get("request_id") ?? "");
+  const profileId = String(formData.get("cleaning_profile_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!requestId || !profileId) {
+    throw new Error("Mission ou checklist manquante.");
+  }
+
+  const { data: request, error: requestError } = await supabase
+    .from("cleaning_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (requestError || !request) {
+    throw new Error(`Mission introuvable : ${requestError?.message ?? ""}`);
+  }
+
+  if (!["created", "sent"].includes(String(request.status))) {
+    throw new Error("Cette mission est déjà verrouillée : impossible de changer la checklist.");
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("property_cleaning_profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("property_id", request.property_id)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    throw new Error(`Checklist introuvable : ${profileError?.message ?? ""}`);
+  }
+
+  const { data: cleaner } = request.assigned_cleaner_id
+    ? await supabase
+        .from("cleaners")
+        .select("*")
+        .eq("id", request.assigned_cleaner_id)
+        .maybeSingle()
+    : { data: null };
+
+  const estimatedHours = numberFrom(profile.estimated_hours);
+  const hourlyRate = numberFrom(cleaner?.hourly_rate_eur);
+  const cleaningCost = roundMoney(estimatedHours * hourlyRate);
+
+  const travelCost = numberFrom(request.travel_cost_eur);
+  const urgent = Boolean(request.urgent);
+  const urgencyPercent = urgent
+    ? numberFrom(cleaner?.urgency_bonus_percent ?? request.urgency_bonus_percent ?? 15)
+    : 0;
+
+  const subtotal = cleaningCost + travelCost;
+  const urgencyBonus = roundMoney(subtotal * (urgencyPercent / 100));
+  const total = roundMoney(subtotal + urgencyBonus);
+
+  const beforeData = {
+    cleaning_profile_id: request.cleaning_profile_id,
+    estimated_hours: request.estimated_hours,
+    cleaning_cost_eur: request.cleaning_cost_eur,
+    travel_cost_eur: request.travel_cost_eur,
+    urgency_bonus_percent: request.urgency_bonus_percent,
+    urgency_bonus_eur: request.urgency_bonus_eur,
+    total_cost_eur: request.total_cost_eur,
+  };
+
+  const afterData = {
+    cleaning_profile_id: profile.id,
+    estimated_hours: estimatedHours,
+    cleaning_cost_eur: cleaningCost,
+    travel_cost_eur: travelCost,
+    urgency_bonus_percent: urgencyPercent,
+    urgency_bonus_eur: urgencyBonus,
+    total_cost_eur: total,
+  };
+
+  const { error: updateError } = await supabase
+    .from("cleaning_requests")
+    .update({
+      ...afterData,
+      schedule_status: request.schedule_status || "waiting_for_ready_day",
+    })
+    .eq("id", requestId);
+
+  if (updateError) {
+    throw new Error(`Impossible de changer la checklist : ${updateError.message}`);
+  }
+
+  await supabase.from("cleaning_request_change_log").insert({
+    cleaning_request_id: requestId,
+    changed_by: "admin",
+    change_type: "mission_profile_changed",
+    before_data: beforeData,
+    after_data: afterData,
+    note: note || null,
+  });
+
+  revalidatePath(`/admin/issues/request/${requestId}`);
+  revalidatePath(`/owner/issues/request/${requestId}`);
+  revalidatePath("/owner/cockpit");
+}
+
 function problemTitle(request: Row, messages: Row[]): string {
   if (request.status === "accepted" || request.schedule_status === "scheduled") return "Mission confirmée";
   if (request.status === "refused") return "Mission refusée";
@@ -256,6 +374,79 @@ function requestDecisionEvent(request: Row) {
   }
 
   return null;
+}
+
+function ProfileOverrideCard({
+  request,
+  profiles,
+}: {
+  request: Row;
+  profiles: Row[];
+}) {
+  const locked = !["created", "sent"].includes(String(request.status));
+
+  return (
+    <Card title="Type de mission">
+      {profiles.length === 0 ? (
+        <p className="text-sm font-semibold text-slate-500">
+          Aucun type de mission actif pour ce logement.
+        </p>
+      ) : locked ? (
+        <div className="space-y-2 text-sm font-semibold text-slate-600">
+          <p>La mission est verrouillée car elle est déjà acceptée, terminée ou refusée.</p>
+          <p>
+            Checklist utilisée :{" "}
+            <strong className="text-slate-950">
+              {profiles.find((profile) => profile.id === request.cleaning_profile_id)?.label ??
+                request.cleaning_profile_id ??
+                "—"}
+            </strong>
+          </p>
+        </div>
+      ) : (
+        <form action={changeMissionProfile} className="space-y-3">
+          <input type="hidden" name="request_id" value={request.id} />
+
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+              Checklist / type de mission
+            </span>
+            <select
+              name="cleaning_profile_id"
+              defaultValue={request.cleaning_profile_id ?? ""}
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950"
+            >
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.label ?? profile.code} · {profile.estimated_hours ?? "?"}h
+                  {profile.is_default ? " · défaut" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+              Note interne optionnelle
+            </span>
+            <input
+              name="note"
+              placeholder="Ex : séjour court, ménage léger suffisant"
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+            />
+          </label>
+
+          <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+            Appliquer à cette mission
+          </button>
+
+          <p className="text-xs font-semibold text-slate-500">
+            Cette modification met à jour uniquement cette mission et garde une trace dans l’historique.
+          </p>
+        </form>
+      )}
+    </Card>
+  );
 }
 
 function ContactButtons({ cleaner }: { cleaner?: Row | null }) {
@@ -632,6 +823,19 @@ export default async function RequestIssuePage({
     assignment.cleaner_id && refusedCleanerIds.has(String(assignment.cleaner_id)),
   );
 
+  const { data: propertyProfilesData } = request.property_id
+    ? await supabase
+        .from("property_cleaning_profiles")
+        .select("*")
+        .eq("property_id", request.property_id)
+        .eq("active", true)
+        .order("is_default", { ascending: false })
+        .order("sort_order", { ascending: true })
+        .order("label", { ascending: true })
+    : { data: [] };
+
+  const propertyProfiles = (propertyProfilesData ?? []) as Row[];
+
   const acceptedRequest = siblingRequests.find((item) => item.status === "accepted");
 
   const allKnownCleanersRefused =
@@ -721,6 +925,8 @@ export default async function RequestIssuePage({
               <Field label="Titre" value={request.title || "Mission ménage"} />
             </FieldGrid>
           </Card>
+
+          <ProfileOverrideCard request={request} profiles={propertyProfiles} />
 
           <Card title="Réservation">
             {reservation ? (

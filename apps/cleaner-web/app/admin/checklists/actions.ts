@@ -690,3 +690,34 @@ export async function archiveSimpleChecklist(formData: FormData) {
 
   revalidatePath("/admin/checklists");
 }
+
+
+export async function setDefaultCleaningProfile(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const propertyId = textValue(formData, "property_id");
+  const profileId = textValue(formData, "cleaning_profile_id");
+
+  if (!propertyId || !profileId) {
+    throw new Error("Logement ou type de mission manquant.");
+  }
+
+  await supabase
+    .from("property_cleaning_profiles")
+    .update({ is_default: false })
+    .eq("property_id", propertyId);
+
+  const { error } = await supabase
+    .from("property_cleaning_profiles")
+    .update({ is_default: true })
+    .eq("id", profileId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    throw new Error(`Impossible de définir la checklist par défaut : ${error.message}`);
+  }
+
+  revalidatePath("/admin/checklists");
+}
