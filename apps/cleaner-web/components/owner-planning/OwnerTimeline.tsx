@@ -93,6 +93,29 @@ function cleaningCost(row: Row): number {
   ]);
 }
 
+function requestTimelineDateKey(request: Row): string | null {
+  // Once the cleaner has chosen a ready day, the calendar should show the
+  // mission on that chosen day, not on the original generated checkout slot.
+  if (request.ready_by_at) return parisDateKey(request.ready_by_at);
+
+  if (
+    typeof request.ready_by_date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(request.ready_by_date)
+  ) {
+    return request.ready_by_date;
+  }
+
+  if (request.scheduled_start_at) return parisDateKey(request.scheduled_start_at);
+
+  return null;
+}
+
+function requestTimelineTimeLabel(request: Row): string {
+  if (request.ready_by_at) return timeLabel(request.ready_by_at);
+  if (request.ready_by_date) return "16h";
+  return timeLabel(request.scheduled_start_at);
+}
+
 
 function MarketRail({
   units,
@@ -296,8 +319,9 @@ function PropertyTimelineCard({
           <div className="grid gap-1 rounded-2xl bg-slate-50 p-1.5" style={{ gridTemplateColumns }}>
             {units.map((unit) => {
               const unitRequests = requests.filter((request) => {
-                if (!request.scheduled_start_at) return false;
-                return dateInUnit(parisDateKey(request.scheduled_start_at), unit);
+                const dateKey = requestTimelineDateKey(request);
+                if (!dateKey) return false;
+                return dateInUnit(dateKey, unit);
               });
 
               const unitMissing = reservations.filter((reservation) => {
@@ -328,7 +352,7 @@ function PropertyTimelineCard({
 
                   {unitRequests.map((request) => {
                     const cleaner = cleanersById[request.assigned_cleaner_id];
-                    const href = reportHref(request) ?? (manualActionNeeded(request) ? requestIssueHref(request) : null);
+                    const href = reportHref(request) ?? requestIssueHref(request);
                     const failedSms = (outboundByRequestId[request.id] ?? []).some((message) => message.status === "failed");
                     const label = failedSms ? "SMS échoué" : requestStatusLabel(request);
                     const statusClass = failedSms ? "bg-red-100 text-red-800 ring-red-200" : requestStatusClass(request);
@@ -340,7 +364,9 @@ function PropertyTimelineCard({
                           fullName(cleaner),
                           `Statut: ${label}`,
                           request.schedule_status ? `Planning: ${request.schedule_status}` : "",
-                          `Heure: ${timeLabel(request.scheduled_start_at)}`,
+                          request.ready_by_at || request.ready_by_date
+                            ? `Prêt avant: ${requestTimelineTimeLabel(request)}`
+                            : `Heure: ${requestTimelineTimeLabel(request)}`,
                         ]
                           .filter(Boolean)
                           .join("\n")}
