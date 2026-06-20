@@ -116,6 +116,18 @@ function requestTimelineTimeLabel(request: Row): string {
   return timeLabel(request.scheduled_start_at);
 }
 
+function hasUnresolvedFailedSms(messages: Row[]): boolean {
+  const smsMessages = messages
+    .filter((message) => message.channel === "sms" || String(message.message_type ?? "").includes("mission"))
+    .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+
+  if (smsMessages.length === 0) return false;
+
+  const latest = smsMessages[smsMessages.length - 1];
+
+  return latest.status === "failed";
+}
+
 
 function MarketRail({
   units,
@@ -182,8 +194,10 @@ function PropertyTimelineCard({
     const checkout = parisDateKey(reservation.checkout_at);
     if (checkout < start || checkout > end) return false;
 
-    const request = requests.find((item) => item.reservation_id === reservation.id);
-    return !request || request.status === "cancelled";
+    const hasActiveRequest = requests.some(
+      (item) => item.reservation_id === reservation.id && item.status !== "cancelled",
+    );
+    return !hasActiveRequest;
   });
 
   return (
@@ -327,8 +341,10 @@ function PropertyTimelineCard({
               const unitMissing = reservations.filter((reservation) => {
                 if (!reservation.checkout_at) return false;
                 if (!dateInUnit(parisDateKey(reservation.checkout_at), unit)) return false;
-                const request = requests.find((item) => item.reservation_id === reservation.id);
-                return !request || request.status === "cancelled";
+                const hasActiveRequest = requests.some(
+                  (item) => item.reservation_id === reservation.id && item.status !== "cancelled",
+                );
+                return !hasActiveRequest;
               });
 
               const hasSomething = unitRequests.length > 0 || unitMissing.length > 0;
@@ -353,7 +369,7 @@ function PropertyTimelineCard({
                   {unitRequests.map((request) => {
                     const cleaner = cleanersById[request.assigned_cleaner_id];
                     const href = reportHref(request) ?? requestIssueHref(request);
-                    const failedSms = (outboundByRequestId[request.id] ?? []).some((message) => message.status === "failed");
+                    const failedSms = hasUnresolvedFailedSms(outboundByRequestId[request.id] ?? []);
                     const label = failedSms ? "SMS échoué" : requestStatusLabel(request);
                     const statusClass = failedSms ? "bg-red-100 text-red-800 ring-red-200" : requestStatusClass(request);
 
