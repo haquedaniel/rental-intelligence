@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Missions ménage",
     short_name: "Ménage",
     description: "Gestion des missions de ménage",
-    start_url: "/",
+    start_url: "/owner/cockpit",
     display: "standalone",
     background_color: "#f5f8f7",
     theme_color: "#0f172a",
