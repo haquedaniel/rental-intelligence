@@ -394,6 +394,96 @@ async function changeMissionProfile(formData: FormData) {
   revalidatePath("/owner/cockpit");
 }
 
+async function cancelMissionRequest(formData: FormData) {
+  "use server";
+
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const requestId = String(formData.get("request_id") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!requestId) {
+    throw new Error("Mission manquante.");
+  }
+
+  const { data: request, error: requestError } = await supabase
+    .from("cleaning_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (requestError || !request) {
+    throw new Error(`Mission introuvable : ${requestError?.message ?? ""}`);
+  }
+
+  if (["completed", "report_submitted"].includes(String(request.status))) {
+    throw new Error("Cette mission a déjà un rapport : annulation bloquée.");
+  }
+
+  if (request.status === "cancelled") {
+    revalidatePath(`/admin/issues/request/${requestId}`);
+    revalidatePath(`/owner/issues/request/${requestId}`);
+    revalidatePath("/owner/cockpit");
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const previousNotes = String(request.admin_notes ?? "").trim();
+  const cancelNote = note ? `Annulation : ${note}` : "Annulation manuelle";
+  const nextNotes = previousNotes
+    ? `${previousNotes}\n\n${cancelNote}`
+    : cancelNote;
+
+  const { error: updateError } = await supabase
+    .from("cleaning_requests")
+    .update({
+      status: "cancelled",
+      schedule_status: "cancelled",
+      admin_notes: nextNotes,
+      updated_at: now,
+    })
+    .eq("id", requestId);
+
+  if (updateError) {
+    throw new Error(`Impossible d’annuler la mission : ${updateError.message}`);
+  }
+
+  await supabase
+    .from("outbound_messages")
+    .update({
+      status: "cancelled",
+      error_message: "Mission annulée manuellement",
+    })
+    .eq("cleaning_request_id", requestId)
+    .in("status", ["pending", "queued"]);
+
+  await supabase
+    .from("cleaning_request_ready_day_options")
+    .update({ is_available: false })
+    .eq("cleaning_request_id", requestId);
+
+  await supabase.from("cleaning_request_change_log").insert({
+    cleaning_request_id: requestId,
+    changed_by: "admin",
+    change_type: "mission_cancelled",
+    before_data: {
+      status: request.status,
+      schedule_status: request.schedule_status,
+    },
+    after_data: {
+      status: "cancelled",
+      schedule_status: "cancelled",
+    },
+    note: note || null,
+  });
+
+  revalidatePath(`/admin/issues/request/${requestId}`);
+  revalidatePath(`/owner/issues/request/${requestId}`);
+  revalidatePath("/owner/cockpit");
+}
+
 function problemTitle(request: Row, messages: Row[]): string {
   if (isCleaningOverdue(request)) return "Ménage en retard";
   if (request.status === "refused") return "Mission refusée";
@@ -502,6 +592,52 @@ function ProfileOverrideCard({
 
           <p className="text-xs font-semibold text-slate-500">
             Cette modification met à jour uniquement cette mission et garde une trace dans l’historique.
+          </p>
+        </form>
+      )}
+    </Card>
+  );
+}
+
+function MissionAdminActions({ request }: { request: Row }) {
+  const cancellable = !["cancelled", "completed", "report_submitted"].includes(
+    String(request.status),
+  );
+
+  return (
+    <Card title="Actions mission">
+      {request.status === "cancelled" ? (
+        <p className="text-sm font-semibold text-slate-500">
+          Cette mission est annulée. Elle reste visible pour l’historique.
+        </p>
+      ) : !cancellable ? (
+        <p className="text-sm font-semibold text-slate-500">
+          Cette mission est verrouillée car un rapport a déjà été reçu.
+        </p>
+      ) : (
+        <form action={cancelMissionRequest} className="space-y-3">
+          <input type="hidden" name="request_id" value={request.id} />
+
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+              Motif optionnel
+            </span>
+            <input
+              name="note"
+              placeholder="Ex : mission créée par erreur, remplacée par une autre..."
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white"
+          >
+            Annuler cette mission
+          </button>
+
+          <p className="text-xs font-semibold text-slate-500">
+            L’annulation conserve l’historique, bloque les SMS en attente et retire les jours proposés.
           </p>
         </form>
       )}
@@ -1030,6 +1166,8 @@ export default async function RequestIssuePage({
               <Field label="Titre" value={request.title || "Mission ménage"} />
             </FieldGrid>
           </Card>
+
+          <MissionAdminActions request={request} />
 
           <ProfileOverrideCard request={request} profiles={propertyProfiles} />
 
