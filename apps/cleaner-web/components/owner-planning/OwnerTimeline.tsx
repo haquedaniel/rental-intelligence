@@ -18,6 +18,7 @@ import {
   requestStatusClass,
   requestStatusLabel,
   reservationTitle,
+  reservationHref,
   spanForRange,
   tensionClass,
   tensionLabel,
@@ -317,14 +318,18 @@ function PropertyTimelineCard({
                 if (!span) return null;
 
                 return (
-                  <div
+                  <Link
                     key={reservation.id}
+                    href={reservationHref(reservation)}
                     title={`${reservationTitle(reservation)}\nArrivée ${compactDateLabel(checkin)} · Départ ${compactDateLabel(checkout)}`}
-                    className="z-10 min-h-8 rounded-lg bg-gradient-to-br from-slate-950 to-slate-700 px-1.5 py-1 text-white shadow-sm"
+                    className="z-10 min-h-8 rounded-lg bg-gradient-to-br from-slate-950 to-slate-700 px-1.5 py-1 text-white shadow-sm transition hover:scale-[1.01] hover:shadow-md"
                     style={{ gridColumn: `${span.start} / span ${span.span}` }}
                   >
                     <p className="truncate text-[10px] font-black">{reservationTitle(reservation)}</p>
-                  </div>
+                    <p className="mt-0.5 truncate text-[8px] font-bold text-white/70">
+                      Détail séjour
+                    </p>
+                  </Link>
                 );
               })}
             </div>

@@ -408,3 +408,8 @@ export function requestIssueHref(request: Row): string {
 export function missingIssueHref(reservation: Row): string {
   return `/owner/issues/missing/${reservation.id}`;
 }
+
+
+export function reservationHref(reservation: Row): string {
+  return `/owner/reservations/${reservation.id}`;
+}
