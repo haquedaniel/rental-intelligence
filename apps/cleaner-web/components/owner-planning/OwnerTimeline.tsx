@@ -5,6 +5,7 @@ import {
   dateInUnit,
   fullName,
   initials,
+  isRequestOverdue,
   manualActionNeeded,
   manualMissionHref,
   requestIssueHref,
@@ -186,7 +187,7 @@ function PropertyTimelineCard({
 
   const redRequests = requests.filter(manualActionNeeded);
   const pendingRequests = requests.filter((request) => ["created", "sent"].includes(request.status) && !manualActionNeeded(request));
-  const acceptedRequests = requests.filter((request) => request.status === "accepted");
+  const acceptedRequests = requests.filter((request) => request.status === "accepted" && !isRequestOverdue(request));
   const propertyRevenue = reservations.reduce((sum, reservation) => sum + reservationRevenue(reservation), 0);
   const propertyCleaningCost = requests.reduce((sum, request) => sum + cleaningCost(request), 0);
 
@@ -231,7 +232,7 @@ function PropertyTimelineCard({
         <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-0.5">
           {redRequests.length > 0 && (
             <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-black text-red-800">
-              {redRequests.length} action
+              {redRequests.length} à faire
             </span>
           )}
           {missingCheckoutReservations.length > 0 && (
@@ -384,6 +385,7 @@ function PropertyTimelineCard({
                           missionTypeLabel(request),
                           fullName(cleaner),
                           `Statut: ${label}`,
+                          isRequestOverdue(request) ? "Action: vérifier / contacter l’intervenante" : "",
                           request.schedule_status ? `Planning: ${request.schedule_status}` : "",
                           request.ready_by_at || request.ready_by_date
                             ? `Prêt avant: ${requestTimelineTimeLabel(request)}`

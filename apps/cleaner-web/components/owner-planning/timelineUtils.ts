@@ -245,9 +245,41 @@ export function reservationTitle(reservation?: Row | null): string {
   return reservation.guest_name || reservation.source_booking_id || "Séjour";
 }
 
+export function requestDeadlineIso(request: Row): string | null {
+  return (
+    request.ready_by_at ||
+    request.completion_deadline_at ||
+    request.work_window_end_at ||
+    request.scheduled_end_at ||
+    request.scheduled_start_at ||
+    null
+  );
+}
+
+export function isRequestOverdue(request: Row, now = new Date()): boolean {
+  if (request.schedule_status === "cleaning_overdue" || request.schedule_status === "overdue") {
+    return true;
+  }
+
+  if (request.status !== "accepted") return false;
+
+  if (["completed", "report_submitted", "problem_reported", "cancelled", "refused"].includes(request.status)) {
+    return false;
+  }
+
+  const deadlineIso = requestDeadlineIso(request);
+  if (!deadlineIso) return false;
+
+  const deadline = new Date(deadlineIso);
+  if (Number.isNaN(deadline.getTime())) return false;
+
+  return deadline.getTime() < now.getTime();
+}
+
 export function requestStatusLabel(request: Row): string {
   if (request.schedule_status === "needs_manual_reassignment") return "Action requise";
   if (request.schedule_status === "planning_changed") return "Planning modifié";
+  if (isRequestOverdue(request)) return "En retard";
 
   switch (request.status) {
     case "created":
@@ -279,6 +311,10 @@ export function requestStatusClass(request: Row): string {
     return "bg-red-600 text-white ring-red-700";
   }
 
+  if (isRequestOverdue(request)) {
+    return "bg-red-600 text-white ring-red-700";
+  }
+
   switch (request.status) {
     case "accepted":
       return "bg-emerald-100 text-emerald-800 ring-emerald-200";
@@ -299,7 +335,10 @@ export function requestStatusClass(request: Row): string {
 }
 
 export function manualActionNeeded(request: Row): boolean {
-  return ["needs_manual_reassignment", "planning_changed"].includes(request.schedule_status);
+  return (
+    ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(request.schedule_status) ||
+    isRequestOverdue(request)
+  );
 }
 
 export function reportHref(request?: Row | null): string | null {
