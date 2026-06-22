@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { buildReadyDayOptions } from "@/lib/missionReadyDays";
 
 const PARIS_TZ = "Europe/Paris";
 
@@ -38,6 +39,70 @@ function numberValue(value: unknown, fallback = 0): number {
 
 function money(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function daysBetweenDateKeys(startDateKey: string, endDateKey: string): number {
+  const [startYear, startMonth, startDay] = startDateKey.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDateKey.split("-").map(Number);
+
+  const start = Date.UTC(startYear, startMonth - 1, startDay, 12, 0, 0);
+  const end = Date.UTC(endYear, endMonth - 1, endDay, 12, 0, 0);
+
+  return Math.max(0, Math.round((end - start) / 86400000));
+}
+
+async function replaceReadyDayOptions({
+  supabase,
+  requestId,
+  cleanerId,
+  scheduledStartAt,
+  completionDeadlineAt,
+  scheduledDate,
+  deadlineDate,
+}: {
+  supabase: ReturnType<typeof getSupabaseAdmin>;
+  requestId: string;
+  cleanerId: string;
+  scheduledStartAt: Date;
+  completionDeadlineAt: Date;
+  scheduledDate: string;
+  deadlineDate: string;
+}) {
+  const maxDays = daysBetweenDateKeys(scheduledDate, deadlineDate);
+
+  const options = buildReadyDayOptions({
+    checkoutAt: scheduledStartAt.toISOString(),
+    deadlineAt: completionDeadlineAt.toISOString(),
+    maxDays,
+  });
+
+  await supabase
+    .from("cleaning_request_ready_day_options")
+    .delete()
+    .eq("cleaning_request_id", requestId);
+
+  if (options.length === 0) {
+    return 0;
+  }
+
+  const rows = options.map((option) => ({
+    cleaning_request_id: requestId,
+    cleaner_id: cleanerId,
+    ready_by_date: option.dateKey,
+    ready_by_at: option.readyByAt,
+    label: option.label,
+    is_available: true,
+  }));
+
+  const { error } = await supabase
+    .from("cleaning_request_ready_day_options")
+    .insert(rows);
+
+  if (error) {
+    throw new Error(`Impossible de créer les jours proposés : ${error.message}`);
+  }
+
+  return options.length;
 }
 
 function parisDateKey(value: string | Date): string {
@@ -126,6 +191,7 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
   const serviceType = textValue(formData, "service_type") || "standard_cleaning";
   const explicitTitle = nullableText(formData, "title");
   const adminNotes = nullableText(formData, "admin_notes");
+  const manualUrgent = boolValue(formData, "urgent");
 
   if (!cleanerId || !profileId || !scheduledDate) {
     throw new Error("Intervenante, profil ménage ou date manquante.");
@@ -253,12 +319,14 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
 
   const checkoutAt = reservation?.checkout_at ? new Date(reservation.checkout_at) : null;
 
-  const urgent =
+  const automaticallyUrgent =
     reservation && nextCheckinAt && checkoutAt
       ? new Date(nextCheckinAt).getTime() - checkoutAt.getTime() <=
         36 * 60 * 60 * 1000
       : completionDeadlineAt.getTime() - scheduledStartAt.getTime() <=
         12 * 60 * 60 * 1000;
+
+  const urgent = manualUrgent || automaticallyUrgent;
 
   const distanceKm =
     assignment?.travel_distance_km !== null &&
@@ -301,7 +369,10 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
     admin_notes: adminNotes,
     scheduled_start_at: scheduledStartAt.toISOString(),
     scheduled_end_at: scheduledEndAt.toISOString(),
+    work_window_start_at: scheduledStartAt.toISOString(),
+    work_window_end_at: completionDeadlineAt.toISOString(),
     completion_deadline_at: completionDeadlineAt.toISOString(),
+    schedule_status: "waiting_for_ready_day",
     status: "created",
     urgent,
     response_deadline_at: new Date(
@@ -328,6 +399,8 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
     updated_at: now.toISOString(),
   };
 
+  let requestId = existingRequest?.id as string | undefined;
+
   if (existingRequest) {
     const { error } = await supabase
       .from("cleaning_requests")
@@ -338,13 +411,37 @@ export async function createOrUpdateCleaningRequest(formData: FormData) {
       throw new Error(`Impossible de recréer la mission : ${error.message}`);
     }
   } else {
-    const { error } = await supabase.from("cleaning_requests").insert(payload);
+    const { data: insertedRequest, error } = await supabase
+      .from("cleaning_requests")
+      .insert(payload)
+      .select("id")
+      .single();
 
-    if (error) {
-      throw new Error(`Impossible de créer la mission : ${error.message}`);
+    if (error || !insertedRequest) {
+      throw new Error(`Impossible de créer la mission : ${error?.message ?? ""}`);
     }
+
+    requestId = insertedRequest.id;
   }
 
+  if (!requestId) {
+    throw new Error("Mission créée mais identifiant introuvable.");
+  }
+
+  await replaceReadyDayOptions({
+    supabase,
+    requestId,
+    cleanerId: cleaner.id,
+    scheduledStartAt,
+    completionDeadlineAt,
+    scheduledDate,
+    deadlineDate,
+  });
+
   revalidatePath("/admin/operations");
-  redirect(`/admin/operations?start=${scheduledDate}&property=${property.id}`);
+  revalidatePath(`/admin/issues/request/${requestId}`);
+  revalidatePath(`/owner/issues/request/${requestId}`);
+  revalidatePath("/owner/cockpit");
+
+  redirect(`/admin/issues/request/${requestId}`);
 }

@@ -276,7 +276,9 @@ export default async function CreateCleaningRequestPage({
 
           <p className="mt-3 text-slate-600">
             Choisissez le type de mission, l’intervenante, la date prévue et la
-            deadline. L’envoi SMS sera pris en charge par l’automatisation.
+            deadline. Pour une mission manuelle, l’intervenante pourra choisir
+            un jour de préparation entre la date prévue et la deadline.
+            L’envoi SMS sera pris en charge par l’automatisation.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -417,6 +419,23 @@ export default async function CreateCleaningRequestPage({
                 }))}
                 defaultProfileId={defaultProfileId}
               />
+
+              <section className="rounded-3xl bg-orange-50 p-5 text-orange-950 ring-1 ring-orange-100">
+                <label className="flex items-start gap-3 text-sm font-bold">
+                  <input
+                    type="checkbox"
+                    name="urgent"
+                    className="mt-1"
+                  />
+                  <span>
+                    Mission urgente
+                    <span className="mt-1 block font-semibold text-orange-800/80">
+                      Ajoute la prime d’urgence configurée pour l’intervenante
+                      — 15% par défaut — et réduit le délai de réponse.
+                    </span>
+                  </span>
+                </label>
+              </section>
 
               <section className="grid gap-4 md:grid-cols-2">
                 <div>
