@@ -25,17 +25,73 @@ export const dynamic = "force-dynamic";
 
 function planningHref(request: Row): string {
   const date =
-    request.scheduled_start_at
-      ? parisDateKey(request.scheduled_start_at)
-      : request.created_at
-        ? parisDateKey(request.created_at)
-        : parisDateKey(new Date().toISOString());
+    request.ready_by_at
+      ? parisDateKey(request.ready_by_at)
+      : request.completion_deadline_at
+        ? parisDateKey(request.completion_deadline_at)
+        : request.scheduled_start_at
+          ? parisDateKey(request.scheduled_start_at)
+          : request.created_at
+            ? parisDateKey(request.created_at)
+            : parisDateKey(new Date().toISOString());
 
   const params = new URLSearchParams();
   params.set("start", date);
   params.set("end", date);
   if (request.property_id) params.set("property", String(request.property_id));
   return `/owner/cockpit?${params.toString()}`;
+}
+
+function requestDeadlineIso(request: Row): string | null {
+  return (
+    request.ready_by_at ||
+    request.completion_deadline_at ||
+    request.work_window_end_at ||
+    request.scheduled_end_at ||
+    request.scheduled_start_at ||
+    null
+  );
+}
+
+function isCleaningOverdue(request: Row): boolean {
+  if (request.schedule_status === "cleaning_overdue" || request.schedule_status === "overdue") {
+    return true;
+  }
+
+  if (request.status !== "accepted") return false;
+
+  const deadlineIso = requestDeadlineIso(request);
+  if (!deadlineIso) return false;
+
+  const deadline = new Date(deadlineIso);
+  if (Number.isNaN(deadline.getTime())) return false;
+
+  return deadline.getTime() < Date.now();
+}
+
+function displayDeadline(request: Row): string {
+  return dateTime(requestDeadlineIso(request));
+}
+
+function displayedScheduleStatus(request: Row): string {
+  if (isCleaningOverdue(request)) return "En retard";
+  if (request.schedule_status === "waiting_for_ready_day") return "En attente du choix intervenante";
+  if (request.schedule_status === "scheduled") return "Planifié";
+  if (request.schedule_status === "planning_changed") return "Planning modifié";
+  if (request.schedule_status === "needs_manual_reassignment") return "Action requise";
+  return request.schedule_status || "Normal";
+}
+
+function MissionStatusPill({ request }: { request: Row }) {
+  if (isCleaningOverdue(request)) {
+    return (
+      <span className="inline-flex rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white ring-1 ring-red-700">
+        En retard
+      </span>
+    );
+  }
+
+  return <Pill status={request.status} />;
 }
 
 function payloadOf(row: Row): Row {
@@ -339,9 +395,10 @@ async function changeMissionProfile(formData: FormData) {
 }
 
 function problemTitle(request: Row, messages: Row[]): string {
-  if (request.status === "accepted" || request.schedule_status === "scheduled") return "Mission confirmée";
+  if (isCleaningOverdue(request)) return "Ménage en retard";
   if (request.status === "refused") return "Mission refusée";
   if (hasUnresolvedSmsFailure(request, messages)) return "SMS échoué";
+  if (request.status === "accepted" || request.schedule_status === "scheduled") return "Mission confirmée";
   if (["created", "sent"].includes(request.status)) return "Mission en attente";
   if (request.status === "problem_reported") return "Problème signalé";
   if (request.schedule_status === "planning_changed") return "Planning modifié";
@@ -363,13 +420,16 @@ function requestDecisionEvent(request: Row) {
   }
 
   if (request.status === "accepted") {
+    const overdue = isCleaningOverdue(request);
     return {
       key: `decision-${request.id}`,
-      title: "Réponse intervenante : mission acceptée",
-      detail: "La mission est confirmée par l’intervenante.",
+      title: overdue ? "Mission acceptée mais non validée" : "Réponse intervenante : mission acceptée",
+      detail: overdue
+        ? `La mission était confirmée, mais aucun rapport n’a été reçu après l’échéance (${displayDeadline(request)}).`
+        : "La mission est confirmée par l’intervenante.",
       meta: dateTime(request.responded_at || request.updated_at || request.created_at),
-      status: "accepted",
-      statusText: "Acceptée",
+      status: overdue ? "failed" : "accepted",
+      statusText: overdue ? "En retard" : "Acceptée",
     };
   }
 
@@ -531,6 +591,48 @@ function ResolutionPanel({
   allKnownCleanersRefused: boolean;
 }) {
   const smsFailed = hasUnresolvedSmsFailure(request, messages);
+
+  if (isCleaningOverdue(request)) {
+    return (
+      <ActionPanel>
+        <p className="text-sm font-semibold text-white/80">
+          La mission était confirmée, mais aucun rapport de ménage n’a été reçu après l’échéance.
+          Il faut vérifier rapidement si le logement est prêt, puis contacter l’intervenante ou organiser une solution de secours.
+        </p>
+
+        <div className="mt-4 rounded-2xl bg-red-500/15 p-4 ring-1 ring-red-300/20">
+          <p className="text-xs font-black uppercase tracking-wide text-red-100/70">
+            Action prioritaire
+          </p>
+          <p className="mt-2 text-lg font-black text-white">
+            Vérifier / contacter maintenant
+          </p>
+          <p className="mt-1 text-sm font-semibold text-white/70">
+            Échéance dépassée : {displayDeadline(request)}
+          </p>
+        </div>
+
+        <div className="mt-4">
+          <CleanerOption
+            cleaner={cleaner}
+            note={`Mission acceptée mais non validée · ${property?.name ?? "logement"}`}
+            status="failed"
+          />
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+          {request.public_token && (
+            <ActionLink href={`/mission/${request.public_token}/report`}>
+              Ouvrir le rapport
+            </ActionLink>
+          )}
+          <ActionLink href={planningHref(request)}>Voir le jour au calendrier</ActionLink>
+          <ActionLink href="/owner/cockpit">Retour cockpit</ActionLink>
+          <ActionLink href="/admin/operations">Ancien écran</ActionLink>
+        </div>
+      </ActionPanel>
+    );
+  }
 
   if (request.status === "accepted" || request.schedule_status === "scheduled") {
     return (
@@ -848,7 +950,10 @@ export default async function RequestIssuePage({
 
   const title = problemTitle(request, messages);
   const subtitle = `${property?.name ?? "Logement"} · ${readyByLabel(request)} · ${fullName(cleaner)}`;
-  const severity = title.includes("échoué") || title.includes("refusée") ? "red" : "amber";
+  const severity =
+    title.includes("retard") || title.includes("échoué") || title.includes("refusée")
+      ? "red"
+      : "amber";
 
   const decisionEvent = requestDecisionEvent(request);
 
@@ -856,7 +961,7 @@ export default async function RequestIssuePage({
     {
       key: `request-created-${request.id}`,
       title: "Mission créée / proposée",
-      detail: `Statut actuel : ${statusLabel(request.status)}`,
+      detail: `Statut actuel : ${isCleaningOverdue(request) ? "En retard" : statusLabel(request.status)}`,
       meta: dateTime(request.created_at),
       status: request.status,
     },
@@ -912,8 +1017,8 @@ export default async function RequestIssuePage({
         <div className="space-y-4">
           <Card title="Contexte mission">
             <FieldGrid>
-              <Field label="Statut mission" value={<Pill status={request.status} />} />
-              <Field label="Planning" value={request.schedule_status || "Normal"} />
+              <Field label="Statut mission" value={<MissionStatusPill request={request} />} />
+              <Field label="Planning" value={displayedScheduleStatus(request)} />
               <Field label="Logement" value={property?.name ?? "—"} />
               <Field label="Intervenante" value={fullName(cleaner)} />
               <Field label="Fenêtre ouverte" value={workWindowStartLabel(request, reservation)} />
