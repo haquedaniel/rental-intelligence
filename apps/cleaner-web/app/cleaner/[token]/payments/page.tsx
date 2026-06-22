@@ -81,6 +81,30 @@ function dateKey(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function paymentDateKey(row: Row): string {
+  return dateKey(
+    row.ready_by_at ||
+      row.completion_deadline_at ||
+      row.work_window_end_at ||
+      row.scheduled_end_at ||
+      row.scheduled_start_at ||
+      row.updated_at ||
+      row.created_at,
+  );
+}
+
+function paymentDateLabel(row: Row): string {
+  return dateLabel(
+    row.ready_by_at ||
+      row.completion_deadline_at ||
+      row.work_window_end_at ||
+      row.scheduled_end_at ||
+      row.scheduled_start_at ||
+      row.updated_at ||
+      row.created_at,
+  );
+}
+
 function statusLabel(status?: string): string {
   switch (status) {
     case "sent_to_owner":
@@ -90,7 +114,10 @@ function statusLabel(status?: string): string {
     case "overdue":
       return "En retard";
     case "cancelled":
+    case "withdrawn":
       return "Annulée";
+    case "refused":
+      return "Refusée";
     default:
       return "Brouillon";
   }
@@ -128,14 +155,17 @@ export default async function CleanerPaymentsPage({
     );
   }
 
-  const { data: missions } = await supabase
+  const { data: allMissions } = await supabase
     .from("cleaning_requests")
     .select("*, properties:property_id(id,name,owner_id)")
     .eq("assigned_cleaner_id", cleaner.id)
     .in("status", ["report_submitted", "completed", "problem_reported"])
-    .gte("scheduled_start_at", `${startKey}T00:00:00.000Z`)
-    .lte("scheduled_start_at", `${endKey}T23:59:59.999Z`)
-    .order("scheduled_start_at", { ascending: true });
+    .order("created_at", { ascending: true });
+
+  const missions = (allMissions ?? []).filter((mission) => {
+    const workKey = paymentDateKey(mission);
+    return workKey >= startKey && workKey <= endKey;
+  });
 
   const { data: extras } = await supabase
     .from("cleaning_request_extras")
@@ -308,7 +338,7 @@ export default async function CleanerPaymentsPage({
                           {mission.title || "Mission"}
                         </p>
                         <p className="text-sm text-slate-500">
-                          {dateLabel(mission.scheduled_start_at)} · {mission.properties?.name}
+                          {paymentDateLabel(mission)} · {mission.properties?.name}
                         </p>
                       </div>
                       <p className="font-black text-slate-950">{money(mission.total_cost_eur)}</p>
@@ -338,6 +368,57 @@ export default async function CleanerPaymentsPage({
                   <input type="hidden" name="cleaner_token" value={token} />
                   <input type="hidden" name="owner_id" value={group.ownerId} />
                   <input type="hidden" name="period" value={period} />
+
+                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <p className="text-sm font-black text-slate-950">
+                      Aperçu de la demande
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Cette demande sera envoyée au propriétaire comme relevé de missions
+                      pour {monthLabel(period)}. Elle sera verrouillée après envoi.
+                    </p>
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+                      <div>
+                        <p className="font-semibold text-slate-500">Missions</p>
+                        <p className="font-black text-slate-950">{money(group.baseTotal)}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-500">Suppléments</p>
+                        <p className="font-black text-slate-950">{money(group.extrasTotal)}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-500">Total</p>
+                        <p className="font-black text-slate-950">{money(group.total)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                    <p className="text-sm font-black text-amber-950">
+                      Ligne exceptionnelle optionnelle
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-amber-900/80">
+                      À utiliser uniquement pour un achat, une prime ou un temps supplémentaire convenu.
+                    </p>
+
+                    {[1, 2, 3].map((index) => (
+                      <div key={index} className="mt-3 grid gap-2 md:grid-cols-[1fr_160px]">
+                        <input
+                          name={`extra_description_${index}`}
+                          placeholder={index === 1 ? "Ex : produits ménagers achetés" : "Autre ligne exceptionnelle"}
+                          className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
+                        />
+                        <input
+                          name={`extra_amount_${index}`}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Montant €"
+                          className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
 
                   <textarea
                     name="cleaner_message"
