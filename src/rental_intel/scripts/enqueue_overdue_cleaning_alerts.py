@@ -40,10 +40,41 @@ def normalize_phone(phone: str | None) -> str | None:
     return phone.replace(" ", "").replace(".", "").replace("-", "").strip()
 
 
+def first_present(row: dict | None, keys: list[str]) -> str | None:
+    if not row:
+        return None
+
+    payload = row.get("payload") or row.get("metadata") or {}
+    if not isinstance(payload, dict):
+        payload = {}
+
+    for key in keys:
+        value = row.get(key) or payload.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+
+    return None
+
+
 def full_name(row: dict | None) -> str:
     if not row:
         return ""
     return " ".join(part for part in [row.get("first_name"), row.get("last_name")] if part)
+
+
+def first_name(row: dict | None) -> str:
+    if not row:
+        return "Bonjour"
+    return row.get("first_name") or full_name(row) or "Bonjour"
+
+
+def cleaner_phone(cleaner: dict | None) -> str | None:
+    return normalize_phone(
+        first_present(
+            cleaner,
+            ["phone", "phone_number", "mobile", "mobile_phone", "whatsapp", "whatsapp_phone"],
+        )
+    )
 
 
 def property_allowed_for_sms(request: dict) -> bool:
@@ -67,12 +98,20 @@ def owner_issue_url(request: dict) -> str:
     return f"{CLEANER_WEB_BASE_URL}/owner/issues/request/{request['id']}"
 
 
+def cleaner_report_url(request: dict) -> str:
+    return f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}/report"
+
+
 def phone_event_hash(phone: str) -> str:
     return hashlib.sha256(phone.encode("utf-8")).hexdigest()[:12]
 
 
-def event_key(request: dict, phone: str) -> str:
+def owner_event_key(request: dict, phone: str) -> str:
     return f"cleaning:{request['id']}:owner_overdue:{phone_event_hash(phone)}"
+
+
+def cleaner_event_key(request: dict) -> str:
+    return f"cleaning:{request['id']}:cleaner_overdue_nudge"
 
 
 def already_queued(supabase, key: str) -> bool:
@@ -92,10 +131,19 @@ def format_anchor(anchor: datetime | None) -> str:
     return anchor.astimezone(PARIS).strftime("%d/%m/%Y à %Hh%M")
 
 
-def build_body(request: dict, property_: dict | None, cleaner: dict | None, anchor: datetime | None) -> str:
+def build_cleaner_body(request: dict, property_: dict | None, cleaner: dict | None, anchor: datetime | None) -> str:
+    property_name = (property_ or {}).get("name") or "le logement"
+    return (
+        f"Bonjour {first_name(cleaner)}, la mission à {property_name} devait être "
+        f"confirmée avant le {format_anchor(anchor)}. "
+        f"Merci de valider la mission ou de nous signaler un problème : "
+        f"{cleaner_report_url(request)}"
+    )
+
+
+def build_owner_body(request: dict, property_: dict | None, cleaner: dict | None, anchor: datetime | None) -> str:
     property_name = (property_ or {}).get("name") or "Logement"
     cleaner_name = full_name(cleaner) or "intervenante non identifiée"
-
     return (
         f"⚠️ Alerte ménage : {property_name} devait être prêt avant "
         f"{format_anchor(anchor)}. Aucune validation reçue. "
@@ -120,35 +168,36 @@ def recipient_rows_for_property(recipients_by_property: dict[str, list[dict]], p
     ]
 
 
-def insert_alert(
+def insert_sms(
     supabase,
+    *,
     request: dict,
-    property_: dict | None,
     cleaner: dict | None,
-    recipient: dict,
+    property_: dict | None,
+    recipient_phone: str,
     body: str,
+    message_type: str,
+    event_key: str,
     dry_run: bool,
 ) -> bool:
-    phone = normalize_phone(recipient.get("phone"))
+    phone = normalize_phone(recipient_phone)
     if not phone:
-        print(f"SKIP {request['id']}: recipient has no SMS phone")
+        print(f"SKIP {request['id']}: missing recipient phone")
         return False
 
-    key = event_key(request, phone)
-
-    if already_queued(supabase, key):
-        print(f"SKIP {request['id']}: overdue alert already queued for {phone}")
+    if already_queued(supabase, event_key):
+        print(f"SKIP {request['id']}: already queued {message_type} for {phone}")
         return False
 
     payload = {
         "cleaning_request_id": request["id"],
         "channel": "sms",
-        "message_type": "cleaning_overdue_owner_alert",
+        "message_type": message_type,
         "recipient_phone": phone,
         "body": body,
         "status": "pending",
         "provider": "twilio",
-        "event_key": key,
+        "event_key": event_key,
     }
 
     if cleaner and cleaner.get("id"):
@@ -158,7 +207,7 @@ def insert_alert(
         payload["owner_id"] = property_["owner_id"]
 
     if dry_run:
-        print(f"DRY RUN would enqueue overdue alert request={request['id']} phone={phone}")
+        print(f"DRY RUN would enqueue {message_type} request={request['id']} phone={phone}")
         print(body)
         return True
 
@@ -169,13 +218,26 @@ def insert_alert(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--grace-minutes", type=int, default=int(os.getenv("CLEANING_OVERDUE_GRACE_MINUTES", "90")))
+    parser.add_argument(
+        "--cleaner-grace-minutes",
+        type=int,
+        default=int(os.getenv("CLEANING_OVERDUE_CLEANER_GRACE_MINUTES", "30")),
+    )
+    parser.add_argument(
+        "--owner-grace-minutes",
+        type=int,
+        default=int(os.getenv("CLEANING_OVERDUE_OWNER_GRACE_MINUTES", "90")),
+    )
+    # Backwards-compatible alias used by the cron we already added.
+    parser.add_argument("--grace-minutes", type=int, default=None)
     parser.add_argument("--lookback-days", type=int, default=int(os.getenv("CLEANING_OVERDUE_LOOKBACK_DAYS", "14")))
     args = parser.parse_args()
 
+    if args.grace_minutes is not None:
+        args.owner_grace_minutes = args.grace_minutes
+
     supabase = get_supabase_client()
     now = datetime.now(tz=UTC)
-    cutoff = now - timedelta(minutes=args.grace_minutes)
     oldest = now - timedelta(days=args.lookback_days)
 
     requests = (
@@ -197,20 +259,22 @@ def main() -> None:
         anchor = overdue_anchor_at(request)
         if not anchor:
             continue
-        anchor_utc = anchor.astimezone(UTC)
 
-        if oldest <= anchor_utc <= cutoff:
-            overdue_requests.append((request, anchor))
+        anchor_utc = anchor.astimezone(UTC)
+        cleaner_cutoff = now - timedelta(minutes=args.cleaner_grace_minutes)
+        owner_cutoff = now - timedelta(minutes=args.owner_grace_minutes)
+
+        if oldest <= anchor_utc <= cleaner_cutoff:
+            overdue_requests.append((request, anchor, anchor_utc <= owner_cutoff))
 
     if not overdue_requests:
         print("No overdue accepted cleaning requests.")
         return
 
-    request_ids = [request["id"] for request, _anchor in overdue_requests]
-    property_ids = sorted({str(request["property_id"]) for request, _anchor in overdue_requests if request.get("property_id")})
-    cleaner_ids = sorted({str(request["assigned_cleaner_id"]) for request, _anchor in overdue_requests if request.get("assigned_cleaner_id")})
+    request_ids = [request["id"] for request, _anchor, _owner_due in overdue_requests]
+    property_ids = sorted({str(request["property_id"]) for request, _anchor, _owner_due in overdue_requests if request.get("property_id")})
+    cleaner_ids = sorted({str(request["assigned_cleaner_id"]) for request, _anchor, _owner_due in overdue_requests if request.get("assigned_cleaner_id")})
 
-    reports_by_request: dict[str, list[dict]] = {}
     try:
         reports = (
             supabase.table("cleaning_reports")
@@ -220,10 +284,12 @@ def main() -> None:
             .data
             or []
         )
-        for report in reports:
-            reports_by_request.setdefault(str(report["cleaning_request_id"]), []).append(report)
     except Exception as exc:
-        print(f"WARNING: could not read cleaning_reports: {exc}")
+        raise RuntimeError(f"Could not read cleaning_reports; refusing to send overdue alerts: {exc}") from exc
+
+    reports_by_request: dict[str, list[dict]] = {}
+    for report in reports:
+        reports_by_request.setdefault(str(report["cleaning_request_id"]), []).append(report)
 
     properties = {}
     if property_ids:
@@ -253,11 +319,12 @@ def main() -> None:
         except Exception as exc:
             print(f"WARNING: could not read property_notification_recipients: {exc}")
 
-    created = 0
+    created_cleaner = 0
+    created_owner = 0
     skipped = 0
     completed = 0
 
-    for request, anchor in overdue_requests:
+    for request, anchor, owner_due in overdue_requests:
         request_id = str(request["id"])
 
         if reports_by_request.get(request_id):
@@ -268,34 +335,72 @@ def main() -> None:
         property_ = properties.get(property_id)
         cleaner = cleaners.get(str(request.get("assigned_cleaner_id")))
 
+        # Stage 1: nudge cleaner once.
+        phone = cleaner_phone(cleaner)
+        if phone:
+            if insert_sms(
+                supabase,
+                request=request,
+                cleaner=cleaner,
+                property_=property_,
+                recipient_phone=phone,
+                body=build_cleaner_body(request, property_, cleaner, anchor),
+                message_type="cleaning_overdue_cleaner_nudge",
+                event_key=cleaner_event_key(request),
+                dry_run=args.dry_run,
+            ):
+                created_cleaner += 1
+                print(
+                    "Created cleaner overdue nudge: "
+                    f"{(property_ or {}).get('name') or 'property'} · {full_name(cleaner)}"
+                )
+            else:
+                skipped += 1
+        else:
+            print(f"SKIP {request_id}: assigned cleaner has no phone")
+            skipped += 1
+
+        # Stage 2: alert owner(s) after a longer grace period.
+        if not owner_due:
+            continue
+
         recipients = recipient_rows_for_property(recipients_by_property, property_id)
         if not recipients:
-            print(f"SKIP {request_id}: no overdue alert recipients for property={property_id}")
+            print(f"SKIP {request_id}: no owner alert recipients for property={property_id}")
             skipped += 1
             continue
 
-        body = build_body(request, property_, cleaner, anchor)
+        owner_body = build_owner_body(request, property_, cleaner, anchor)
 
         for recipient in recipients:
-            if insert_alert(
-                supabase=supabase,
+            phone = normalize_phone(recipient.get("phone"))
+            if insert_sms(
+                supabase,
                 request=request,
-                property_=property_,
                 cleaner=cleaner,
-                recipient=recipient,
-                body=body,
+                property_=property_,
+                recipient_phone=phone or "",
+                body=owner_body,
+                message_type="cleaning_overdue_owner_alert",
+                event_key=owner_event_key(request, phone or ""),
                 dry_run=args.dry_run,
             ):
-                created += 1
+                created_owner += 1
                 print(
-                    "Created overdue alert: "
+                    "Created owner overdue alert: "
                     f"{(property_ or {}).get('name') or 'property'} · "
-                    f"{recipient.get('name') or recipient.get('phone')}"
+                    f"{recipient.get('name') or phone}"
                 )
             else:
                 skipped += 1
 
-    print(f"Summary: created={created} completed={completed} skipped={skipped}")
+    print(
+        "Summary: "
+        f"cleaner_nudges={created_cleaner} "
+        f"owner_alerts={created_owner} "
+        f"completed={completed} "
+        f"skipped={skipped}"
+    )
 
 
 if __name__ == "__main__":
