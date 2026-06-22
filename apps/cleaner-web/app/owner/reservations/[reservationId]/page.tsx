@@ -59,14 +59,13 @@ function dateTime(value: string | null | undefined): string {
     .replace(":", "h");
 }
 
-function dateOnly(value: string | null | undefined): string {
+function shortDate(value: string | null | undefined): string {
   if (!value) return "—";
 
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Europe/Paris",
-    weekday: "long",
     day: "2-digit",
-    month: "long",
+    month: "short",
     year: "numeric",
   }).format(new Date(value));
 }
@@ -81,25 +80,25 @@ function nightsBetween(checkin?: string | null, checkout?: string | null): numbe
   return Number.isFinite(nights) && nights > 0 ? nights : null;
 }
 
-function requestStatusLabel(request: Row): string {
-  switch (request.status) {
+function statusLabel(value?: string | null): string {
+  switch (value) {
+    case "confirmed":
+      return "Confirmée";
+    case "cancelled":
+      return "Annulée";
+    case "accepted":
+      return "Acceptée";
     case "created":
       return "Créée";
     case "sent":
       return "Proposée";
-    case "accepted":
-      return "Confirmée";
-    case "refused":
-      return "Refusée";
-    case "cancelled":
-      return "Annulée";
-    case "report_submitted":
     case "completed":
+    case "report_submitted":
       return "Terminée";
     case "problem_reported":
       return "Problème";
     default:
-      return request.status || "—";
+      return value || "—";
   }
 }
 
@@ -116,6 +115,8 @@ function requestStatusClass(request: Row): string {
     case "cancelled":
     case "refused":
       return "bg-red-100 text-red-800 ring-red-200";
+    case "problem_reported":
+      return "bg-orange-100 text-orange-900 ring-orange-200";
     default:
       return "bg-slate-100 text-slate-700 ring-slate-200";
   }
@@ -126,29 +127,28 @@ function cleanerName(cleaner?: Row | null): string {
   return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Intervenante";
 }
 
-function usefulFinancialRows(reservation: Row): Array<[string, string]> {
-  const labels: Record<string, string> = {
-    accommodation_revenue_eur: "Hébergement",
-    accommodation_revenue: "Hébergement",
-    host_payout_eur: "Reversement hôte",
-    host_payout: "Reversement hôte",
-    revenue_eur: "Revenu",
-    total_revenue_eur: "Revenu total",
-    amount_eur: "Montant",
-    total_eur: "Total",
-    price_eur: "Prix",
-    total_price: "Prix total",
-    cleaning_fee_eur: "Frais de ménage facturés",
-    commission_eur: "Commission",
-    platform_fee_eur: "Frais plateforme",
-    tourist_tax_eur: "Taxe de séjour",
-    taxes_eur: "Taxes",
-    net_revenue_eur: "Net",
-  };
+async function signedStorageUrl(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  bucket?: string | null,
+  path?: string | null,
+): Promise<string | null> {
+  if (!bucket || !path) return null;
 
-  return Object.entries(labels)
-    .filter(([field]) => reservation[field] !== null && reservation[field] !== undefined && reservation[field] !== "")
-    .map(([field, label]) => [label, euro(Number(reservation[field]))]);
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
+}
+
+function financialLine(label: string, value: string, emphasis = false) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-t border-white/10 py-3 first:border-t-0">
+      <span className={`text-sm font-bold ${emphasis ? "text-slate-950" : "text-slate-500"}`}>
+        {label}
+      </span>
+      <span className={`text-right font-black ${emphasis ? "text-lg text-slate-950" : "text-slate-900"}`}>
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export default async function OwnerReservationPage({
@@ -168,15 +168,38 @@ export default async function OwnerReservationPage({
     .maybeSingle();
 
   const reservation = reservationResult.data as Row | null;
-
   if (!reservation) notFound();
+
+  const sourceSystem = textValue(reservation, ["source_system", "source"], "");
+  const sourceBookingId = textValue(reservation, ["source_booking_id"], "");
 
   const [
     propertyResult,
+    financialResult,
+    coverPhotoResult,
     cleaningRequestsResult,
   ] = await Promise.all([
     reservation.property_id
       ? supabase.from("properties").select("*").eq("id", reservation.property_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    sourceSystem && sourceBookingId
+      ? supabase
+          .from("reservation_financials")
+          .select("*")
+          .eq("source_system", sourceSystem)
+          .eq("source_booking_id", sourceBookingId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    reservation.property_id
+      ? supabase
+          .from("property_reference_photos")
+          .select("*")
+          .eq("property_id", reservation.property_id)
+          .eq("is_active", true)
+          .order("is_cover", { ascending: false })
+          .order("display_order", { ascending: true })
+          .limit(1)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
       .from("cleaning_requests")
@@ -186,6 +209,8 @@ export default async function OwnerReservationPage({
   ]);
 
   const property = propertyResult.data as Row | null;
+  const financial = financialResult.data as Row | null;
+  const coverPhoto = coverPhotoResult.data as Row | null;
   const cleaningRequests = (cleaningRequestsResult.data ?? []) as Row[];
 
   const cleanerIds = cleaningRequests
@@ -210,8 +235,22 @@ export default async function OwnerReservationPage({
       : Promise.resolve({ data: [] }),
   ]);
 
-  const cleanersById = Object.fromEntries(
-    ((cleanersResult.data ?? []) as Row[]).map((cleaner) => [String(cleaner.id), cleaner]),
+  const cleaners = (cleanersResult.data ?? []) as Row[];
+  const cleanersById = Object.fromEntries(cleaners.map((cleaner) => [String(cleaner.id), cleaner]));
+
+  const cleanerPhotoById: Record<string, string | null> = {};
+  for (const cleaner of cleaners) {
+    cleanerPhotoById[String(cleaner.id)] = await signedStorageUrl(
+      supabase,
+      cleaner.profile_photo_bucket,
+      cleaner.profile_photo_path,
+    );
+  }
+
+  const coverUrl = await signedStorageUrl(
+    supabase,
+    coverPhoto?.storage_bucket,
+    coverPhoto?.storage_path,
   );
 
   const reportsByRequestId: Record<string, Row[]> = {};
@@ -228,51 +267,80 @@ export default async function OwnerReservationPage({
     outboundByRequestId[key].push(message);
   }
 
-  const nights = nightsBetween(reservation.checkin_at, reservation.checkout_at);
-  const guestCount = numberValue(reservation, ["number_of_guests", "guest_count", "guests", "adults"]);
-  const revenue = numberValue(reservation, [
-    "accommodation_revenue_eur",
-    "accommodation_revenue",
-    "host_payout_eur",
-    "host_payout",
-    "revenue_eur",
-    "total_revenue_eur",
-    "amount_eur",
-    "total_eur",
-    "price_eur",
-    "total_price",
-  ]);
+  const nights =
+    numberValue(financial, ["nights"]) ??
+    numberValue(reservation, ["nights"]) ??
+    nightsBetween(reservation.checkin_at, reservation.checkout_at);
 
-  const cleaningCost = cleaningRequests.reduce((sum, request) => {
+  const guestCount =
+    numberValue(financial, ["number_of_guests"]) ??
+    numberValue(reservation, ["number_of_guests", "guest_count", "guests"]);
+
+  const grossBooking = numberValue(financial, ["gross_booking_value_eur"]);
+  const accommodation = numberValue(financial, ["accommodation_revenue_eur"]);
+  const hostPayout = numberValue(financial, ["host_payout_eur"]);
+  const cleaningFeeCharged = numberValue(financial, ["cleaning_fee_charged_eur"]);
+  const adr = numberValue(financial, ["adr_eur"]) ?? (accommodation !== null && nights ? accommodation / nights : null);
+
+  const cleanerCost = cleaningRequests.reduce((sum, request) => {
     const value = numberValue(request, ["total_cost_eur", "cleaning_cost_eur", "amount_eur"]) ?? 0;
     return sum + value;
   }, 0);
 
-  const adr = revenue !== null && nights ? revenue / nights : null;
-  const netAfterCleaning = revenue !== null ? revenue - cleaningCost : null;
-  const financialRows = usefulFinancialRows(reservation);
+  const displayPropertyName = property?.name ?? financial?.property_name ?? "Logement";
+  const displayListingName = financial?.listing_name ?? displayPropertyName;
+  const displaySource = financial?.booking_channel ?? reservation.source_system ?? "Source inconnue";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Link href="/owner/cockpit" className="text-xs font-black uppercase tracking-wide text-slate-400">
-              ← Retour cockpit
-            </Link>
-            <h1 className="mt-2 text-3xl font-black tracking-tight">
-              {textValue(reservation, ["guest_name", "source_booking_id"], "Séjour")}
-            </h1>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              {property?.name ?? "Logement"} · {textValue(reservation, ["source", "channel", "platform"], "Source inconnue")}
-            </p>
+    <main className="min-h-screen bg-slate-50 text-slate-950">
+      <section className="relative overflow-hidden bg-slate-950 text-white">
+        {coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-55"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-800 to-slate-700" />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-slate-950/20" />
+
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-5 sm:px-6 lg:px-8">
+          <Link href="/owner/cockpit" className="text-xs font-black uppercase tracking-wide text-white/60">
+            ← Retour cockpit
+          </Link>
+
+          <div className="mt-16 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-white/55">
+                {displayListingName}
+              </p>
+              <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">
+                {textValue(reservation, ["guest_name", "source_booking_id"], "Séjour")}
+              </h1>
+              <p className="mt-3 text-base font-bold text-white/75">
+                {dateTime(reservation.checkin_at)} → {dateTime(reservation.checkout_at)}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-950">
+                {statusLabel(reservation.status)}
+              </span>
+              <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
+                {displaySource}
+              </span>
+              <span className="rounded-full bg-white/15 px-4 py-2 text-xs font-black text-white ring-1 ring-white/20">
+                Réf. {sourceBookingId || "—"}
+              </span>
+            </div>
           </div>
-
-          <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200">
-            {textValue(reservation, ["status", "reservation_status", "booking_status"], "Réservation")}
-          </span>
         </div>
+      </section>
 
+      <div className="mx-auto max-w-6xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
             <p className="text-xs font-black uppercase tracking-wide text-slate-400">Arrivée</p>
@@ -292,74 +360,60 @@ export default async function OwnerReservationPage({
           </div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-          <article className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-black">Financier</h2>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">Revenu réservation</p>
-                <p className="mt-1 text-2xl font-black">{euro(revenue)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">ADR</p>
-                <p className="mt-1 text-2xl font-black">{euro(adr)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">Coût ménage prévu</p>
-                <p className="mt-1 text-2xl font-black">{euro(cleaningCost)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-950 p-4 text-white">
-                <p className="text-xs font-black uppercase tracking-wide text-white/50">Net après ménage</p>
-                <p className="mt-1 text-2xl font-black">{euro(netAfterCleaning)}</p>
+        <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <article className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="bg-slate-950 p-5 text-white">
+              <p className="text-xs font-black uppercase tracking-wide text-white/45">Financier</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-bold text-white/45">Montant réservation</p>
+                  <p className="mt-1 text-3xl font-black">{euro(grossBooking)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white/45">Hébergement</p>
+                  <p className="mt-1 text-3xl font-black">{euro(accommodation)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white/45">ADR</p>
+                  <p className="mt-1 text-3xl font-black">{euro(adr)}</p>
+                </div>
               </div>
             </div>
 
-            {financialRows.length > 0 && (
-              <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-100">
-                {financialRows.map(([label, value]) => (
-                  <div key={label} className="flex justify-between gap-4 px-4 py-2 text-sm">
-                    <span className="font-semibold text-slate-500">{label}</span>
-                    <span className="font-black text-slate-950">{value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="divide-y divide-slate-100 p-5">
+              {financialLine("Frais de ménage facturés au client", euro(cleaningFeeCharged), true)}
+              {financialLine("Coût intervenante prévu", euro(cleanerCost), true)}
+              {financialLine("Reversement hôte", euro(hostPayout))}
+              {financialLine("Canal", displaySource)}
+              {financialLine("Source système", sourceSystem || "—")}
+            </div>
           </article>
 
-          <article className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <article className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="text-lg font-black">Détails séjour</h2>
 
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="font-black text-slate-400">Nom client</dt>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <dt className="font-black text-slate-400">Logement</dt>
+                <dd className="mt-1 font-bold">{displayPropertyName}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <dt className="font-black text-slate-400">Référence</dt>
+                <dd className="mt-1 font-bold">{sourceBookingId || "—"}</dd>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <dt className="font-black text-slate-400">Client</dt>
                 <dd className="mt-1 font-bold">{textValue(reservation, ["guest_name", "guest_full_name"])}</dd>
               </div>
-              <div>
-                <dt className="font-black text-slate-400">Référence</dt>
-                <dd className="mt-1 font-bold">{textValue(reservation, ["source_booking_id", "booking_id", "external_id"])}</dd>
-              </div>
-              <div>
-                <dt className="font-black text-slate-400">Source</dt>
-                <dd className="mt-1 font-bold">{textValue(reservation, ["source", "channel", "platform"])}</dd>
-              </div>
-              <div>
-                <dt className="font-black text-slate-400">Téléphone</dt>
-                <dd className="mt-1 font-bold">{textValue(reservation, ["guest_phone", "phone"])}</dd>
-              </div>
-              <div>
-                <dt className="font-black text-slate-400">Email</dt>
-                <dd className="mt-1 font-bold">{textValue(reservation, ["guest_email", "email"])}</dd>
-              </div>
-              <div>
-                <dt className="font-black text-slate-400">Créée le</dt>
-                <dd className="mt-1 font-bold">{dateOnly(reservation.created_at)}</dd>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <dt className="font-black text-slate-400">Créée</dt>
+                <dd className="mt-1 font-bold">{shortDate(reservation.created_at)}</dd>
               </div>
             </dl>
           </article>
         </section>
 
-        <section className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black">Ménage prévu</h2>
@@ -385,22 +439,39 @@ export default async function OwnerReservationPage({
             ) : (
               cleaningRequests.map((request) => {
                 const cleaner = cleanersById[String(request.assigned_cleaner_id)];
+                const cleanerPhoto = cleanerPhotoById[String(request.assigned_cleaner_id)];
                 const reports = reportsByRequestId[String(request.id)] ?? [];
                 const messages = outboundByRequestId[String(request.id)] ?? [];
+                const requestCost = numberValue(request, ["total_cost_eur", "cleaning_cost_eur", "amount_eur"]);
 
                 return (
-                  <div key={request.id} className="rounded-2xl border border-slate-100 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${requestStatusClass(request)}`}>
-                          {requestStatusLabel(request)}
-                        </span>
-                        <h3 className="mt-3 text-base font-black">
-                          {request.title || "Ménage"}
-                        </h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
-                          {cleanerName(cleaner)} · {euro(numberValue(request, ["total_cost_eur", "cleaning_cost_eur", "amount_eur"]))}
-                        </p>
+                  <div key={request.id} className="rounded-[1.5rem] border border-slate-100 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {cleanerPhoto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={cleanerPhoto}
+                            alt=""
+                            className="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-slate-200"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-lg font-black text-slate-500">
+                            🧹
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${requestStatusClass(request)}`}>
+                            {statusLabel(request.status)}
+                          </span>
+                          <h3 className="mt-2 truncate text-base font-black">
+                            {request.title || "Ménage"}
+                          </h3>
+                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                            {cleanerName(cleaner)} · {euro(requestCost)}
+                          </p>
+                        </div>
                       </div>
 
                       <Link
@@ -413,7 +484,7 @@ export default async function OwnerReservationPage({
 
                     <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                       <div className="rounded-2xl bg-slate-50 p-3">
-                        <p className="text-xs font-black uppercase text-slate-400">Fenêtre</p>
+                        <p className="text-xs font-black uppercase text-slate-400">Fenêtre ouverte</p>
                         <p className="mt-1 font-bold">{dateTime(request.work_window_start_at || request.scheduled_start_at)}</p>
                       </div>
                       <div className="rounded-2xl bg-slate-50 p-3">
