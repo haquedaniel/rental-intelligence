@@ -125,6 +125,37 @@ def already_queued(supabase, key: str) -> bool:
     return bool(existing.data)
 
 
+def mark_request_overdue(supabase, request: dict, dry_run: bool) -> bool:
+    if request.get("schedule_status") in {"cleaning_overdue", "overdue"}:
+        return False
+
+    if request.get("status") != "accepted":
+        return False
+
+    now_iso = datetime.now(tz=UTC).isoformat()
+
+    payload = {
+        "schedule_status": "cleaning_overdue",
+        "planning_changed_at": now_iso,
+        "updated_at": now_iso,
+    }
+
+    if dry_run:
+        print(f"DRY RUN would mark request overdue: {request['id']}")
+        return True
+
+    supabase.table("cleaning_requests").update(payload).eq("id", request["id"]).eq(
+        "status",
+        "accepted",
+    ).execute()
+
+    request["schedule_status"] = "cleaning_overdue"
+    request["planning_changed_at"] = now_iso
+    request["updated_at"] = now_iso
+
+    return True
+
+
 def format_anchor(anchor: datetime | None) -> str:
     if not anchor:
         return "date inconnue"
@@ -321,6 +352,7 @@ def main() -> None:
 
     created_cleaner = 0
     created_owner = 0
+    marked_overdue = 0
     skipped = 0
     completed = 0
 
@@ -330,6 +362,9 @@ def main() -> None:
         if reports_by_request.get(request_id):
             completed += 1
             continue
+
+        if mark_request_overdue(supabase, request, args.dry_run):
+            marked_overdue += 1
 
         property_id = str(request.get("property_id"))
         property_ = properties.get(property_id)
@@ -398,6 +433,7 @@ def main() -> None:
         "Summary: "
         f"cleaner_nudges={created_cleaner} "
         f"owner_alerts={created_owner} "
+        f"marked_overdue={marked_overdue} "
         f"completed={completed} "
         f"skipped={skipped}"
     )
