@@ -69,6 +69,53 @@ function notificationForPending(request: Row, property?: Row): NotificationItem 
   };
 }
 
+function paymentMoney(value: unknown): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(Number(value ?? 0));
+}
+
+function paymentCleanerName(request: Row): string {
+  return (
+    request.cleaner_name_snapshot ||
+    request.cleaner_legal_name_snapshot ||
+    "Intervenante"
+  );
+}
+
+function paymentPeriodLabel(request: Row): string {
+  if (!request.period_start) return "période à confirmer";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${request.period_start}T12:00:00.000Z`));
+}
+
+function paymentIsOverdue(request: Row): boolean {
+  if (request.status === "overdue") return true;
+  if (request.status !== "sent_to_owner") return false;
+  if (!request.due_at) return false;
+
+  const due = new Date(request.due_at);
+  return Number.isFinite(due.getTime()) && due.getTime() < Date.now();
+}
+
+function notificationForPaymentRequest(request: Row): NotificationItem {
+  const overdue = paymentIsOverdue(request);
+
+  return {
+    key: `payment-${request.id}`,
+    severity: overdue ? "red" : "amber",
+    title: overdue ? "Paiement en retard" : "Paiement à régler",
+    summary: `${paymentCleanerName(request)} · ${paymentPeriodLabel(request)} · ${paymentMoney(request.total_eur)}.`,
+    meta: overdue ? "Retard" : "Paiement",
+    href: `/owner/payments/${request.public_token}`,
+  };
+}
+
 export default async function PlanningV2Page({
   searchParams,
 }: {
@@ -195,6 +242,33 @@ export default async function PlanningV2Page({
   const alertReservations = (alertReservationsData ?? []).filter((reservation) =>
     visiblePropertyIds.includes(reservation.property_id),
   );
+
+  const { data: paymentRequestsData, error: paymentRequestsError } = await supabase
+    .from("monthly_payment_requests")
+    .select(`
+      id,
+      public_token,
+      status,
+      total_eur,
+      due_at,
+      period_start,
+      period_end,
+      cleaner_name_snapshot,
+      cleaner_legal_name_snapshot,
+      owner_recipient_name,
+      sent_at,
+      created_at
+    `)
+    .in("status", ["sent_to_owner", "overdue"])
+    .order("due_at", { ascending: true });
+
+  if (paymentRequestsError) {
+    throw new Error(`Impossible de charger les demandes de paiement : ${paymentRequestsError.message}`);
+  }
+
+  const openPaymentRequests = (paymentRequestsData ?? []) as Row[];
+  const overduePaymentRequests = openPaymentRequests.filter(paymentIsOverdue);
+  const paymentActionCount = openPaymentRequests.length;
 
   const { data: analyticsDailyData, error: analyticsDailyError } = await supabase
     .from("analytics_daily_calendar")
@@ -353,6 +427,7 @@ export default async function PlanningV2Page({
   );
 
   const notifications: NotificationItem[] = [
+    ...openPaymentRequests.map(notificationForPaymentRequest),
     ...manualActionRequests.map((request) =>
       notificationForManualAction(request, propertyById[request.property_id]),
     ),
@@ -398,19 +473,40 @@ export default async function PlanningV2Page({
           <div className="flex shrink-0 items-center gap-2">
             <NotificationFeed items={notifications} />
 
-            <Link
-              href="/admin/settings"
-              className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:px-4 sm:text-sm"
-            >
-              Rappels
-            </Link>
+            <nav className="flex max-w-[58vw] gap-1 overflow-x-auto rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:max-w-none">
+              <Link
+                href="/owner/cockpit"
+                className="rounded-full bg-slate-950 px-3 py-2 text-xs font-black text-white sm:px-4 sm:text-sm"
+              >
+                Planning
+              </Link>
 
-            <Link
-              href="/admin/operations"
-              className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 sm:px-4 sm:text-sm"
-            >
-              Ancien
-            </Link>
+              <Link
+                href="/owner/payments"
+                className="relative rounded-full px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 sm:px-4 sm:text-sm"
+              >
+                Paiements
+                {paymentActionCount > 0 && (
+                  <span className={`ml-1 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black text-white ${overduePaymentRequests.length ? "bg-red-600" : "bg-amber-500"}`}>
+                    {paymentActionCount}
+                  </span>
+                )}
+              </Link>
+
+              <Link
+                href="/admin/settings"
+                className="rounded-full px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 sm:px-4 sm:text-sm"
+              >
+                Rappels
+              </Link>
+
+              <Link
+                href="/admin/operations"
+                className="rounded-full px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 sm:px-4 sm:text-sm"
+              >
+                Ancien
+              </Link>
+            </nav>
           </div>
         </header>
 
