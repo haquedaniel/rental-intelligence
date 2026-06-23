@@ -48,22 +48,48 @@ def filter_messages_by_property(supabase, messages: list[dict]) -> list[dict]:
         if message.get("cleaning_request_id")
     ]
 
-    if not request_ids:
-        print("SMS property filter active: 0 messages kept; no cleaning_request_id.")
+    payment_request_ids = [
+        message.get("monthly_payment_request_id")
+        for message in messages
+        if message.get("monthly_payment_request_id")
+    ]
+
+    request_by_id: dict[str, dict] = {}
+    if request_ids:
+        result = (
+            supabase.table("cleaning_requests")
+            .select("id,property_id")
+            .in_("id", request_ids)
+            .execute()
+        )
+
+        request_by_id = {
+            str(row["id"]): row
+            for row in (result.data or [])
+            if row.get("id")
+        }
+
+    payment_properties_by_id: dict[str, set[str]] = {}
+    if payment_request_ids:
+        payment_lines = (
+            supabase.table("monthly_payment_request_lines")
+            .select("monthly_payment_request_id,property_id")
+            .in_("monthly_payment_request_id", payment_request_ids)
+            .execute()
+        )
+
+        for row in payment_lines.data or []:
+            payment_request_id = row.get("monthly_payment_request_id")
+            property_id = row.get("property_id")
+            if not payment_request_id or not property_id:
+                continue
+
+            key = str(payment_request_id)
+            payment_properties_by_id.setdefault(key, set()).add(str(property_id))
+
+    if not request_by_id and not payment_properties_by_id:
+        print("SMS property filter active: 0 messages kept; no property scope found.")
         return []
-
-    result = (
-        supabase.table("cleaning_requests")
-        .select("id,property_id")
-        .in_("id", request_ids)
-        .execute()
-    )
-
-    request_by_id = {
-        str(row["id"]): row
-        for row in (result.data or [])
-        if row.get("id")
-    }
 
     filtered = []
     skipped = 0
@@ -74,8 +100,20 @@ def filter_messages_by_property(supabase, messages: list[dict]) -> list[dict]:
 
         if request and str(request.get("property_id")) in SMS_PROPERTY_ID_FILTER:
             filtered.append(message)
-        else:
-            skipped += 1
+            continue
+
+        payment_request_id = message.get("monthly_payment_request_id")
+        payment_property_ids = (
+            payment_properties_by_id.get(str(payment_request_id), set())
+            if payment_request_id
+            else set()
+        )
+
+        if payment_property_ids.intersection(SMS_PROPERTY_ID_FILTER):
+            filtered.append(message)
+            continue
+
+        skipped += 1
 
     print(
         "SMS property filter active: "
@@ -197,13 +235,17 @@ def main() -> None:
             ).eq("id", message_id).execute()
 
             # Move the cleaning request from created -> sent, but don't overwrite
-            # later human statuses such as accepted/refused.
-            supabase.table("cleaning_requests").update(
-                {
-                    "status": "sent",
-                    "updated_at": now_iso(),
-                }
-            ).eq("id", message["cleaning_request_id"]).eq("status", "created").execute()
+            # later human statuses such as accepted/refused. Some SMS types, such
+            # as monthly payment requests, are owner-level and may not have a
+            # cleaning_request_id.
+            cleaning_request_id = message.get("cleaning_request_id")
+            if cleaning_request_id:
+                supabase.table("cleaning_requests").update(
+                    {
+                        "status": "sent",
+                        "updated_at": now_iso(),
+                    }
+                ).eq("id", cleaning_request_id).eq("status", "created").execute()
 
             print(
                 f"SENT {message_id}: intended={intended_recipient} "
