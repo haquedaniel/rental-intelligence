@@ -855,7 +855,7 @@ export default async function CleanerHomePage({
         </section>
       </div>
 
-      <CleanerBottomNav cleanerToken={token} active="planning" />
+      <CleanerBottomNav cleanerToken={token} active="missions" />
     </main>
   );
 }

@@ -36,7 +36,7 @@ export function CleanerBottomNav({
       key: "planning",
       label: "Planning",
       icon: "📅",
-      href: cleanerPath(cleanerToken, "#planning"),
+      href: cleanerPath(cleanerToken, "/planning"),
     },
     {
       key: "payments",
@@ -48,7 +48,7 @@ export function CleanerBottomNav({
       key: "profile",
       label: "Profil",
       icon: "👤",
-      href: cleanerPath(cleanerToken, "#profile"),
+      href: cleanerPath(cleanerToken, "/profile"),
     },
   ];
 
