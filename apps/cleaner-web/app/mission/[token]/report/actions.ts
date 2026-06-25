@@ -4,6 +4,8 @@ import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCleanerLocale, type CleanerLocale } from "@/lib/cleanerI18n";
+import { loadTranslatedChecklistSections } from "@/lib/checklistSectionTranslations";
 
 function textValue(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -147,6 +149,22 @@ export async function submitCleaningReport(formData: FormData) {
     throw new Error("Le rapport ne peut être complété qu'après acceptation de la mission.");
   }
 
+  let locale: CleanerLocale = "fr";
+
+  if (mission.assigned_cleaner_id) {
+    const { data: cleanerRow, error: cleanerError } = await supabase
+      .from("cleaners")
+      .select("preferred_language")
+      .eq("id", mission.assigned_cleaner_id)
+      .maybeSingle();
+
+    if (cleanerError) {
+      console.error("Cleaner language query failed", cleanerError);
+    }
+
+    locale = getCleanerLocale(cleanerRow?.preferred_language);
+  }
+
   let template = null;
 
   if (mission.checklist_template_id) {
@@ -220,15 +238,22 @@ if (!template) {
   const { data: sections, error: sectionsError } = await supabase
     .from("cleaning_checklist_sections")
     .select(
-      "section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement"
+      "id,section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement"
     )
     .eq("template_id", template.id)
+    .eq("active", true)
     .order("sort_order", { ascending: true })
     .order("order_index", { ascending: true });
 
   if (sectionsError || !sections || sections.length === 0) {
     throw new Error("La checklist de cette mission est vide.");
   }
+
+  const translatedSections = await loadTranslatedChecklistSections({
+    supabase,
+    sections,
+    locale,
+  });
 
   const checkedSections = new Set(
     formData.getAll("checkedSections").map((value) => String(value))
@@ -238,7 +263,7 @@ if (!template) {
     formData.getAll("viewedSections").map((value) => String(value))
   );
 
-  const requiredSections = sections.filter((section) => section.required);
+  const requiredSections = translatedSections.filter((section) => section.required);
 
   const missingRequired = requiredSections.filter(
     (section) => !checkedSections.has(section.section_key)
@@ -285,7 +310,7 @@ if (!template) {
     template_id: template.id,
     template_name: template.name,
     template_version: template.version,
-    sections: sections.map((section) => ({
+    sections: translatedSections.map((section) => ({
       section_key: section.section_key,
       title: section.title,
       high_level_check_label: section.high_level_check_label,
@@ -344,7 +369,7 @@ if (!template) {
     throw new Error(`Impossible d'enregistrer le rapport : ${reportError?.message}`);
   }
 
-  const sectionRows = sections.map((section) => {
+  const sectionRows = translatedSections.map((section) => {
     const checked = checkedSections.has(section.section_key);
     const viewed = viewedSections.has(section.section_key);
 
@@ -372,7 +397,7 @@ if (!template) {
   await uploadSectionPhotos({
     supabase,
     formData,
-    sections,
+    sections: translatedSections,
     cleaningRequestId: mission.id,
     cleaningReportId: report.id,
   });

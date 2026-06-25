@@ -3,6 +3,7 @@ import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ReportForm } from "./ReportForm";
 import { getCleanerLocale, t, tr, type CleanerLocale } from "@/lib/cleanerI18n";
+import { loadTranslatedChecklistSections } from "@/lib/checklistSectionTranslations";
 
 export const dynamic = "force-dynamic";
 
@@ -197,13 +198,18 @@ export default async function CleaningReportPage({
   const { data: sectionsData } = await supabase
     .from("cleaning_checklist_sections")
     .select(
-      "section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement,active",
+      "id,section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement,active",
     )
     .eq("template_id", template.id)
     .eq("active", true)
     .order("sort_order", { ascending: true }).order("order_index", { ascending: true });
 
-  const sections = sortChecklistSections(sectionsData ?? []);
+  const baseSections = sortChecklistSections(sectionsData ?? []);
+  const sections = await loadTranslatedChecklistSections({
+    supabase,
+    sections: baseSections,
+    locale,
+  });
 
   const { data: report } = await supabase
     .from("cleaning_reports")

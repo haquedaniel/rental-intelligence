@@ -13,6 +13,11 @@ import {
 export const dynamic = "force-dynamic";
 
 type Row = Record<string, any>;
+type ChecklistTranslationLanguage = "en" | "ru";
+
+function sectionTranslation(section: Row, language: ChecklistTranslationLanguage): Row {
+  return section.translations?.[language] ?? {};
+}
 
 function selectedClass(isSelected: boolean): string {
   return isSelected
@@ -224,6 +229,66 @@ function SectionForm({ section }: { section: Row }) {
         />
       </label>
 
+      <details className="mt-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
+        <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">
+          Traductions intervenantes EN / RU
+        </summary>
+
+        <p className="mt-2 text-xs font-semibold text-slate-500">
+          Le français reste la version canonique. Si une traduction est vide, l’app utilisera le texte français.
+        </p>
+
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          {(["en", "ru"] as const).map((language) => {
+            const translation = sectionTranslation(section, language);
+            const label = language === "en" ? "Anglais" : "Russe";
+
+            return (
+              <div key={language} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+                <h4 className="text-sm font-black text-slate-950">{label}</h4>
+
+                <label className="mt-3 block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Section
+                  </span>
+                  <input
+                    name={`${language}_title`}
+                    defaultValue={translation.title ?? ""}
+                    placeholder={section.title ?? ""}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+                  />
+                </label>
+
+                <label className="mt-3 block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Case principale
+                  </span>
+                  <input
+                    name={`${language}_high_level_check_label`}
+                    defaultValue={translation.high_level_check_label ?? ""}
+                    placeholder={section.high_level_check_label ?? ""}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+                  />
+                </label>
+
+                <label className="mt-3 block">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    Tâches traduites
+                  </span>
+                  <textarea
+                    name={`${language}_detail_items`}
+                    rows={5}
+                    defaultValue={(translation.detail_items ?? []).join("\n")}
+                    placeholder={(section.detail_items ?? []).join("\n")}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-900"
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+
       <div className="mt-3 grid gap-2 md:grid-cols-3">
         <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
           <input type="checkbox" name="required" defaultChecked={section.required !== false} />
@@ -341,7 +406,38 @@ export default async function AdminChecklistsPage({
     throw new Error(`Impossible de charger les sections : ${sectionsError.message}`);
   }
 
-  const sections = sectionsData ?? [];
+  const sectionRows = sectionsData ?? [];
+  const sectionIds = sectionRows
+    .map((section) => section.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const { data: sectionTranslationsData, error: sectionTranslationsError } = sectionIds.length > 0
+    ? await supabase
+        .from("cleaning_checklist_section_translations")
+        .select("section_id,language,title,high_level_check_label,detail_items")
+        .in("section_id", sectionIds)
+    : { data: [], error: null };
+
+  if (sectionTranslationsError) {
+    throw new Error(`Impossible de charger les traductions : ${sectionTranslationsError.message}`);
+  }
+
+  const translationsBySectionId = new Map<string, Record<ChecklistTranslationLanguage, Row>>();
+
+  for (const translation of sectionTranslationsData ?? []) {
+    const language = translation.language as ChecklistTranslationLanguage;
+    if (language !== "en" && language !== "ru") continue;
+
+    const current = translationsBySectionId.get(translation.section_id) ?? { en: {}, ru: {} };
+    current[language] = translation;
+    translationsBySectionId.set(translation.section_id, current);
+  }
+
+  const sections = sectionRows.map((section) => ({
+    ...section,
+    translations: translationsBySectionId.get(section.id) ?? { en: {}, ru: {} },
+  }));
+
   const selectedProperty = properties.find((property) => property.id === selectedPropertyId);
 
   return (

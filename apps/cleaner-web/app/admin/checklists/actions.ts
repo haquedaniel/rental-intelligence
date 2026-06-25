@@ -26,6 +26,61 @@ function linesValue(formData: FormData, key: string): string[] {
     .filter(Boolean);
 }
 
+function nullableTextValue(formData: FormData, key: string): string | null {
+  const value = textValue(formData, key);
+  return value.length ? value : null;
+}
+
+async function upsertOrDeleteSectionTranslation({
+  supabase,
+  sectionId,
+  language,
+  title,
+  highLevelCheckLabel,
+  detailItems,
+}: {
+  supabase: ReturnType<typeof import("@/lib/supabaseAdmin").getSupabaseAdmin>;
+  sectionId: string;
+  language: "en" | "ru";
+  title: string | null;
+  highLevelCheckLabel: string | null;
+  detailItems: string[];
+}) {
+  const hasTranslation = Boolean(title || highLevelCheckLabel || detailItems.length > 0);
+
+  if (!hasTranslation) {
+    const { error } = await supabase
+      .from("cleaning_checklist_section_translations")
+      .delete()
+      .eq("section_id", sectionId)
+      .eq("language", language);
+
+    if (error) {
+      throw new Error(`Impossible de supprimer la traduction ${language} : ${error.message}`);
+    }
+
+    return;
+  }
+
+  const { error } = await supabase
+    .from("cleaning_checklist_section_translations")
+    .upsert(
+      {
+        section_id: sectionId,
+        language,
+        title,
+        high_level_check_label: highLevelCheckLabel,
+        detail_items: detailItems.length > 0 ? detailItems : null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "section_id,language" },
+    );
+
+  if (error) {
+    throw new Error(`Impossible d’enregistrer la traduction ${language} : ${error.message}`);
+  }
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -409,6 +464,24 @@ export async function updateChecklistSection(formData: FormData) {
   if (error) {
     throw new Error(`Impossible d’enregistrer la rubrique : ${error.message}`);
   }
+
+  await upsertOrDeleteSectionTranslation({
+    supabase,
+    sectionId: id,
+    language: "en",
+    title: nullableTextValue(formData, "en_title"),
+    highLevelCheckLabel: nullableTextValue(formData, "en_high_level_check_label"),
+    detailItems: linesValue(formData, "en_detail_items"),
+  });
+
+  await upsertOrDeleteSectionTranslation({
+    supabase,
+    sectionId: id,
+    language: "ru",
+    title: nullableTextValue(formData, "ru_title"),
+    highLevelCheckLabel: nullableTextValue(formData, "ru_high_level_check_label"),
+    detailItems: linesValue(formData, "ru_detail_items"),
+  });
 
   revalidatePath("/admin/checklists");
 }
