@@ -187,6 +187,24 @@ async function findChecklistTemplate(supabase: ReturnType<typeof getSupabaseAdmi
   return propertyTemplates?.[0] ?? null;
 }
 
+
+function sortChecklistSections<T extends { sort_order?: unknown; order_index?: unknown; title?: unknown }>(sections: T[]) {
+  return [...sections].sort((a, b) => {
+    const aSort = Number(a.sort_order ?? 999999);
+    const bSort = Number(b.sort_order ?? 999999);
+
+    if (aSort !== bSort) return aSort - bSort;
+
+    const aIndex = Number(a.order_index ?? 999999);
+    const bIndex = Number(b.order_index ?? 999999);
+
+    if (aIndex !== bIndex) return aIndex - bIndex;
+
+    return String(a.title ?? "").localeCompare(String(b.title ?? ""), "fr");
+  });
+}
+
+
 export default async function OwnerReportPage({ params }: PageProps) {
   await requireAdmin();
 
@@ -254,7 +272,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
   const { data: sectionRows } = template
     ? await supabase
         .from("cleaning_checklist_sections")
-        .select("section_key,title,high_level_check_label,detail_items,order_index")
+        .select("section_key,title,high_level_check_label,detail_items,order_index,sort_order,order_index")
         .eq("template_id", template.id)
         .eq("active", true)
         .order("order_index", { ascending: true })

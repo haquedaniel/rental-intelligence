@@ -27,6 +27,24 @@ async function withSignedReferencePhotoUrls(
   );
 }
 
+
+function sortChecklistSections<T extends { sort_order?: unknown; order_index?: unknown; title?: unknown }>(sections: T[]) {
+  return [...sections].sort((a, b) => {
+    const aSort = Number(a.sort_order ?? 999999);
+    const bSort = Number(b.sort_order ?? 999999);
+
+    if (aSort !== bSort) return aSort - bSort;
+
+    const aIndex = Number(a.order_index ?? 999999);
+    const bIndex = Number(b.order_index ?? 999999);
+
+    if (aIndex !== bIndex) return aIndex - bIndex;
+
+    return String(a.title ?? "").localeCompare(String(b.title ?? ""), "fr");
+  });
+}
+
+
 export default async function CleaningReportPage({
   params,
   searchParams,
@@ -165,9 +183,9 @@ export default async function CleaningReportPage({
     )
     .eq("template_id", template.id)
     .eq("active", true)
-    .order("order_index", { ascending: true });
+    .order("sort_order", { ascending: true }).order("order_index", { ascending: true });
 
-  const sections = sectionsData ?? [];
+  const sections = sortChecklistSections(sectionsData ?? []);
 
   const { data: report } = await supabase
     .from("cleaning_reports")
