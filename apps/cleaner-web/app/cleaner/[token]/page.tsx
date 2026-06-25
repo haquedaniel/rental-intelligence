@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 
 type Row = Record<string, any>;
 
@@ -576,7 +577,7 @@ export default async function CleanerHomePage({
     .slice(0, 6);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-slate-50 pb-28 text-slate-950">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.35),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.30),transparent_35%)]" />
         <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
@@ -637,7 +638,7 @@ export default async function CleanerHomePage({
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div id="planning" className="mx-auto max-w-6xl scroll-mt-6 space-y-5 px-4 py-5 sm:px-6 lg:px-8">
         {toConfirm.length > 0 && (
           <section className="rounded-[1.75rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -853,6 +854,8 @@ export default async function CleanerHomePage({
           </aside>
         </section>
       </div>
+
+      <CleanerBottomNav cleanerToken={token} active="planning" />
     </main>
   );
 }
