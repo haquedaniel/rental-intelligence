@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCleanerLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -73,12 +74,12 @@ function dateLabel(value?: string | null): string {
     .replace(":", "h");
 }
 
-function propertyName(property?: Row | null): string {
-  return property?.name || "Logement";
+function propertyName(property?: Row | null, locale: CleanerLocale = "fr"): string {
+  return property?.name || t(locale, "common.propertyFallback");
 }
 
-function guestName(reservation?: Row | null): string {
-  return reservation?.guest_name || reservation?.source_booking_id || "Séjour";
+function guestName(reservation?: Row | null, locale: CleanerLocale = "fr"): string {
+  return reservation?.guest_name || reservation?.source_booking_id || t(locale, "common.stayFallback");
 }
 
 function money(value: unknown): string {
@@ -119,25 +120,25 @@ function missionHref(request: Row): string {
   return `/mission/${request.public_token}/report`;
 }
 
-function statusLabel(request: Row, overdue: boolean): string {
-  if (overdue) return "En retard";
+function statusLabel(request: Row, overdue: boolean, locale: CleanerLocale = "fr"): string {
+  if (overdue) return t(locale, "status.overdue");
 
   switch (request.status) {
     case "created":
-      return "À confirmer";
+      return t(locale, "status.toConfirm");
     case "sent":
-      return "Proposée";
+      return t(locale, "status.offered");
     case "accepted":
-      return "Confirmée";
+      return t(locale, "status.confirmed");
     case "report_submitted":
     case "completed":
-      return "Terminée";
+      return t(locale, "status.completed");
     case "problem_reported":
-      return "Problème";
+      return t(locale, "status.problem");
     case "refused":
-      return "Refusée";
+      return t(locale, "status.refused");
     default:
-      return request.status || "Mission";
+      return request.status || t(locale, "common.missionFallback");
   }
 }
 
@@ -178,11 +179,13 @@ function MiniPlanning({
   requests,
   propertiesById,
   reservationsById,
+  locale,
 }: {
   reservations: Row[];
   requests: Row[];
   propertiesById: Record<string, Row>;
   reservationsById: Record<string, Row>;
+  locale: CleanerLocale;
 }) {
   const today = parisDateKey(new Date());
   const units = Array.from({ length: 21 }, (_, index) => addDays(today, index));
@@ -206,13 +209,13 @@ function MiniPlanning({
     <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-slate-950">Mini planning</h2>
+          <h2 className="text-xl font-black text-slate-950">{t(locale, "calendar.miniTitle")}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">
-            Séjours et missions sur les 3 prochaines semaines.
+            {t(locale, "calendar.planningSubtitle")}
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
-          21 jours
+          {t(locale, "calendar.twentyOneDays")}
         </span>
       </div>
 
@@ -250,11 +253,11 @@ function MiniPlanning({
                     key={reservation.id}
                     className="z-10 rounded-xl bg-slate-900 px-2 py-1 text-white shadow-sm"
                     style={{ gridColumn: `${span.start} / span ${span.span}` }}
-                    title={`${guestName(reservation)} · ${propertyName(propertiesById[String(reservation.property_id)])}`}
+                    title={`${guestName(reservation, locale)} · ${propertyName(propertiesById[String(reservation.property_id)], locale)}`}
                   >
-                    <p className="truncate text-[10px] font-black">{guestName(reservation)}</p>
+                    <p className="truncate text-[10px] font-black">{guestName(reservation, locale)}</p>
                     <p className="truncate text-[8px] font-bold text-white/60">
-                      {propertyName(propertiesById[String(reservation.property_id)])}
+                      {propertyName(propertiesById[String(reservation.property_id)], locale)}
                     </p>
                   </div>
                 );
@@ -284,9 +287,9 @@ function MiniPlanning({
                         key={request.id}
                         href={missionHref(request)}
                         className={`w-full rounded-lg px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 ${statusClass(request, overdue)}`}
-                        title={`${propertyName(propertiesById[String(request.property_id)])} · ${guestName(reservation)} · ${statusLabel(request, overdue)}`}
+                        title={`${propertyName(propertiesById[String(request.property_id)], locale)} · ${guestName(reservation, locale)} · ${statusLabel(request, overdue, locale)}`}
                       >
-                        {overdue ? "RETARD" : request.status === "accepted" ? "OK" : "À confirmer"}
+                        {overdue ? t(locale, "common.overdueUpper") : request.status === "accepted" ? t(locale, "common.ok") : t(locale, "status.toConfirm")}
                       </Link>
                     );
                   })}
@@ -305,11 +308,13 @@ function MissionPlanningCard({
   property,
   reservation,
   hasReport,
+  locale,
 }: {
   request: Row;
   property?: Row | null;
   reservation?: Row | null;
   hasReport: boolean;
+  locale: CleanerLocale;
 }) {
   const overdue = isOverdue(request, hasReport);
 
@@ -321,20 +326,20 @@ function MissionPlanningCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(request, overdue)}`}>
-            {statusLabel(request, overdue)}
+            {statusLabel(request, overdue, locale)}
           </span>
 
           <h2 className="mt-3 truncate text-base font-black text-slate-950">
-            {propertyName(property)}
+            {propertyName(property, locale)}
           </h2>
 
           <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {guestName(reservation)} · {money(missionAmount(request))}
+            {guestName(reservation, locale)} · {money(missionAmount(request))}
           </p>
         </div>
 
         <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-          <p className="text-[10px] font-black uppercase text-slate-400">Prêt avant</p>
+          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.readyBefore")}</p>
           <p className="mt-1 text-xs font-black text-slate-900">
             {dateLabel(anchorAt(request))}
           </p>
@@ -379,6 +384,8 @@ export default async function CleanerPlanningPage({
     .maybeSingle();
 
   if (!cleaner) notFound();
+
+  const locale = getCleanerLocale(cleaner.preferred_language);
 
   const { data: requestRows } = await supabase
     .from("cleaning_requests")
@@ -452,19 +459,19 @@ export default async function CleanerPlanningPage({
       <div className="mx-auto max-w-3xl space-y-5">
         <header className="rounded-[2rem] bg-slate-950 p-5 text-white">
           <p className="text-xs font-black uppercase tracking-wide text-white/50">
-            Planning intervenante
+            {t(locale, "planning.headerKicker")}
           </p>
-          <h1 className="mt-2 text-3xl font-black">Planning</h1>
+          <h1 className="mt-2 text-3xl font-black">{t(locale, "planning.title")}</h1>
           <p className="mt-2 text-sm font-semibold text-white/60">
-            Vue calendrier des séjours et des interventions à venir.
+            {t(locale, "planning.subtitle")}
           </p>
         </header>
 
         {overdue.length > 0 && (
           <section className="rounded-[1.75rem] bg-red-50 p-5 shadow-sm ring-1 ring-red-100">
-            <h2 className="text-lg font-black text-red-950">Missions en retard</h2>
+            <h2 className="text-lg font-black text-red-950">{t(locale, "planning.overdueTitle")}</h2>
             <p className="mt-1 text-sm font-semibold text-red-800/70">
-              À traiter avant de regarder le reste du planning.
+              {t(locale, "planning.overdueBody")}
             </p>
 
             <div className="mt-4 space-y-3">
@@ -475,6 +482,7 @@ export default async function CleanerPlanningPage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -486,10 +494,11 @@ export default async function CleanerPlanningPage({
           requests={requests}
           propertiesById={propertiesById}
           reservationsById={reservationsById}
+          locale={locale}
         />
 
         {toConfirm.length > 0 && (
-          <Section title="À confirmer" subtitle="Missions proposées, pas encore acceptées.">
+          <Section title={t(locale, "planning.toConfirmTitle")} subtitle={t(locale, "planning.toConfirmSubtitle")}>
             <div className="space-y-3">
               {toConfirm.map(({ request, property, reservation, hasReport }) => (
                 <MissionPlanningCard
@@ -498,16 +507,17 @@ export default async function CleanerPlanningPage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  locale={locale}
                 />
               ))}
             </div>
           </Section>
         )}
 
-        <Section title="Interventions confirmées" subtitle="Liste détaillée des prochaines missions.">
+        <Section title={t(locale, "planning.confirmedTitle")} subtitle={t(locale, "planning.confirmedSubtitle")}>
           {confirmed.length === 0 ? (
             <p className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
-              Aucune mission confirmée.
+              {t(locale, "planning.noConfirmed")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -518,6 +528,7 @@ export default async function CleanerPlanningPage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -525,7 +536,7 @@ export default async function CleanerPlanningPage({
         </Section>
       </div>
 
-      <CleanerBottomNav cleanerToken={token} active="planning" />
+      <CleanerBottomNav cleanerToken={token} active="planning" locale={locale} />
     </main>
   );
 }

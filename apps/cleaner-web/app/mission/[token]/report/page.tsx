@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ReportForm } from "./ReportForm";
+import { getCleanerLocale, t, tr, type CleanerLocale } from "@/lib/cleanerI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -65,14 +66,28 @@ export default async function CleaningReportPage({
     .single();
 
   if (missionError || !mission) {
-    return <Message title="Mission introuvable" />;
+    return <Message title={t("fr", "common.missionNotFound")} />;
+  }
+
+  let cleanerToken: string | null = null;
+  let locale: CleanerLocale = "fr";
+
+  if (mission.assigned_cleaner_id) {
+    const { data: cleanerNavRow } = await supabase
+      .from("cleaners")
+      .select("public_token,preferred_language")
+      .eq("id", mission.assigned_cleaner_id)
+      .maybeSingle();
+
+    cleanerToken = cleanerNavRow?.public_token ?? null;
+    locale = getCleanerLocale(cleanerNavRow?.preferred_language);
   }
 
   if (
     mission.public_token_expires_at &&
     new Date(mission.public_token_expires_at) < new Date()
   ) {
-    return <Message title="Lien expiré" />;
+    return <Message title={t(locale, "common.linkExpired")} />;
   }
 
   const allowedStatuses = [
@@ -85,8 +100,8 @@ export default async function CleaningReportPage({
   if (!allowedStatuses.includes(mission.status)) {
     return (
       <Message
-        title="Mission pas encore acceptée"
-        body="Le rapport de ménage sera disponible une fois la mission acceptée."
+        title={t(locale, "report.notAcceptedTitle")}
+        body={t(locale, "report.notAcceptedBody")}
       />
     );
   }
@@ -98,17 +113,6 @@ export default async function CleaningReportPage({
     .maybeSingle();
 
 
-  let cleanerToken: string | null = null;
-
-  if (mission.assigned_cleaner_id) {
-    const { data: cleanerNavRow } = await supabase
-      .from("cleaners")
-      .select("public_token")
-      .eq("id", mission.assigned_cleaner_id)
-      .maybeSingle();
-
-    cleanerToken = cleanerNavRow?.public_token ?? null;
-  }
 
   let template: any = null;
 
@@ -163,8 +167,8 @@ export default async function CleaningReportPage({
   if (!template) {
     return (
       <Message
-        title="Checklist manquante"
-        body="Aucune checklist active n'est configurée pour ce logement."
+        title={t(locale, "report.missingChecklistTitle")}
+        body={t(locale, "report.missingChecklistBody")}
       />
     );
   }
@@ -261,16 +265,16 @@ export default async function CleaningReportPage({
           href={`/mission/${token}`}
           className="text-sm font-medium text-slate-600"
         >
-          ← Retour à la mission
+          {t(locale, "report.back")}
         </Link>
 
         <section className="rounded-3xl bg-slate-900 p-5 text-white shadow-sm">
           <p className="text-sm uppercase tracking-wide text-slate-300">
-            Rapport de ménage
+            {t(locale, "report.title")}
           </p>
 
           <h1 className="mt-2 text-2xl font-bold">
-            {property?.name ?? "Logement"}
+            {property?.name ?? t(locale, "common.propertyFallback")}
           </h1>
 
           {property?.address && (
@@ -278,24 +282,24 @@ export default async function CleaningReportPage({
           )}
 
           <p className="mt-4 text-sm text-slate-300">
-            Checklist : {template.name} · version {template.version}
+            {tr(locale, "report.checklistVersion", { name: template.name, version: template.version })}
           </p>
         </section>
 
         {submitted && (
           <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-            <h2 className="font-semibold">Rapport envoyé ✅</h2>
+            <h2 className="font-semibold">{t(locale, "report.submittedTitle")}</h2>
             <p className="mt-1 text-sm">
-              Merci, le propriétaire peut maintenant vérifier les informations.
+              {t(locale, "report.submittedBody")}
             </p>
           </section>
         )}
 
         {alreadySubmitted && !submitted && (
           <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-            <h2 className="font-semibold">Rapport déjà envoyé ✅</h2>
+            <h2 className="font-semibold">{t(locale, "report.alreadySubmittedTitle")}</h2>
             <p className="mt-1 text-sm">
-              Ce rapport est conservé comme preuve de fin de mission.
+              {t(locale, "report.alreadySubmittedBody")}
             </p>
           </section>
         )}
@@ -305,6 +309,7 @@ export default async function CleaningReportPage({
           sections={normalizedSections}
           alreadySubmitted={alreadySubmitted}
           referencePhotos={referencePhotos}
+          locale={locale}
         />
       </div>
 
@@ -312,6 +317,7 @@ export default async function CleaningReportPage({
         cleanerToken={cleanerToken}
         missionToken={token}
         active="missions"
+        locale={locale}
       />
     </main>
   );

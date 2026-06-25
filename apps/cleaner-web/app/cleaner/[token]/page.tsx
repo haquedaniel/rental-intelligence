@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
+import { getCleanerLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
 
 type Row = Record<string, any>;
 
@@ -76,8 +77,8 @@ function dayLabel(value?: string | null): string {
   }).format(date);
 }
 
-function cleanerName(cleaner: Row): string {
-  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Intervenante";
+function cleanerName(cleaner: Row, locale: CleanerLocale = "fr"): string {
+  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || t(locale, "common.cleanerFallback");
 }
 
 function cleanerInitials(cleaner: Row): string {
@@ -86,12 +87,12 @@ function cleanerInitials(cleaner: Row): string {
   return `${first}${last}` || "I";
 }
 
-function propertyName(property?: Row | null): string {
-  return property?.name || "Logement";
+function propertyName(property?: Row | null, locale: CleanerLocale = "fr"): string {
+  return property?.name || t(locale, "common.propertyFallback");
 }
 
-function guestName(reservation?: Row | null): string {
-  return reservation?.guest_name || reservation?.source_booking_id || "Séjour";
+function guestName(reservation?: Row | null, locale: CleanerLocale = "fr"): string {
+  return reservation?.guest_name || reservation?.source_booking_id || t(locale, "common.stayFallback");
 }
 
 function anchorAt(request: Row): string | null {
@@ -125,27 +126,27 @@ function missionHref(request: Row): string {
   return `/mission/${request.public_token}/report`;
 }
 
-function statusLabel(request: Row, overdue: boolean): string {
-  if (overdue) return "En retard";
+function statusLabel(request: Row, overdue: boolean, locale: CleanerLocale = "fr"): string {
+  if (overdue) return t(locale, "status.overdue");
 
   switch (request.status) {
     case "created":
-      return "À confirmer";
+      return t(locale, "status.toConfirm");
     case "sent":
-      return "Proposée";
+      return t(locale, "status.offered");
     case "accepted":
-      return "Confirmée";
+      return t(locale, "status.confirmed");
     case "report_submitted":
     case "completed":
-      return "Terminée";
+      return t(locale, "status.completed");
     case "problem_reported":
-      return "Problème";
+      return t(locale, "status.problem");
     case "cancelled":
-      return "Annulée";
+      return t(locale, "status.cancelled");
     case "refused":
-      return "Refusée";
+      return t(locale, "status.refused");
     default:
-      return request.status || "Mission";
+      return request.status || t(locale, "common.missionFallback");
   }
 }
 
@@ -239,10 +240,12 @@ function MiniCleanerCalendar({
   reservations,
   requests,
   propertiesById,
+  locale,
 }: {
   reservations: Row[];
   requests: Row[];
   propertiesById: Record<string, Row>;
+  locale: CleanerLocale;
 }) {
   const today = parisDateKey(new Date());
   const units = Array.from({ length: 21 }, (_, index) => addDays(today, index));
@@ -266,13 +269,13 @@ function MiniCleanerCalendar({
     <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-slate-950">Mini planning</h2>
+          <h2 className="text-lg font-black text-slate-950">{t(locale, "calendar.miniTitle")}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">
-            Séjours et dates limites sur les 3 prochaines semaines.
+            {t(locale, "calendar.homeSubtitle")}
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
-          21 jours
+          {t(locale, "calendar.twentyOneDays")}
         </span>
       </div>
 
@@ -310,11 +313,11 @@ function MiniCleanerCalendar({
                     key={reservation.id}
                     className="z-10 rounded-xl bg-slate-900 px-2 py-1 text-white shadow-sm"
                     style={{ gridColumn: `${span.start} / span ${span.span}` }}
-                    title={`${guestName(reservation)} · ${propertyName(propertiesById[String(reservation.property_id)])}`}
+                    title={`${guestName(reservation, locale)} · ${propertyName(propertiesById[String(reservation.property_id)], locale)}`}
                   >
-                    <p className="truncate text-[10px] font-black">{guestName(reservation)}</p>
+                    <p className="truncate text-[10px] font-black">{guestName(reservation, locale)}</p>
                     <p className="truncate text-[8px] font-bold text-white/60">
-                      {propertyName(propertiesById[String(reservation.property_id)])}
+                      {propertyName(propertiesById[String(reservation.property_id)], locale)}
                     </p>
                   </div>
                 );
@@ -343,9 +346,9 @@ function MiniCleanerCalendar({
                         key={request.id}
                         href={missionHref(request)}
                         className={`w-full rounded-lg px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 ${statusClass(request, overdue)}`}
-                        title={`${propertyName(propertiesById[String(request.property_id)])} · ${statusLabel(request, overdue)} · ${dateLabel(anchorAt(request))}`}
+                        title={`${propertyName(propertiesById[String(request.property_id)], locale)} · ${statusLabel(request, overdue, locale)} · ${dateLabel(anchorAt(request))}`}
                       >
-                        {request.status === "accepted" ? "OK" : "À confirmer"}
+                        {request.status === "accepted" ? t(locale, "common.ok") : t(locale, "status.toConfirm")}
                       </Link>
                     );
                   })}
@@ -373,11 +376,13 @@ function MissionCard({
   property,
   reservation,
   hasReport,
+  locale,
 }: {
   request: Row;
   property?: Row | null;
   reservation?: Row | null;
   hasReport: boolean;
+  locale: CleanerLocale;
 }) {
   const overdue = isOverdue(request, hasReport);
   const amount = missionAmount(request);
@@ -390,19 +395,19 @@ function MissionCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(request, overdue)}`}>
-            {statusLabel(request, overdue)}
+            {statusLabel(request, overdue, locale)}
           </span>
           <h3 className="mt-3 truncate text-base font-black text-slate-950">
-            {propertyName(property)}
+            {propertyName(property, locale)}
           </h3>
           <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {guestName(reservation)} · {money(amount)}
+            {guestName(reservation, locale)} · {money(amount)}
           </p>
         </div>
 
         <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
           <p className="text-[10px] font-black uppercase text-slate-400">
-            Prêt avant
+            {t(locale, "card.readyBefore")}
           </p>
           <p className="mt-1 text-xs font-black text-slate-900">
             {dateLabel(anchorAt(request))}
@@ -412,16 +417,16 @@ function MissionCard({
 
       <div className="mt-3 grid gap-2 text-xs font-bold text-slate-500 sm:grid-cols-3">
         <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Durée</p>
+          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.duration")}</p>
           <p className="mt-1 text-slate-900">{request.estimated_hours ?? "—"} h</p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Linge</p>
-          <p className="mt-1 text-slate-900">{request.linen_required ? "Oui" : "Non"}</p>
+          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.linen")}</p>
+          <p className="mt-1 text-slate-900">{request.linen_required ? t(locale, "common.yes") : t(locale, "common.no")}</p>
         </div>
         <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Validation</p>
-          <p className="mt-1 text-slate-900">{hasReport ? "Rapport reçu" : "À faire"}</p>
+          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.validation")}</p>
+          <p className="mt-1 text-slate-900">{hasReport ? t(locale, "card.reportReceived") : t(locale, "card.todo")}</p>
         </div>
       </div>
     </Link>
@@ -444,6 +449,8 @@ export default async function CleanerHomePage({
 
   const cleaner = cleanerResult.data as Row | null;
   if (!cleaner) notFound();
+
+  const locale = getCleanerLocale(cleaner.preferred_language);
 
   const cleanerPhotoUrl = await signedUrl(
     supabase,
@@ -598,13 +605,13 @@ export default async function CleanerHomePage({
 
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-wide text-white/45">
-                  Espace intervenante
+                  {t(locale, "home.space")}
                 </p>
                 <h1 className="mt-1 truncate text-3xl font-black tracking-tight sm:text-5xl">
-                  Bonjour {cleaner.first_name || cleanerName(cleaner)}
+                  {t(locale, "home.greeting")} {cleaner.first_name || cleanerName(cleaner, locale)}
                 </h1>
                 <p className="mt-2 truncate text-sm font-bold text-white/65">
-                  {textValue(cleaner, ["trading_name", "legal_name", "worker_type"], "Planning et missions")}
+                  {textValue(cleaner, ["trading_name", "legal_name", "worker_type"], t(locale, "home.fallbackSubtitle"))}
                 </p>
               </div>
             </div>
@@ -613,25 +620,25 @@ export default async function CleanerHomePage({
               href={`/cleaner/${token}/payments`}
               className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-950"
             >
-              Paiements
+              {t(locale, "home.payments")}
             </Link>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-4">
             <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
-              <p className="text-xs font-black uppercase text-white/45">À confirmer</p>
+              <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.toConfirm")}</p>
               <p className="mt-2 text-3xl font-black">{toConfirm.length}</p>
             </div>
             <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
-              <p className="text-xs font-black uppercase text-white/45">Confirmées</p>
+              <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.confirmed")}</p>
               <p className="mt-2 text-3xl font-black">{accepted.length}</p>
             </div>
             <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
-              <p className="text-xs font-black uppercase text-white/45">En retard</p>
+              <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.overdue")}</p>
               <p className="mt-2 text-3xl font-black">{overdue.length}</p>
             </div>
             <div className="rounded-[1.35rem] bg-white p-4 text-slate-950">
-              <p className="text-xs font-black uppercase text-slate-400">Confirmé ce mois-ci</p>
+              <p className="text-xs font-black uppercase text-slate-400">{t(locale, "home.confirmedThisMonth")}</p>
               <p className="mt-2 text-3xl font-black">{money(monthExpected)}</p>
             </div>
           </div>
@@ -643,13 +650,13 @@ export default async function CleanerHomePage({
           <section className="rounded-[1.75rem] bg-red-50 p-5 shadow-sm ring-1 ring-red-100">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-red-950">Missions en retard</h2>
+                <h2 className="text-lg font-black text-red-950">{t(locale, "home.overdueTitle")}</h2>
                 <p className="mt-1 text-sm font-semibold text-red-800/70">
-                  À traiter en priorité : ces missions attendent un rapport ou une validation.
+                  {t(locale, "home.overdueBody")}
                 </p>
               </div>
               <span className="rounded-full bg-red-200 px-3 py-1 text-xs font-black text-red-950">
-                {overdue.length} en retard
+                {overdue.length} {t(locale, "home.overdueCount")}
               </span>
             </div>
 
@@ -661,6 +668,7 @@ export default async function CleanerHomePage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -671,13 +679,13 @@ export default async function CleanerHomePage({
           <section className="rounded-[1.75rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-amber-950">Nouvelles missions à confirmer</h2>
+                <h2 className="text-lg font-black text-amber-950">{t(locale, "home.newToConfirmTitle")}</h2>
                 <p className="mt-1 text-sm font-semibold text-amber-800/70">
-                  Ces missions ne sont pas encore dans votre planning confirmé.
+                  {t(locale, "home.newToConfirmBody")}
                 </p>
               </div>
               <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-black text-amber-950">
-                {toConfirm.length} à confirmer
+                {toConfirm.length} {t(locale, "home.toConfirmCount")}
               </span>
             </div>
             <div className="mt-4 space-y-3">
@@ -688,6 +696,7 @@ export default async function CleanerHomePage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  locale={locale}
                 />
               ))}
             </div>
@@ -711,7 +720,7 @@ export default async function CleanerHomePage({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 to-transparent" />
                 <div className="absolute bottom-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-black text-slate-950">
-                  Prochaine mission
+                  {t(locale, "home.nextMission")}
                 </div>
               </div>
 
@@ -720,23 +729,23 @@ export default async function CleanerHomePage({
                   {dayLabel(anchorAt(nextMission.request))}
                 </p>
                 <h2 className="mt-2 text-2xl font-black">
-                  {propertyName(nextMission.property)}
+                  {propertyName(nextMission.property, locale)}
                 </h2>
                 <p className="mt-2 text-sm font-semibold text-slate-500">
-                  {guestName(nextMission.reservation)} · {money(missionAmount(nextMission.request))}
+                  {guestName(nextMission.reservation, locale)} · {money(missionAmount(nextMission.request))}
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">Prêt avant</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.readyBefore")}</p>
                     <p className="mt-1 text-sm font-black">{dateLabel(anchorAt(nextMission.request))}</p>
                   </div>
                   <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">Durée</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.duration")}</p>
                     <p className="mt-1 text-sm font-black">{nextMission.request.estimated_hours ?? "—"} h</p>
                   </div>
                   <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">Voyageurs</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.guests")}</p>
                     <p className="mt-1 text-sm font-black">{nextMission.request.number_of_guests ?? "—"}</p>
                   </div>
                 </div>
@@ -745,7 +754,7 @@ export default async function CleanerHomePage({
                   href={missionHref(nextMission.request)}
                   className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white"
                 >
-                  Ouvrir la mission
+                  {t(locale, "home.openMission")}
                 </Link>
               </div>
             </div>
@@ -755,11 +764,11 @@ export default async function CleanerHomePage({
         <section className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-5">
             <section>
-              {sectionTitle("Planning à venir", "Missions confirmées et prochaines interventions.")}
+              {sectionTitle(t(locale, "home.upcomingTitle"), t(locale, "home.upcomingSubtitle"))}
               <div className="mt-3 space-y-3">
                 {upcoming.length === 0 ? (
                   <div className="rounded-[1.35rem] bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
-                    Aucun ménage prévu pour le moment.
+                    {t(locale, "home.noUpcoming")}
                   </div>
                 ) : (
                   upcoming.slice(0, 10).map(({ request, property, reservation, hasReport }) => (
@@ -769,6 +778,7 @@ export default async function CleanerHomePage({
                       property={property}
                       reservation={reservation}
                       hasReport={hasReport}
+                      locale={locale}
                     />
                   ))
                 )}
@@ -778,10 +788,10 @@ export default async function CleanerHomePage({
 
           <aside className="space-y-5">
             <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              {sectionTitle("À valider", "Missions terminées ou en retard.")}
+              {sectionTitle(t(locale, "home.toValidateTitle"), t(locale, "home.toValidateSubtitle"))}
               <div className="mt-4 space-y-3">
                 {overdue.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">Rien en retard.</p>
+                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.nothingOverdue")}</p>
                 ) : (
                   overdue.slice(0, 4).map(({ request, property, reservation, hasReport }) => (
                     <MissionCard
@@ -790,6 +800,7 @@ export default async function CleanerHomePage({
                       property={property}
                       reservation={reservation}
                       hasReport={hasReport}
+                      locale={locale}
                     />
                   ))
                 )}
@@ -797,16 +808,16 @@ export default async function CleanerHomePage({
             </section>
 
             <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              {sectionTitle("Paiements", "Récapitulatif et demandes.")}
+              {sectionTitle(t(locale, "home.payments"), t(locale, "home.paymentsSubtitle"))}
               <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase text-slate-400">Missions du mois</p>
+                <p className="text-xs font-black uppercase text-slate-400">{t(locale, "home.monthMissions")}</p>
                 <p className="mt-1 text-3xl font-black">{money(monthExpected)}</p>
               </div>
 
               <div className="mt-4 space-y-2">
                 {payments.length === 0 ? (
                   <p className="text-sm font-bold text-slate-500">
-                    Aucune demande de paiement récente.
+                    {t(locale, "home.noRecentPaymentRequests")}
                   </p>
                 ) : (
                   payments.map((payment) => (
@@ -820,7 +831,7 @@ export default async function CleanerHomePage({
                         </span>
                       </div>
                       <p className="mt-1 text-xs font-bold text-slate-400">
-                        {textValue(payment, ["status"], "Statut inconnu")}
+                        {textValue(payment, ["status"], t(locale, "status.unknown"))}
                       </p>
                     </div>
                   ))
@@ -831,21 +842,21 @@ export default async function CleanerHomePage({
                 href={`/cleaner/${token}/payments`}
                 className="mt-4 inline-flex w-full justify-center rounded-full bg-slate-950 px-4 py-3 text-sm font-black text-white"
               >
-                Gérer mes paiements
+                {t(locale, "home.managePayments")}
               </Link>
             </section>
 
             <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              {sectionTitle("Contacts & logements", "Informations utiles pour vos missions.")}
+              {sectionTitle(t(locale, "home.contactsTitle"), t(locale, "home.contactsSubtitle"))}
               <div className="mt-4 space-y-3">
                 {managedProperties.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">Aucun logement associé.</p>
+                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.noLinkedProperty")}</p>
                 ) : (
                   managedProperties.map((property) => (
                     <div key={property.id} className="rounded-2xl bg-slate-50 p-3">
                       <p className="font-black text-slate-950">{property.name}</p>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {property.address || "Adresse à compléter"}
+                        {property.address || t(locale, "home.addressMissing")}
                       </p>
                     </div>
                   ))
@@ -854,10 +865,10 @@ export default async function CleanerHomePage({
             </section>
 
             <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              {sectionTitle("Historique récent")}
+              {sectionTitle(t(locale, "home.recentHistoryTitle"))}
               <div className="mt-4 space-y-2">
                 {history.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">Aucune mission terminée récemment.</p>
+                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.noRecentCompletedMission")}</p>
                 ) : (
                   history.map(({ request, property, reservation }) => (
                     <Link
@@ -865,9 +876,9 @@ export default async function CleanerHomePage({
                       href={missionHref(request)}
                       className="block rounded-2xl bg-slate-50 p-3 text-sm"
                     >
-                      <p className="font-black text-slate-950">{propertyName(property)}</p>
+                      <p className="font-black text-slate-950">{propertyName(property, locale)}</p>
                       <p className="mt-1 font-semibold text-slate-500">
-                        {guestName(reservation)} · {dateLabel(anchorAt(request))}
+                        {guestName(reservation, locale)} · {dateLabel(anchorAt(request))}
                       </p>
                     </Link>
                   ))
@@ -878,7 +889,7 @@ export default async function CleanerHomePage({
         </section>
       </div>
 
-      <CleanerBottomNav cleanerToken={token} active="missions" />
+      <CleanerBottomNav cleanerToken={token} active="missions" locale={locale} />
     </main>
   );
 }

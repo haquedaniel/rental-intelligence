@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getCleanerLocale, intlLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
 import { sendMonthlyPaymentRequest } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -50,17 +51,17 @@ function monthBounds(period: string) {
   };
 }
 
-function monthLabel(period: string): string {
+function monthLabel(period: string, locale: CleanerLocale = "fr"): string {
   const [year, month] = period.split("-").map(Number);
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
   }).format(new Date(Date.UTC(year, month - 1, 1, 12, 0, 0)));
 }
 
-function dateLabel(value?: string | null): string {
+function dateLabel(value?: string | null, locale: CleanerLocale = "fr"): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     timeZone: PARIS_TZ,
     day: "numeric",
     month: "short",
@@ -94,7 +95,7 @@ function paymentDateKey(row: Row): string {
   );
 }
 
-function paymentDateLabel(row: Row): string {
+function paymentDateLabel(row: Row, locale: CleanerLocale = "fr"): string {
   return dateLabel(
     row.ready_by_at ||
       row.completion_deadline_at ||
@@ -103,24 +104,25 @@ function paymentDateLabel(row: Row): string {
       row.scheduled_start_at ||
       row.updated_at ||
       row.created_at,
+    locale,
   );
 }
 
-function statusLabel(status?: string): string {
+function statusLabel(status: string | undefined, locale: CleanerLocale = "fr"): string {
   switch (status) {
     case "sent_to_owner":
-      return "Envoyée";
+      return t(locale, "status.sentToOwner");
     case "paid":
-      return "Payée";
+      return t(locale, "status.paid");
     case "overdue":
-      return "En retard";
+      return t(locale, "status.overdue");
     case "cancelled":
     case "withdrawn":
-      return "Annulée";
+      return t(locale, "status.cancelled");
     case "refused":
-      return "Refusée";
+      return t(locale, "status.refused");
     default:
-      return "Brouillon";
+      return t(locale, "status.draft");
   }
 }
 
@@ -149,12 +151,14 @@ export default async function CleanerPaymentsPage({
     return (
       <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6">
         <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-bold text-slate-950">Lien invalide</h1>
-          <p className="mt-2 text-slate-600">Impossible de trouver votre profil.</p>
+          <h1 className="text-2xl font-bold text-slate-950">{t("fr", "common.invalidLink")}</h1>
+          <p className="mt-2 text-slate-600">{t("fr", "common.profileNotFound")}</p>
         </div>
       </main>
     );
   }
+
+  const locale = getCleanerLocale(cleaner.preferred_language);
 
   const { data: allMissions } = await supabase
     .from("cleaning_requests")
@@ -236,38 +240,38 @@ export default async function CleanerPaymentsPage({
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <Link href={`/cleaner/${token}`} className="text-sm font-semibold text-slate-600">
-            ← Mon planning
+            {t(locale, "payments.backPlanning")}
           </Link>
 
           <h1 className="mt-5 text-3xl font-bold text-slate-950">
-            Mes paiements
+            {t(locale, "payments.title")}
           </h1>
 
           <p className="mt-2 text-slate-600">
-            Vos missions terminées sont regroupées par propriétaire. Vous envoyez vous-même la demande mensuelle.
+            {t(locale, "payments.subtitle")}
           </p>
         </div>
 
         <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            {monthLabel(period)}
+            {monthLabel(period, locale)}
           </p>
 
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div>
-              <p className="text-sm text-slate-300">Propriétaires</p>
+              <p className="text-sm text-slate-300">{t(locale, "payments.owners")}</p>
               <p className="text-3xl font-bold">{groups.length}</p>
             </div>
 
             <div>
-              <p className="text-sm text-slate-300">Missions</p>
+              <p className="text-sm text-slate-300">{t(locale, "payments.missions")}</p>
               <p className="text-3xl font-bold">
                 {groups.reduce((sum, group) => sum + group.missions.length, 0)}
               </p>
             </div>
 
             <div>
-              <p className="text-sm text-slate-300">Total estimé</p>
+              <p className="text-sm text-slate-300">{t(locale, "payments.totalEstimated")}</p>
               <p className="text-3xl font-bold">{money(grandTotal)}</p>
             </div>
           </div>
@@ -277,21 +281,21 @@ export default async function CleanerPaymentsPage({
               href={`/cleaner/${token}/payments?period=${previousPeriod(period)}`}
               className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
             >
-              ← Mois précédent
+              {t(locale, "payments.previousMonth")}
             </Link>
 
             <Link
               href={`/cleaner/${token}/payments?period=${nextPeriod(period)}`}
               className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
             >
-              Mois suivant →
+              {t(locale, "payments.nextMonth")}
             </Link>
           </div>
         </section>
 
         {groups.length === 0 && (
           <section className="rounded-3xl bg-white p-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
-            Aucune mission terminée sur cette période.
+            {t(locale, "payments.noneCompleted")}
           </section>
         )}
 
@@ -299,7 +303,7 @@ export default async function CleanerPaymentsPage({
           const ownerName =
             group.owner?.display_name ||
             group.owner?.legal_name ||
-            "Propriétaire";
+            t(locale, "payments.ownerFallback");
 
           const alreadySent = group.paymentRequest && group.paymentRequest.status !== "draft";
 
@@ -312,18 +316,18 @@ export default async function CleanerPaymentsPage({
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    {group.missions.length} mission(s) · {group.extras.length} supplément(s)
+                    {group.missions.length} {t(locale, "payments.missionCount")} · {group.extras.length} {t(locale, "payments.extraCount")}
                   </p>
 
                   {group.paymentRequest && (
                     <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                      {statusLabel(group.paymentRequest.status)}
+                      {statusLabel(group.paymentRequest.status, locale)}
                     </p>
                   )}
                 </div>
 
                 <div className="text-right">
-                  <p className="text-sm text-slate-500">Total</p>
+                  <p className="text-sm text-slate-500">{t(locale, "payments.total")}</p>
                   <p className="text-3xl font-black text-slate-950">
                     {money(group.total)}
                   </p>
@@ -336,10 +340,10 @@ export default async function CleanerPaymentsPage({
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-bold text-slate-950">
-                          {mission.title || "Mission"}
+                          {mission.title || t(locale, "common.missionFallback")}
                         </p>
                         <p className="text-sm text-slate-500">
-                          {paymentDateLabel(mission)} · {mission.properties?.name}
+                          {paymentDateLabel(mission, locale)} · {mission.properties?.name}
                         </p>
                       </div>
                       <p className="font-black text-slate-950">{money(mission.total_cost_eur)}</p>
@@ -352,7 +356,7 @@ export default async function CleanerPaymentsPage({
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-bold text-amber-950">
-                          Supplément exceptionnel
+                          {t(locale, "payments.exceptionalExtra")}
                         </p>
                         <p className="text-sm text-amber-900">
                           {extra.reason}
@@ -372,23 +376,22 @@ export default async function CleanerPaymentsPage({
 
                   <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
                     <p className="text-sm font-black text-slate-950">
-                      Aperçu de la demande
+                      {t(locale, "payments.previewTitle")}
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Cette demande sera envoyée au propriétaire comme relevé de missions
-                      pour {monthLabel(period)}. Elle sera verrouillée après envoi.
+                      {t(locale, "payments.previewBody").replace("{month}", monthLabel(period, locale))}
                     </p>
                     <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                       <div>
-                        <p className="font-semibold text-slate-500">Missions</p>
+                        <p className="font-semibold text-slate-500">{t(locale, "payments.missions")}</p>
                         <p className="font-black text-slate-950">{money(group.baseTotal)}</p>
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-500">Suppléments</p>
+                        <p className="font-semibold text-slate-500">{t(locale, "payments.extras")}</p>
                         <p className="font-black text-slate-950">{money(group.extrasTotal)}</p>
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-500">Total</p>
+                        <p className="font-semibold text-slate-500">{t(locale, "payments.total")}</p>
                         <p className="font-black text-slate-950">{money(group.total)}</p>
                       </div>
                     </div>
@@ -396,17 +399,17 @@ export default async function CleanerPaymentsPage({
 
                   <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
                     <p className="text-sm font-black text-amber-950">
-                      Ligne exceptionnelle optionnelle
+                      {t(locale, "payments.optionalExtraTitle")}
                     </p>
                     <p className="mt-1 text-xs font-semibold text-amber-900/80">
-                      À utiliser uniquement pour un achat, une prime ou un temps supplémentaire convenu.
+                      {t(locale, "payments.optionalExtraBody")}
                     </p>
 
                     {[1, 2, 3].map((index) => (
                       <div key={index} className="mt-3 grid gap-2 md:grid-cols-[1fr_160px]">
                         <input
                           name={`extra_description_${index}`}
-                          placeholder={index === 1 ? "Ex : produits ménagers achetés" : "Autre ligne exceptionnelle"}
+                          placeholder={index === 1 ? t(locale, "payments.extraPlaceholder1") : t(locale, "payments.extraPlaceholderOther")}
                           className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
                         />
                         <input
@@ -414,7 +417,7 @@ export default async function CleanerPaymentsPage({
                           type="number"
                           step="0.01"
                           min="0"
-                          placeholder="Montant €"
+                          placeholder={t(locale, "payments.amountPlaceholder")}
                           className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
                         />
                       </div>
@@ -424,12 +427,12 @@ export default async function CleanerPaymentsPage({
                   <textarea
                     name="cleaner_message"
                     rows={3}
-                    placeholder="Message optionnel au propriétaire"
+                    placeholder={t(locale, "payments.messagePlaceholder")}
                     className="w-full rounded-xl border border-slate-300 p-3 text-sm"
                   />
 
                   <button className="w-full rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white">
-                    Envoyer la demande à {ownerName}
+                    {t(locale, "payments.sendRequestTo")} {ownerName}
                   </button>
                 </form>
               )}
@@ -438,7 +441,7 @@ export default async function CleanerPaymentsPage({
         })}
       </div>
 
-      <CleanerBottomNav cleanerToken={token} active="payments" />
+      <CleanerBottomNav cleanerToken={token} active="payments" locale={locale} />
     </main>
   );
 }

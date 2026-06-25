@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { submitCleaningReport } from "./actions";
 import { useFormStatus } from "react-dom";
+import { t, type CleanerLocale } from "@/lib/cleanerI18n";
 
 type Section = {
   section_key: string;
@@ -31,9 +32,10 @@ type ReportFormProps = {
   sections: Section[];
   alreadySubmitted: boolean;
   referencePhotos: ReferencePhoto[];
+  locale: CleanerLocale;
 };
 
-function PendingOverlay() {
+function PendingOverlay({ locale }: { locale: CleanerLocale }) {
   const { pending } = useFormStatus();
 
   if (!pending) {
@@ -46,18 +48,18 @@ function PendingOverlay() {
         <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
 
         <h2 className="text-lg font-bold text-slate-950">
-          Envoi du rapport en cours…
+          {t(locale, "form.sendingTitle")}
         </h2>
 
         <p className="mt-2 text-sm text-slate-600">
-          Les photos peuvent prendre quelques secondes. Merci de ne pas fermer cette page.
+          {t(locale, "form.sendingBody")}
         </p>
       </div>
     </div>
   );
 }
 
-function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
+function SubmitButton({ canSubmit, locale }: { canSubmit: boolean; locale: CleanerLocale }) {
   const { pending } = useFormStatus();
 
   return (
@@ -69,7 +71,7 @@ function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
       {pending && (
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
       )}
-      {pending ? "Envoi en cours…" : "Envoyer le rapport"}
+      {pending ? t(locale, "form.sendingShort") : t(locale, "form.submit")}
     </button>
   );
 }
@@ -79,6 +81,7 @@ export function ReportForm({
   sections,
   alreadySubmitted,
   referencePhotos,
+  locale,
 }: ReportFormProps) {
   const initialViewed = Object.fromEntries(
     sections.map((section) => [
@@ -133,7 +136,7 @@ export function ReportForm({
   return (
     <form action={submitCleaningReport} className="space-y-5">
       <input type="hidden" name="token" value={token} />
-      <PendingOverlay />
+      <PendingOverlay locale={locale} />
       {Object.entries(viewedSections).map(([sectionKey, viewed]) =>
         viewed ? (
           <input
@@ -148,26 +151,25 @@ export function ReportForm({
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <img
             src={coverPhoto.signedUrl}
-            alt={coverPhoto.title ?? "Photo du logement"}
+            alt={coverPhoto.title ?? t(locale, "form.photoAlt")}
             className="h-40 w-full object-cover"
           />
           <div className="p-4">
             <p className="text-sm font-semibold text-slate-950">
-              {coverPhoto.title ?? "Logement à préparer"}
+              {coverPhoto.title ?? t(locale, "form.propertyToPrepare")}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Utilisez les photos modèles pour vérifier l’état attendu du logement.
+              {t(locale, "form.modelPhotosInfo")}
             </p>
           </div>
         </div>
       )}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-base font-semibold text-slate-900">
-          Checklist de ménage
+          {t(locale, "form.checklistTitle")}
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Ouvrez chaque rubrique pour voir les points à vérifier, puis validez
-          uniquement la case principale.
+          {t(locale, "form.checklistBody")}
         </p>
       </div>
 
@@ -194,8 +196,7 @@ export function ReportForm({
                   {section.title}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {section.detail_items.length} point
-                  {section.detail_items.length > 1 ? "s" : ""} à vérifier
+                  {section.detail_items.length} {section.detail_items.length > 1 ? t(locale, "form.pointsToCheck") : t(locale, "form.pointToCheck")}
                 </p>
               </div>
 
@@ -204,7 +205,7 @@ export function ReportForm({
                 className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700"
                 onClick={() => openDetails(section.section_key)}
               >
-                {isOpen ? "Masquer" : "Voir les points"}
+                {isOpen ? t(locale, "form.hide") : t(locale, "form.showPoints")}
               </button>
             </div>
 
@@ -222,7 +223,7 @@ export function ReportForm({
               {sectionReferencePhotos.length > 0 ? (
               <div className="w-full">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Photos modèles
+                  {t(locale, "form.referencePhotos")}
                 </p>
 
                 <div className="flex gap-3 overflow-x-auto pb-2">
@@ -235,11 +236,11 @@ export function ReportForm({
                     >
                       <img
                         src={photo.signedUrl ?? ""}
-                        alt={photo.title ?? "Photo modèle"}
+                        alt={photo.title ?? t(locale, "form.modelPhoto")}
                         className="h-20 w-28 object-cover"
                       />
                       <div className="max-w-28 truncate px-2 py-1 text-left text-[11px] text-slate-600">
-                        {photo.title ?? "Photo modèle"}
+                        {photo.title ?? t(locale, "form.modelPhoto")}
                       </div>
                     </button>
                   ))}
@@ -247,7 +248,7 @@ export function ReportForm({
               </div>
             ) : (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                Photos modèle à venir
+                {t(locale, "form.modelPhotosSoon")}
               </span>
             )}
 
@@ -279,15 +280,15 @@ export function ReportForm({
 
                     <span className="flex-1">
                       <span className="block text-sm font-semibold text-emerald-950">
-                        Prendre une photo après ménage
+                        {t(locale, "form.takePhoto")}
                       </span>
                       <span className="mt-1 block text-xs text-emerald-800">
-                        Optionnel pour l’instant. Utile pour confirmer l’état final.
+                        {t(locale, "form.takePhotoBody")}
                       </span>
 
                       {photoNames[section.section_key] && (
                         <span className="mt-2 block text-xs font-medium text-emerald-700">
-                          Photo sélectionnée ✅
+                          {t(locale, "form.photoSelected")}
                         </span>
                       )}
                     </span>
@@ -334,7 +335,7 @@ export function ReportForm({
 
                 {!hasViewed && (
                   <span className="mt-1 block text-xs text-slate-500">
-                    Ouvrez d'abord les points à vérifier.
+                    {t(locale, "form.openDetailsFirst")}
                   </span>
                 )}
               </span>
@@ -342,7 +343,7 @@ export function ReportForm({
 
             <textarea
               name={`section_notes_${section.section_key}`}
-              placeholder="Note éventuelle pour cette rubrique"
+              placeholder={t(locale, "form.notePlaceholder")}
               defaultValue={section.existing_notes ?? ""}
               disabled={alreadySubmitted}
               className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm"
@@ -353,61 +354,66 @@ export function ReportForm({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-900">
-          Problèmes à signaler
+          {t(locale, "form.problemsTitle")}
         </h3>
         <p className="mt-1 text-sm text-slate-600">
-          Cochez uniquement s'il y a quelque chose à signaler.
+          {t(locale, "form.problemsBody")}
         </p>
 
         <div className="mt-4 space-y-4">
           <ProblemField
             name="damage_found"
             notesName="damage_notes"
-            label="Dégât constaté"
+            label={t(locale, "form.damage")}
+            locale={locale}
           />
           <ProblemField
             name="missing_items"
             notesName="missing_items_notes"
-            label="Objet ou équipement manquant"
+            label={t(locale, "form.missingItems")}
+            locale={locale}
           />
           <ProblemField
             name="guest_left_items"
             notesName="guest_left_items_notes"
-            label="Objet oublié par un voyageur"
+            label={t(locale, "form.leftItems")}
+            locale={locale}
           />
           <ProblemField
             name="linen_problem"
             notesName="linen_notes"
-            label="Problème de linge"
+            label={t(locale, "form.linenProblem")}
+            locale={locale}
           />
           <ProblemField
             name="consumables_problem"
             notesName="consumables_notes"
-            label="Produits d’accueil manquants"
+            label={t(locale, "form.consumablesProblem")}
+            locale={locale}
           />
         </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <label className="block text-sm font-semibold text-slate-900">
-          Notes générales
+          {t(locale, "form.generalNotes")}
         </label>
         <textarea
           name="general_notes"
-          placeholder="Informations utiles pour le propriétaire"
+          placeholder={t(locale, "form.generalNotesPlaceholder")}
           disabled={alreadySubmitted}
           className="mt-2 min-h-28 w-full rounded-xl border border-slate-200 p-3 text-sm"
         />
       </section>
 
       {!alreadySubmitted && (
-      <SubmitButton canSubmit={allRequiredChecked} />
+      <SubmitButton canSubmit={allRequiredChecked} locale={locale} />
 
       )}
 
       {!allRequiredChecked && !alreadySubmitted && (
         <p className="text-center text-sm text-slate-500">
-          Toutes les rubriques obligatoires doivent être validées avant l’envoi.
+          {t(locale, "form.requiredBeforeSubmit")}
         </p>
       )}
 
@@ -418,18 +424,18 @@ export function ReportForm({
           onClick={() => setSelectedReferencePhoto(null)}
           className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950"
         >
-          Fermer
+          {t(locale, "form.close")}
         </button>
 
         <div className="max-h-full max-w-3xl overflow-hidden rounded-3xl bg-white">
           <img
             src={selectedReferencePhoto.signedUrl}
-            alt={selectedReferencePhoto.title ?? "Photo modèle"}
+            alt={selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
             className="max-h-[75vh] w-full object-contain"
           />
           <div className="p-4">
             <p className="font-semibold text-slate-950">
-              {selectedReferencePhoto.title ?? "Photo modèle"}
+              {selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
             </p>
           </div>
         </div>
@@ -443,10 +449,12 @@ function ProblemField({
   name,
   notesName,
   label,
+  locale,
 }: {
   name: string;
   notesName: string;
   label: string;
+  locale: CleanerLocale;
 }) {
   const [checked, setChecked] = useState(false);
 
@@ -466,7 +474,7 @@ function ProblemField({
       {checked && (
         <textarea
           name={notesName}
-          placeholder="Précisez le problème"
+          placeholder={t(locale, "form.problemDetailsPlaceholder")}
           className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm"
         />
       )}

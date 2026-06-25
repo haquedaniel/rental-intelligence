@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { redirect } from "next/navigation";
+import { getCleanerLocale, t, tr, type CleanerLocale } from "@/lib/cleanerI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -31,22 +32,8 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    created: "Créée",
-    sent: "En attente de réponse",
-    accepted: "Acceptée",
-    refused: "Refusée",
-    expired: "Expirée",
-    reassigned: "Réassignée",
-    in_progress: "En cours",
-    report_submitted: "Rapport envoyé",
-    problem_reported: "Problème signalé",
-    completed: "Terminée",
-    cancelled: "Annulée",
-  };
-
-  return labels[status] || status;
+function statusLabel(status: string, locale: CleanerLocale) {
+  return t(locale, `status.${status}`) === `status.${status}` ? status : t(locale, `status.${status}`);
 }
 
 async function getCoverPhotoUrl(
@@ -78,7 +65,7 @@ async function getCoverPhotoUrl(
 
   return {
     url: data.signedUrl,
-    title: coverPhoto.title ?? "Photo du logement",
+    title: coverPhoto.title ?? t("fr", "form.photoAlt"),
   };
 }
 
@@ -114,7 +101,8 @@ export default async function MissionPage({ params }: PageProps) {
       cleaners (
         first_name,
         last_name,
-        public_token
+        public_token,
+        preferred_language
       ),
       property_cleaning_profiles (
         label,
@@ -132,15 +120,21 @@ export default async function MissionPage({ params }: PageProps) {
       <main className="min-h-screen bg-slate-50 p-6">
         <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow">
           <h1 className="text-xl font-semibold text-slate-900">
-            Mission introuvable
+            {t("fr", "common.missionNotFound")}
           </h1>
           <p className="mt-3 text-slate-600">
-            Ce lien est invalide ou la mission n’existe plus.
+            {t("fr", "common.missionNotFoundBody")}
           </p>
         </div>
       </main>
     );
   }
+
+  const cleaner = Array.isArray(mission.cleaners)
+    ? mission.cleaners[0]
+    : mission.cleaners;
+
+  const locale = getCleanerLocale(cleaner?.preferred_language);
 
   if (
     mission.public_token_expires_at &&
@@ -149,9 +143,9 @@ export default async function MissionPage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
         <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-xl font-semibold text-slate-900">Lien expiré</h1>
+          <h1 className="text-xl font-semibold text-slate-900">{t(locale, "common.linkExpired")}</h1>
           <p className="mt-3 text-slate-600">
-            Cette proposition de mission n’est plus disponible.
+            {t(locale, "common.linkExpiredBody")}
           </p>
         </div>
       </main>
@@ -171,10 +165,6 @@ export default async function MissionPage({ params }: PageProps) {
   const property = Array.isArray(mission.properties)
     ? mission.properties[0]
     : mission.properties;
-
-  const cleaner = Array.isArray(mission.cleaners)
-    ? mission.cleaners[0]
-    : mission.cleaners;
 
   const profile = Array.isArray(mission.property_cleaning_profiles)
     ? mission.property_cleaning_profiles[0]
@@ -202,7 +192,7 @@ export default async function MissionPage({ params }: PageProps) {
 
           <div className="p-6">
             <p className="text-sm font-medium text-slate-500">
-              Proposition de mission
+              {t(locale, "mission.proposal")}
             </p>
 
             <h1 className="mt-2 text-2xl font-bold text-slate-900">
@@ -213,36 +203,36 @@ export default async function MissionPage({ params }: PageProps) {
 
             <div className="mt-5 rounded-2xl bg-slate-100 p-4">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-slate-500">Statut</span>
+                <span className="text-sm text-slate-500">{t(locale, "mission.status")}</span>
                 <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700">
-                  {statusLabel(mission.status)}
+                  {statusLabel(mission.status, locale)}
                 </span>
               </div>
 
               {mission.urgent && (
                 <div className="mt-3 rounded-xl bg-orange-100 px-3 py-2 text-sm font-semibold text-orange-800">
-                  Mission urgente + prime
+                  {t(locale, "mission.urgent")}
                 </div>
               )}
             </div>
 
             <section className="mt-6 space-y-3">
               <div>
-                <p className="text-sm text-slate-500">Pour</p>
+                <p className="text-sm text-slate-500">{t(locale, "mission.for")}</p>
                 <p className="font-medium text-slate-900">
                   {cleaner?.first_name} {cleaner?.last_name || ""}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">Date prévue</p>
+                <p className="text-sm text-slate-500">{t(locale, "mission.scheduledDate")}</p>
                 <p className="font-medium text-slate-900">
                   {formatDate(mission.scheduled_start_at)}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">Type de ménage</p>
+                <p className="text-sm text-slate-500">{t(locale, "mission.cleaningType")}</p>
                 <p className="font-medium text-slate-900">{profile?.label}</p>
                 {profile?.description && (
                   <p className="mt-1 text-sm text-slate-600">
@@ -252,7 +242,7 @@ export default async function MissionPage({ params }: PageProps) {
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">Durée estimée</p>
+                <p className="text-sm text-slate-500">{t(locale, "mission.estimatedDuration")}</p>
                 <p className="font-medium text-slate-900">
                   {mission.estimated_hours} h
                 </p>
@@ -260,28 +250,28 @@ export default async function MissionPage({ params }: PageProps) {
             </section>
 
             <section className="mt-6 rounded-2xl border border-slate-200 p-4">
-              <h2 className="font-semibold text-slate-900">Rémunération</h2>
+              <h2 className="font-semibold text-slate-900">{t(locale, "mission.remuneration")}</h2>
 
               <div className="mt-3 space-y-2 text-sm text-slate-700">
                 <div className="flex justify-between">
-                  <span>Ménage</span>
+                  <span>{t(locale, "mission.cleaning")}</span>
                   <span>{formatEuro(mission.cleaning_cost_eur)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>
-                    Déplacement ({Number(mission.travel_distance_km).toFixed(1)} km)
+                    {t(locale, "mission.travel")} ({Number(mission.travel_distance_km).toFixed(1)} km)
                   </span>
                   <span>{formatEuro(mission.travel_cost_eur)}</span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Prime urgence</span>
+                  <span>{t(locale, "mission.urgencyBonus")}</span>
                   <span>{formatEuro(mission.urgency_bonus_eur)}</span>
                 </div>
 
                 <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-lg font-bold text-slate-900">
-                  <span>Total</span>
+                  <span>{t(locale, "payments.total")}</span>
                   <span>{formatEuro(mission.total_cost_eur)}</span>
                 </div>
               </div>
@@ -290,23 +280,23 @@ export default async function MissionPage({ params }: PageProps) {
             {isAccepted && (
               <div className="mt-6 rounded-2xl bg-green-100 p-4 text-green-800">
                 <p className="font-semibold">
-                  Merci {cleaner?.first_name}, la mission est confirmée.
+                  {tr(locale, "mission.acceptedThanks", { name: cleaner?.first_name ?? "" })}
                 </p>
                 <p className="mt-1 text-sm">
-                  Elle apparaît maintenant comme acceptée pour le propriétaire.
+                  {t(locale, "mission.acceptedOwnerInfo")}
                 </p>
                 <Link
                   href={`/mission/${token}/report`}
                   className="mt-4 block w-full rounded-2xl bg-emerald-600 px-4 py-4 text-center text-base font-semibold text-white"
                 >
-                  Commencer le rapport de ménage
+                  {t(locale, "mission.startReport")}
                 </Link>
               </div>
             )}
 
             {isRefused && (
               <div className="mt-6 rounded-2xl bg-red-100 p-4 text-red-800">
-                <p className="font-semibold">Mission refusée.</p>
+                <p className="font-semibold">{t(locale, "mission.refused")}</p>
                 {mission.refusal_reason && (
                   <p className="mt-1 text-sm">{mission.refusal_reason}</p>
                 )}
@@ -321,13 +311,13 @@ export default async function MissionPage({ params }: PageProps) {
                     type="submit"
                     className="w-full rounded-2xl bg-slate-900 px-4 py-4 font-semibold text-white"
                   >
-                    Accepter la mission
+                    {t(locale, "mission.accept")}
                   </button>
                 </form>
 
                 <details className="rounded-2xl bg-slate-50 p-4">
                   <summary className="cursor-pointer text-center text-sm font-medium text-slate-500">
-                    Je ne peux pas accepter cette mission
+                    {t(locale, "mission.cannotAccept")}
                   </summary>
 
                   <form action={refuseMission} className="mt-4">
@@ -337,7 +327,7 @@ export default async function MissionPage({ params }: PageProps) {
                       htmlFor="reason"
                       className="block text-sm font-medium text-slate-700"
                     >
-                      Merci d’indiquer la raison
+                      {t(locale, "mission.refusalReasonLabel")}
                     </label>
 
                     <textarea
@@ -346,14 +336,14 @@ export default async function MissionPage({ params }: PageProps) {
                       required
                       rows={3}
                       className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-slate-900"
-                      placeholder="Ex : indisponible, trop loin, déjà engagée ailleurs..."
+                      placeholder={t(locale, "mission.reasonPlaceholder")}
                     />
 
                     <button
                       type="submit"
                       className="mt-3 w-full rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700"
                     >
-                      Confirmer le refus
+                      {t(locale, "mission.confirmRefusal")}
                     </button>
                   </form>
                 </details>
@@ -363,7 +353,7 @@ export default async function MissionPage({ params }: PageProps) {
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500">
-          Accès simplifié via lien privé. Ne pas transférer ce lien.
+          {t(locale, "common.privateLink")}
         </p>
       </div>
 
@@ -371,6 +361,7 @@ export default async function MissionPage({ params }: PageProps) {
         cleanerToken={cleaner?.public_token}
         missionToken={token}
         active="missions"
+        locale={locale}
       />
     </main>
   );

@@ -1,11 +1,14 @@
 import Link from "next/link";
 
+import { getCleanerLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
+
 type CleanerNavActive = "missions" | "planning" | "payments" | "profile";
 
 type CleanerBottomNavProps = {
   cleanerToken?: string | null;
   missionToken?: string | null;
   active?: CleanerNavActive;
+  locale?: CleanerLocale;
 };
 
 function cleanerPath(cleanerToken: string | null | undefined, suffix = "") {
@@ -17,7 +20,9 @@ export function CleanerBottomNav({
   cleanerToken,
   missionToken,
   active = "missions",
+  locale = "fr",
 }: CleanerBottomNavProps) {
+  const currentLocale = getCleanerLocale(locale);
   const fallbackMissionHref = missionToken ? `/mission/${missionToken}` : null;
 
   const items: Array<{
@@ -28,25 +33,25 @@ export function CleanerBottomNav({
   }> = [
     {
       key: "missions",
-      label: "Missions",
+      label: t(currentLocale, "nav.missions"),
       icon: "📋",
       href: cleanerPath(cleanerToken) ?? fallbackMissionHref,
     },
     {
       key: "planning",
-      label: "Planning",
+      label: t(currentLocale, "nav.planning"),
       icon: "📅",
       href: cleanerPath(cleanerToken, "/planning"),
     },
     {
       key: "payments",
-      label: "Paiements",
+      label: t(currentLocale, "nav.payments"),
       icon: "€",
       href: cleanerPath(cleanerToken, "/payments"),
     },
     {
       key: "profile",
-      label: "Profil",
+      label: t(currentLocale, "nav.profile"),
       icon: "👤",
       href: cleanerPath(cleanerToken, "/profile"),
     },
