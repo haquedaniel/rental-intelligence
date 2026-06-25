@@ -108,7 +108,7 @@ export default async function CleaningReportPage({
     template = frozenTemplate ?? null;
   }
 
-  if (mission.cleaning_profile_id) {
+  if (!template && mission.cleaning_profile_id) {
     const { data: exactTemplates } = await supabase
       .from("cleaning_checklist_templates")
       .select("id,name,version,estimated_minutes")
@@ -179,7 +179,7 @@ export default async function CleaningReportPage({
   const { data: sectionsData } = await supabase
     .from("cleaning_checklist_sections")
     .select(
-      "section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement,active",
+      "section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement,active",
     )
     .eq("template_id", template.id)
     .eq("active", true)

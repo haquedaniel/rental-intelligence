@@ -120,7 +120,7 @@ export async function submitCleaningReport(formData: FormData) {
   const { data: mission, error: missionError } = await supabase
     .from("cleaning_requests")
     .select(
-      "id,status,property_id,cleaning_profile_id,assigned_cleaner_id,public_token_expires_at"
+      "id,status,property_id,cleaning_profile_id,checklist_template_id,assigned_cleaner_id,public_token_expires_at"
     )
     .eq("public_token", token)
     .single();
@@ -149,7 +149,21 @@ export async function submitCleaningReport(formData: FormData) {
 
   let template = null;
 
-  if (mission.cleaning_profile_id) {
+  if (mission.checklist_template_id) {
+    const { data: frozenTemplate, error: frozenTemplateError } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("id", mission.checklist_template_id)
+      .maybeSingle();
+
+    if (frozenTemplateError) {
+      console.error("Frozen checklist template query failed", frozenTemplateError);
+    }
+
+    template = frozenTemplate ?? null;
+  }
+
+  if (!template && mission.cleaning_profile_id) {
     const { data: exactTemplates, error: exactTemplateError } = await supabase
       .from("cleaning_checklist_templates")
       .select("id,name,version,estimated_minutes")
@@ -206,9 +220,10 @@ if (!template) {
   const { data: sections, error: sectionsError } = await supabase
     .from("cleaning_checklist_sections")
     .select(
-      "section_key,title,high_level_check_label,detail_items,order_index,required,photo_requirement"
+      "section_key,title,high_level_check_label,detail_items,sort_order,order_index,required,photo_requirement"
     )
     .eq("template_id", template.id)
+    .order("sort_order", { ascending: true })
     .order("order_index", { ascending: true });
 
   if (sectionsError || !sections || sections.length === 0) {
@@ -277,6 +292,7 @@ if (!template) {
       detail_items: section.detail_items,
       required: section.required,
       photo_requirement: section.photo_requirement,
+      sort_order: section.sort_order,
       order_index: section.order_index,
     })),
   };
