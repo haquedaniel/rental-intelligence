@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { updateCleanerPreferredLanguage } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -47,10 +47,14 @@ function Field({ label, value }: { label: string; value: string }) {
 
 export default async function CleanerProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams?: Promise<{ updated?: string }>;
 }) {
   const { token } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const updated = resolvedSearchParams?.updated === "1";
   const supabase = getSupabaseAdmin();
 
   const { data: cleaner } = await supabase
@@ -97,25 +101,44 @@ export default async function CleanerProfilePage({
         </section>
 
         <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-lg font-black text-slate-950">Actions</h2>
-          <div className="mt-4 grid gap-3">
-            <Link
-              href={`/cleaner/${token}/payments`}
-              className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
+          <h2 className="text-lg font-black text-slate-950">Langue de l'application</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">
+            Cette langue sera utilisée pour les missions, les SMS et les checklists.
+          </p>
+
+          {updated && (
+            <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800 ring-1 ring-emerald-100">
+              Langue enregistrée ✅
+            </p>
+          )}
+
+          <form action={updateCleanerPreferredLanguage.bind(null, token)} className="mt-4 space-y-3">
+            <label className="block rounded-2xl bg-slate-50 p-4">
+              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Langue préférée
+              </span>
+              <select
+                name="preferred_language"
+                defaultValue={cleaner.preferred_language ?? "fr"}
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-950"
+              >
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+              </select>
+            </label>
+
+            <button
+              type="submit"
+              className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
             >
-              Voir mes paiements
-            </Link>
-            <Link
-              href={`/cleaner/${token}/planning`}
-              className="rounded-2xl bg-slate-100 px-4 py-3 text-center text-sm font-black text-slate-950"
-            >
-              Voir mon planning
-            </Link>
-          </div>
+              Enregistrer la langue
+            </button>
+          </form>
         </section>
 
         <p className="text-center text-xs font-semibold text-slate-400">
-          Les modifications du profil seront ajoutées dans une prochaine étape.
+          Les autres modifications du profil seront ajoutées dans une prochaine étape.
         </p>
       </div>
 
