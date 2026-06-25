@@ -69,6 +69,28 @@ function notificationForPending(request: Row, property?: Row): NotificationItem 
   };
 }
 
+function notificationForCompletedReport(
+  request: Row,
+  property?: Row,
+  cleaner?: Row,
+): NotificationItem {
+  const hasProblem = request.status === "problem_reported";
+  const date = request.ready_by_at
+    ? compactDateLabel(parisDateKey(request.ready_by_at))
+    : request.scheduled_start_at
+      ? compactDateLabel(parisDateKey(request.scheduled_start_at))
+      : "date à confirmer";
+
+  return {
+    key: `report-${request.id}`,
+    severity: hasProblem ? "red" : "slate",
+    title: hasProblem ? "Problème signalé" : "Ménage terminé",
+    summary: `${property?.name ?? "Logement"} · ${date} · ${cleaner ? [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") : "rapport disponible"}.`,
+    meta: hasProblem ? "Rapport" : "Prêt",
+    href: `/owner/reports/${request.id}`,
+  };
+}
+
 function paymentMoney(value: unknown): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -426,8 +448,21 @@ export default async function PlanningV2Page({
     (outboundByRequestId[request.id] ?? []).some((message) => message.status === "failed"),
   );
 
+  const completedReportRequests = alertRequests
+    .filter((request) =>
+      ["report_submitted", "completed", "problem_reported"].includes(request.status),
+    )
+    .sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")));
+
   const notifications: NotificationItem[] = [
     ...openPaymentRequests.map(notificationForPaymentRequest),
+    ...completedReportRequests.slice(0, 4).map((request) =>
+      notificationForCompletedReport(
+        request,
+        propertyById[request.property_id],
+        cleanersById[request.assigned_cleaner_id],
+      ),
+    ),
     ...manualActionRequests.map((request) =>
       notificationForManualAction(request, propertyById[request.property_id]),
     ),

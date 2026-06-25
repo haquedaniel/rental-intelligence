@@ -342,10 +342,10 @@ export function manualActionNeeded(request: Row): boolean {
 }
 
 export function reportHref(request?: Row | null): string | null {
-  if (!request?.public_token) return null;
+  if (!request?.id) return null;
 
   if (["report_submitted", "completed", "problem_reported"].includes(request.status)) {
-    return `/mission/${request.public_token}/report`;
+    return `/owner/reports/${request.id}`;
   }
 
   return null;
