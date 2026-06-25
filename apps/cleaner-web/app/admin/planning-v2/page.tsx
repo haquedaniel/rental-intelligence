@@ -27,6 +27,7 @@ type SearchParams = {
   end?: string;
   property?: string;
   kpi?: string;
+  view?: string;
 };
 
 function notificationForManualAction(request: Row, property?: Row): NotificationItem {
@@ -138,6 +139,309 @@ function notificationForPaymentRequest(request: Row): NotificationItem {
   };
 }
 
+type OwnerMobileView = "planning" | "analytics" | "payments" | "alerts" | "config";
+
+function cockpitViewHref({
+  view,
+  start,
+  end,
+  selectedPropertyId,
+  selectedKpi,
+}: {
+  view: OwnerMobileView;
+  start: string;
+  end: string;
+  selectedPropertyId?: string;
+  selectedKpi?: string;
+}) {
+  const params = new URLSearchParams();
+
+  params.set("view", view);
+  params.set("start", start);
+  params.set("end", end);
+
+  if (selectedPropertyId) params.set("property", selectedPropertyId);
+  if (selectedKpi) params.set("kpi", selectedKpi);
+
+  return `/owner/cockpit?${params.toString()}`;
+}
+
+function MobileBottomNav({
+  currentView,
+  start,
+  end,
+  selectedPropertyId,
+  selectedKpi,
+  notificationCount,
+  paymentActionCount,
+  hasOverduePayment,
+}: {
+  currentView: OwnerMobileView;
+  start: string;
+  end: string;
+  selectedPropertyId?: string;
+  selectedKpi?: string;
+  notificationCount: number;
+  paymentActionCount: number;
+  hasOverduePayment: boolean;
+}) {
+  const items: {
+    view: OwnerMobileView;
+    label: string;
+    icon: string;
+    badge?: number;
+    urgent?: boolean;
+  }[] = [
+    { view: "planning", label: "Planning", icon: "📅" },
+    { view: "analytics", label: "Analytics", icon: "📊" },
+    { view: "payments", label: "Paiements", icon: "€", badge: paymentActionCount, urgent: hasOverduePayment },
+    { view: "alerts", label: "Alertes", icon: "🔔", badge: notificationCount, urgent: notificationCount > 0 },
+    { view: "config", label: "Config", icon: "⚙️" },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_30px_rgba(15,23,42,0.10)] backdrop-blur sm:hidden">
+      <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+        {items.map((item) => {
+          const active = currentView === item.view;
+
+          return (
+            <Link
+              key={item.view}
+              href={cockpitViewHref({
+                view: item.view,
+                start,
+                end,
+                selectedPropertyId,
+                selectedKpi,
+              })}
+              className={`relative flex flex-col items-center justify-center rounded-2xl px-1 py-2 text-[10px] font-black ${
+                active
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500 active:bg-slate-100"
+              }`}
+            >
+              <span className="text-lg leading-none">{item.icon}</span>
+              <span className="mt-1 truncate">{item.label}</span>
+
+              {item.badge ? (
+                <span
+                  className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white ${
+                    item.urgent ? "bg-red-600" : "bg-amber-500"
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function MobileAlertsPanel({ notifications }: { notifications: NotificationItem[] }) {
+  if (notifications.length === 0) {
+    return (
+      <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:hidden">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          Alertes
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">Rien d’urgent</h2>
+        <p className="mt-2 text-sm font-semibold text-slate-500">
+          Aucune action immédiate.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-3 sm:hidden">
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          Alertes
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">
+          {notifications.length} notification(s)
+        </h2>
+        <p className="mt-2 text-sm font-semibold text-slate-500">
+          Les points rouges demandent une action rapide.
+        </p>
+      </div>
+
+      {(["red", "amber", "slate"] as const).map((severity) => {
+        const items = notifications.filter((item) => item.severity === severity);
+        if (items.length === 0) return null;
+
+        return (
+          <div key={severity} className="space-y-2">
+            <p className="px-1 text-[10px] font-black uppercase tracking-wide text-slate-400">
+              {severity === "red" ? "À faire" : severity === "amber" ? "À surveiller" : "Info"} · {items.length}
+            </p>
+
+            {items.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                className="block rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${
+                      item.severity === "red"
+                        ? "bg-red-600"
+                        : item.severity === "amber"
+                          ? "bg-amber-500"
+                          : "bg-slate-400"
+                    }`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-black text-slate-950">{item.title}</h3>
+                      {item.meta && (
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">
+                          {item.meta}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      {item.summary}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function MobilePaymentsPanel({ openPaymentRequests }: { openPaymentRequests: Row[] }) {
+  const total = openPaymentRequests.reduce(
+    (sum, request) => sum + Number(request.total_eur ?? 0),
+    0,
+  );
+
+  return (
+    <section className="space-y-3 sm:hidden">
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          Paiements
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">
+          {paymentMoney(total)} à traiter
+        </h2>
+        <p className="mt-2 text-sm font-semibold text-slate-500">
+          {openPaymentRequests.length} demande(s) en attente.
+        </p>
+
+        <Link
+          href="/owner/payments"
+          className="mt-4 block rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
+        >
+          Ouvrir la page paiements
+        </Link>
+      </div>
+
+      {openPaymentRequests.length === 0 ? (
+        <p className="rounded-3xl bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200">
+          Aucune demande de paiement à traiter.
+        </p>
+      ) : (
+        openPaymentRequests.slice(0, 8).map((request) => {
+          const overdue = paymentIsOverdue(request);
+
+          return (
+            <Link
+              key={request.id}
+              href={`/owner/payments/${request.public_token}`}
+              className="block rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-slate-950">
+                    {paymentCleanerName(request)}
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                    {paymentPeriodLabel(request)}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-lg font-black text-slate-950">
+                    {paymentMoney(request.total_eur)}
+                  </p>
+                  <span
+                    className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-black ${
+                      overdue
+                        ? "bg-red-100 text-red-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {overdue ? "En retard" : "À régler"}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })
+      )}
+    </section>
+  );
+}
+
+function MobileConfigPanel() {
+  return (
+    <section className="space-y-3 sm:hidden">
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          Config
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">
+          Réglages et outils
+        </h2>
+        <p className="mt-2 text-sm font-semibold text-slate-500">
+          Les écrans historiques restent accessibles ici pour l’instant.
+        </p>
+      </div>
+
+      <div className="grid gap-2">
+        <Link
+          href="/admin/settings"
+          className="rounded-3xl bg-white p-4 font-black text-slate-950 shadow-sm ring-1 ring-slate-200"
+        >
+          Rappels et automatisations
+        </Link>
+
+        <Link
+          href="/admin/operations"
+          className="rounded-3xl bg-white p-4 font-black text-slate-950 shadow-sm ring-1 ring-slate-200"
+        >
+          Ancien écran opérations
+        </Link>
+
+        <Link
+          href="/admin/operations/create-cleaning-request"
+          className="rounded-3xl bg-white p-4 font-black text-slate-950 shadow-sm ring-1 ring-slate-200"
+        >
+          Créer une mission manuelle
+        </Link>
+
+        <Link
+          href="/owner/payments"
+          className="rounded-3xl bg-white p-4 font-black text-slate-950 shadow-sm ring-1 ring-slate-200"
+        >
+          Demandes de paiement
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+
 export default async function PlanningV2Page({
   searchParams,
 }: {
@@ -154,6 +458,11 @@ export default async function PlanningV2Page({
   const selectedKpi = ["annual", "realised", "period", "after_variables"].includes(params?.kpi || "")
     ? params?.kpi
     : undefined;
+
+  const requestedView = params?.view || "planning";
+  const currentView: OwnerMobileView = ["planning", "analytics", "payments", "alerts", "config"].includes(requestedView)
+    ? (requestedView as OwnerMobileView)
+    : "planning";
 
   const yearStart = `${start.slice(0, 4)}-01-01`;
   const yearEnd = `${start.slice(0, 4)}-12-31`;
@@ -488,15 +797,16 @@ export default async function PlanningV2Page({
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-5 lg:px-8">
+    <main className="min-h-screen bg-slate-50 px-3 pb-24 pt-4 sm:px-5 sm:pb-4 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-3">
         <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <Link href="/admin" className="text-sm font-bold text-slate-600">
               ← Back office
             </Link>
-            <h1 className="mt-2 truncate text-2xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Calendrier central
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+              <span className="sm:hidden">Cockpit</span>
+              <span className="hidden sm:inline">Calendrier central</span>
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               {visibleProperties.length === 1
@@ -505,7 +815,7 @@ export default async function PlanningV2Page({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden shrink-0 items-center gap-2 sm:flex">
             <NotificationFeed items={notifications} />
 
             <nav className="flex max-w-[58vw] gap-1 overflow-x-auto rounded-full bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:max-w-none">
@@ -545,19 +855,34 @@ export default async function PlanningV2Page({
           </div>
         </header>
 
-        <KpiStrip
-          dailyRows={analyticsDaily}
-          monthlyRows={analyticsMonthly}
-          kpiRows={analyticsKpis}
-          expenseRows={analyticsExpenses}
-          targetRows={analyticsTargets}
-          start={start}
-          end={end}
-          selectedKpi={selectedKpi}
-          selectedPropertyId={selectedPropertyId}
-        />
+        <div className={currentView === "analytics" ? "block" : "hidden sm:block"}>
+          <KpiStrip
+            dailyRows={analyticsDaily}
+            monthlyRows={analyticsMonthly}
+            kpiRows={analyticsKpis}
+            expenseRows={analyticsExpenses}
+            targetRows={analyticsTargets}
+            start={start}
+            end={end}
+            selectedKpi={selectedKpi}
+            selectedPropertyId={selectedPropertyId}
+          />
+        </div>
 
-        <PeriodRangeSlider
+        <div className={currentView === "payments" ? "block" : "hidden"}>
+          <MobilePaymentsPanel openPaymentRequests={openPaymentRequests} />
+        </div>
+
+        <div className={currentView === "alerts" ? "block" : "hidden"}>
+          <MobileAlertsPanel notifications={notifications} />
+        </div>
+
+        <div className={currentView === "config" ? "block" : "hidden"}>
+          <MobileConfigPanel />
+        </div>
+
+        <div className={currentView === "planning" ? "space-y-3" : "hidden space-y-3 sm:block"}>
+          <PeriodRangeSlider
           start={start}
           end={end}
           selectedPropertyId={selectedPropertyId}
@@ -577,7 +902,9 @@ export default async function PlanningV2Page({
           />
         </div>
 
-        <details className="rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200">
+        </div>
+
+        <details className="hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200 sm:block">
           <summary className="cursor-pointer list-none p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -604,6 +931,17 @@ export default async function PlanningV2Page({
           </div>
         </details>
       </div>
+
+      <MobileBottomNav
+        currentView={currentView}
+        start={start}
+        end={end}
+        selectedPropertyId={selectedPropertyId}
+        selectedKpi={selectedKpi}
+        notificationCount={notifications.length}
+        paymentActionCount={paymentActionCount}
+        hasOverduePayment={overduePaymentRequests.length > 0}
+      />
     </main>
   );
 }
