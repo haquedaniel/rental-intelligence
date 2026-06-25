@@ -25,6 +25,38 @@ function anchorAt(request: Row): string | null {
   );
 }
 
+function parisDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function shortDay(dateKey: string): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    weekday: "short",
+    day: "2-digit",
+  })
+    .format(date)
+    .replace(".", "");
+}
+
 function dateLabel(value?: string | null): string {
   const date = parseDate(value);
   if (!date) return "—";
@@ -128,6 +160,146 @@ function statusClass(request: Row, overdue: boolean): string {
   }
 }
 
+function spanForCalendar(startKey: string, endExclusiveKey: string, units: string[]) {
+  const touched = units
+    .map((unit, index) => ({ unit, index }))
+    .filter(({ unit }) => startKey <= unit && endExclusiveKey > unit);
+
+  if (touched.length === 0) return null;
+
+  const first = touched[0].index;
+  const last = touched[touched.length - 1].index;
+
+  return { start: first + 1, span: last - first + 1 };
+}
+
+function MiniPlanning({
+  reservations,
+  requests,
+  propertiesById,
+  reservationsById,
+}: {
+  reservations: Row[];
+  requests: Row[];
+  propertiesById: Record<string, Row>;
+  reservationsById: Record<string, Row>;
+}) {
+  const today = parisDateKey(new Date());
+  const units = Array.from({ length: 21 }, (_, index) => addDays(today, index));
+  const gridTemplateColumns = `repeat(${units.length}, 34px)`;
+
+  const visibleReservations = reservations.filter((reservation) => {
+    if (!reservation.checkin_at || !reservation.checkout_at) return false;
+    const checkin = parisDateKey(new Date(reservation.checkin_at));
+    const checkout = parisDateKey(new Date(reservation.checkout_at));
+    return checkout >= units[0] && checkin <= units[units.length - 1];
+  });
+
+  const visibleRequests = requests.filter((request) => {
+    const anchor = parseDate(anchorAt(request));
+    if (!anchor) return false;
+    const key = parisDateKey(anchor);
+    return key >= units[0] && key <= units[units.length - 1];
+  });
+
+  return (
+    <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-950">Mini planning</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">
+            Séjours et missions sur les 3 prochaines semaines.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
+          21 jours
+        </span>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <div className="min-w-max space-y-2">
+          <div className="grid gap-1" style={{ gridTemplateColumns }}>
+            {units.map((dateKey) => (
+              <div key={dateKey} className="rounded-xl bg-slate-50 px-1 py-1 text-center">
+                <p className="text-[8px] font-black uppercase text-slate-400">
+                  {shortDay(dateKey).slice(0, 3)}
+                </p>
+                <p className="mt-0.5 text-[10px] font-black text-slate-900">
+                  {dateKey.slice(8, 10)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative rounded-2xl bg-slate-50 p-1.5">
+            <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
+              {units.map((dateKey) => (
+                <div key={`${dateKey}-bg`} className="rounded-xl bg-white/65" />
+              ))}
+            </div>
+
+            <div className="relative grid min-h-10 gap-1" style={{ gridTemplateColumns }}>
+              {visibleReservations.map((reservation) => {
+                const checkin = parisDateKey(new Date(reservation.checkin_at));
+                const checkout = parisDateKey(new Date(reservation.checkout_at));
+                const span = spanForCalendar(checkin, checkout, units);
+                if (!span) return null;
+
+                return (
+                  <div
+                    key={reservation.id}
+                    className="z-10 rounded-xl bg-slate-900 px-2 py-1 text-white shadow-sm"
+                    style={{ gridColumn: `${span.start} / span ${span.span}` }}
+                    title={`${guestName(reservation)} · ${propertyName(propertiesById[String(reservation.property_id)])}`}
+                  >
+                    <p className="truncate text-[10px] font-black">{guestName(reservation)}</p>
+                    <p className="truncate text-[8px] font-bold text-white/60">
+                      {propertyName(propertiesById[String(reservation.property_id)])}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-1 rounded-2xl bg-slate-50 p-1.5" style={{ gridTemplateColumns }}>
+            {units.map((dateKey) => {
+              const dayRequests = visibleRequests.filter((request) => {
+                const anchor = parseDate(anchorAt(request));
+                return anchor ? parisDateKey(anchor) === dateKey : false;
+              });
+
+              return (
+                <div
+                  key={`${dateKey}-missions`}
+                  className={`flex min-h-10 flex-col items-center justify-center gap-1 rounded-xl ${
+                    dayRequests.length ? "bg-white p-1 ring-1 ring-white" : ""
+                  }`}
+                >
+                  {dayRequests.map((request) => {
+                    const reservation = reservationsById[String(request.reservation_id)];
+                    const overdue = isOverdue(request, false);
+                    return (
+                      <Link
+                        key={request.id}
+                        href={missionHref(request)}
+                        className={`w-full rounded-lg px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 ${statusClass(request, overdue)}`}
+                        title={`${propertyName(propertiesById[String(request.property_id)])} · ${guestName(reservation)} · ${statusLabel(request, overdue)}`}
+                      >
+                        {overdue ? "RETARD" : request.status === "accepted" ? "OK" : "À confirmer"}
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MissionPlanningCard({
   request,
   property,
@@ -148,12 +320,7 @@ function MissionPlanningCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span
-            className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(
-              request,
-              overdue,
-            )}`}
-          >
+          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(request, overdue)}`}>
             {statusLabel(request, overdue)}
           </span>
 
@@ -167,27 +334,10 @@ function MissionPlanningCard({
         </div>
 
         <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-          <p className="text-[10px] font-black uppercase text-slate-400">
-            Prêt avant
-          </p>
+          <p className="text-[10px] font-black uppercase text-slate-400">Prêt avant</p>
           <p className="mt-1 text-xs font-black text-slate-900">
             {dateLabel(anchorAt(request))}
           </p>
-        </div>
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs font-bold text-slate-500">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Durée</p>
-          <p className="mt-1 text-slate-900">{request.estimated_hours ?? "—"} h</p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Linge</p>
-          <p className="mt-1 text-slate-900">{request.linen_required ? "Oui" : "Non"}</p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">Rapport</p>
-          <p className="mt-1 text-slate-900">{hasReport ? "Reçu" : "À faire"}</p>
         </div>
       </div>
     </Link>
@@ -207,9 +357,7 @@ function Section({
     <section className="space-y-3">
       <div>
         <h2 className="text-lg font-black text-slate-950">{title}</h2>
-        {subtitle && (
-          <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>
-        )}
+        {subtitle && <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -245,12 +393,26 @@ export default async function CleanerPlanningPage({
   const reservationIds = [...new Set(requests.map((request) => request.reservation_id).filter(Boolean))];
   const requestIds = requests.map((request) => request.id).filter(Boolean);
 
-  const [propertiesResult, reservationsResult, reportsResult] = await Promise.all([
+  const calendarStart = new Date();
+  calendarStart.setDate(calendarStart.getDate() - 1);
+  const calendarEnd = new Date();
+  calendarEnd.setDate(calendarEnd.getDate() + 22);
+
+  const [propertiesResult, reservationsResult, calendarReservationsResult, reportsResult] = await Promise.all([
     propertyIds.length
       ? supabase.from("properties").select("*").in("id", propertyIds)
       : Promise.resolve({ data: [] }),
     reservationIds.length
       ? supabase.from("reservations").select("*").in("id", reservationIds)
+      : Promise.resolve({ data: [] }),
+    propertyIds.length
+      ? supabase
+          .from("reservations")
+          .select("*")
+          .in("property_id", propertyIds)
+          .gte("checkout_at", calendarStart.toISOString())
+          .lte("checkin_at", calendarEnd.toISOString())
+          .order("checkin_at", { ascending: true })
       : Promise.resolve({ data: [] }),
     requestIds.length
       ? supabase.from("cleaning_reports").select("id,cleaning_request_id").in("cleaning_request_id", requestIds)
@@ -279,12 +441,11 @@ export default async function CleanerPlanningPage({
     }))
     .sort((a, b) => (a.anchor?.getTime() ?? 0) - (b.anchor?.getTime() ?? 0));
 
+  const overdue = enriched.filter(({ request, hasReport }) => isOverdue(request, hasReport));
   const toConfirm = enriched.filter(({ request }) => ["created", "sent"].includes(request.status));
-  const confirmed = enriched.filter(({ request }) => request.status === "accepted");
-  const finished = enriched
-    .filter(({ request }) => ["report_submitted", "completed", "problem_reported"].includes(request.status))
-    .reverse()
-    .slice(0, 12);
+  const confirmed = enriched.filter(
+    ({ request, hasReport }) => request.status === "accepted" && !isOverdue(request, hasReport),
+  );
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5 text-slate-950">
@@ -295,16 +456,40 @@ export default async function CleanerPlanningPage({
           </p>
           <h1 className="mt-2 text-3xl font-black">Planning</h1>
           <p className="mt-2 text-sm font-semibold text-white/60">
-            Missions à confirmer, interventions confirmées et historique récent.
+            Vue calendrier des séjours et des interventions à venir.
           </p>
         </header>
 
-        <Section title="À confirmer" subtitle="Ces missions attendent une réponse.">
-          {toConfirm.length === 0 ? (
-            <p className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
-              Aucune mission à confirmer.
+        {overdue.length > 0 && (
+          <section className="rounded-[1.75rem] bg-red-50 p-5 shadow-sm ring-1 ring-red-100">
+            <h2 className="text-lg font-black text-red-950">Missions en retard</h2>
+            <p className="mt-1 text-sm font-semibold text-red-800/70">
+              À traiter avant de regarder le reste du planning.
             </p>
-          ) : (
+
+            <div className="mt-4 space-y-3">
+              {overdue.map(({ request, property, reservation, hasReport }) => (
+                <MissionPlanningCard
+                  key={request.id}
+                  request={request}
+                  property={property}
+                  reservation={reservation}
+                  hasReport={hasReport}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <MiniPlanning
+          reservations={(calendarReservationsResult.data ?? []) as Row[]}
+          requests={requests}
+          propertiesById={propertiesById}
+          reservationsById={reservationsById}
+        />
+
+        {toConfirm.length > 0 && (
+          <Section title="À confirmer" subtitle="Missions proposées, pas encore acceptées.">
             <div className="space-y-3">
               {toConfirm.map(({ request, property, reservation, hasReport }) => (
                 <MissionPlanningCard
@@ -316,10 +501,10 @@ export default async function CleanerPlanningPage({
                 />
               ))}
             </div>
-          )}
-        </Section>
+          </Section>
+        )}
 
-        <Section title="Confirmées" subtitle="Vos prochaines interventions acceptées.">
+        <Section title="Interventions confirmées" subtitle="Liste détaillée des prochaines missions.">
           {confirmed.length === 0 ? (
             <p className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
               Aucune mission confirmée.
@@ -327,26 +512,6 @@ export default async function CleanerPlanningPage({
           ) : (
             <div className="space-y-3">
               {confirmed.map(({ request, property, reservation, hasReport }) => (
-                <MissionPlanningCard
-                  key={request.id}
-                  request={request}
-                  property={property}
-                  reservation={reservation}
-                  hasReport={hasReport}
-                />
-              ))}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Historique récent">
-          {finished.length === 0 ? (
-            <p className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
-              Aucun historique récent.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {finished.map(({ request, property, reservation, hasReport }) => (
                 <MissionPlanningCard
                   key={request.id}
                   request={request}

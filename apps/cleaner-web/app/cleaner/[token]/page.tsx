@@ -639,6 +639,34 @@ export default async function CleanerHomePage({
       </section>
 
       <div id="planning" className="mx-auto max-w-6xl scroll-mt-6 space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+        {overdue.length > 0 && (
+          <section className="rounded-[1.75rem] bg-red-50 p-5 shadow-sm ring-1 ring-red-100">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-red-950">Missions en retard</h2>
+                <p className="mt-1 text-sm font-semibold text-red-800/70">
+                  À traiter en priorité : ces missions attendent un rapport ou une validation.
+                </p>
+              </div>
+              <span className="rounded-full bg-red-200 px-3 py-1 text-xs font-black text-red-950">
+                {overdue.length} en retard
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {overdue.map(({ request, property, reservation, hasReport }) => (
+                <MissionCard
+                  key={request.id}
+                  request={request}
+                  property={property}
+                  reservation={reservation}
+                  hasReport={hasReport}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {toConfirm.length > 0 && (
           <section className="rounded-[1.75rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -666,11 +694,6 @@ export default async function CleanerHomePage({
           </section>
         )}
 
-        <MiniCleanerCalendar
-          reservations={calendarReservations}
-          requests={requests}
-          propertiesById={propertiesById}
-        />
 
         {nextMission && (
           <section className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
