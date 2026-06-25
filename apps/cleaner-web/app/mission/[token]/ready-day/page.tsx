@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { fullDateTimeLabel } from "@/lib/missionReadyDays";
 import { acceptMissionReadyDay, refuseMissionFromReadyDay } from "./actions";
@@ -36,7 +37,7 @@ export default async function MissionReadyDayPage({
 
   if (!request) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-6">
+      <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6">
         <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h1 className="text-2xl font-bold text-slate-950">Mission introuvable</h1>
           <p className="mt-2 text-slate-600">Le lien est invalide ou expiré.</p>
@@ -205,6 +206,12 @@ export default async function MissionReadyDayPage({
           </>
         )}
       </div>
+
+      <CleanerBottomNav
+        cleanerToken={cleaner?.public_token}
+        missionToken={token}
+        active="missions"
+      />
     </main>
   );
 }

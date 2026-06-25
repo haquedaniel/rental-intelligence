@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ReportForm } from "./ReportForm";
 
@@ -58,7 +59,7 @@ export default async function CleaningReportPage({
   const { data: mission, error: missionError } = await supabase
     .from("cleaning_requests")
     .select(
-      "id,status,property_id,cleaning_profile_id,checklist_template_id,scheduled_start_at,public_token_expires_at",
+      "id,status,property_id,assigned_cleaner_id,cleaning_profile_id,checklist_template_id,scheduled_start_at,public_token_expires_at",
     )
     .eq("public_token", token)
     .single();
@@ -95,6 +96,19 @@ export default async function CleaningReportPage({
     .select("name,address")
     .eq("id", mission.property_id)
     .maybeSingle();
+
+
+  let cleanerToken: string | null = null;
+
+  if (mission.assigned_cleaner_id) {
+    const { data: cleanerNavRow } = await supabase
+      .from("cleaners")
+      .select("public_token")
+      .eq("id", mission.assigned_cleaner_id)
+      .maybeSingle();
+
+    cleanerToken = cleanerNavRow?.public_token ?? null;
+  }
 
   let template: any = null;
 
@@ -241,7 +255,7 @@ export default async function CleaningReportPage({
     mission.status === "problem_reported";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-5">
+    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5">
       <div className="mx-auto max-w-xl space-y-5">
         <Link
           href={`/mission/${token}`}
@@ -293,6 +307,12 @@ export default async function CleaningReportPage({
           referencePhotos={referencePhotos}
         />
       </div>
+
+      <CleanerBottomNav
+        cleanerToken={cleanerToken}
+        missionToken={token}
+        active="missions"
+      />
     </main>
   );
 }

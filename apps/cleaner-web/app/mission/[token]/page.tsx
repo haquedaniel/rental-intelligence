@@ -1,6 +1,7 @@
 import { acceptMission, refuseMission } from "./actions";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import Link from "next/link";
+import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +113,8 @@ export default async function MissionPage({ params }: PageProps) {
       ),
       cleaners (
         first_name,
-        last_name
+        last_name,
+        public_token
       ),
       property_cleaning_profiles (
         label,
@@ -187,7 +189,7 @@ export default async function MissionPage({ params }: PageProps) {
   const isRefused = mission.status === "refused";
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4">
+    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-4">
       <div className="mx-auto max-w-md">
         <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
           {coverPhoto?.url && (
@@ -364,6 +366,12 @@ export default async function MissionPage({ params }: PageProps) {
           Accès simplifié via lien privé. Ne pas transférer ce lien.
         </p>
       </div>
+
+      <CleanerBottomNav
+        cleanerToken={cleaner?.public_token}
+        missionToken={token}
+        active="missions"
+      />
     </main>
   );
 }
