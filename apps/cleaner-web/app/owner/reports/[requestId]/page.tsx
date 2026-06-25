@@ -142,6 +142,16 @@ async function signedPhotoRows(supabase: ReturnType<typeof getSupabaseAdmin>, ph
 }
 
 async function findChecklistTemplate(supabase: ReturnType<typeof getSupabaseAdmin>, request: Row) {
+  if (request.checklist_template_id) {
+    const { data: frozenTemplate } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version")
+      .eq("id", request.checklist_template_id)
+      .maybeSingle();
+
+    if (frozenTemplate) return frozenTemplate;
+  }
+
   if (request.cleaning_profile_id) {
     const { data } = await supabase
       .from("cleaning_checklist_templates")

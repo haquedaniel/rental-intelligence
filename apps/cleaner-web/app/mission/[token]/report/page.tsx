@@ -40,7 +40,7 @@ export default async function CleaningReportPage({
   const { data: mission, error: missionError } = await supabase
     .from("cleaning_requests")
     .select(
-      "id,status,property_id,cleaning_profile_id,scheduled_start_at,public_token_expires_at",
+      "id,status,property_id,cleaning_profile_id,checklist_template_id,scheduled_start_at,public_token_expires_at",
     )
     .eq("public_token", token)
     .single();
@@ -79,6 +79,16 @@ export default async function CleaningReportPage({
     .maybeSingle();
 
   let template: any = null;
+
+  if (mission.checklist_template_id) {
+    const { data: frozenTemplate } = await supabase
+      .from("cleaning_checklist_templates")
+      .select("id,name,version,estimated_minutes")
+      .eq("id", mission.checklist_template_id)
+      .maybeSingle();
+
+    template = frozenTemplate ?? null;
+  }
 
   if (mission.cleaning_profile_id) {
     const { data: exactTemplates } = await supabase
