@@ -35,12 +35,75 @@ type ReportFormProps = {
   locale: CleanerLocale;
 };
 
+const SECTION_COPY = {
+  fr: {
+    toRead: "À lire",
+    ready: "Prêt à valider",
+    validated: "Validée",
+    readPoints: (count: number) => `Lire les ${count} points`,
+    reviewPoints: "Revoir les points",
+    hidePoints: "Masquer les points",
+    pointsTitle: "Points à vérifier avant de valider",
+    readFirst: "Ouvrez les points à vérifier avant de valider cette rubrique.",
+    validate: "Valider cette rubrique",
+    validatedBody: "Rubrique validée. Les points peuvent rester fermés.",
+    changeValidation: "Modifier la validation",
+    photoRequired: "Photo obligatoire",
+    photoOptional: "Photo optionnelle",
+    requiredPhotoFirst: "Ajoutez la photo obligatoire avant de valider.",
+    selectedPhoto: "Photo sélectionnée",
+    point: "point à vérifier",
+    points: "points à vérifier",
+  },
+  en: {
+    toRead: "To read",
+    ready: "Ready to validate",
+    validated: "Validated",
+    readPoints: (count: number) => `Read ${count} points`,
+    reviewPoints: "Review points",
+    hidePoints: "Hide points",
+    pointsTitle: "Points to check before validating",
+    readFirst: "Open the points to check before validating this section.",
+    validate: "Validate this section",
+    validatedBody: "Section validated. The points can stay closed.",
+    changeValidation: "Change validation",
+    photoRequired: "Photo required",
+    photoOptional: "Photo optional",
+    requiredPhotoFirst: "Add the required photo before validating.",
+    selectedPhoto: "Photo selected",
+    point: "point to check",
+    points: "points to check",
+  },
+  ru: {
+    toRead: "Прочитать",
+    ready: "Можно подтвердить",
+    validated: "Подтверждено",
+    readPoints: (count: number) => `Прочитать ${count} пункт(ов)`,
+    reviewPoints: "Посмотреть пункты",
+    hidePoints: "Скрыть пункты",
+    pointsTitle: "Проверьте эти пункты перед подтверждением",
+    readFirst: "Откройте пункты проверки перед подтверждением раздела.",
+    validate: "Подтвердить раздел",
+    validatedBody: "Раздел подтверждён. Пункты можно оставить закрытыми.",
+    changeValidation: "Изменить подтверждение",
+    photoRequired: "Фото обязательно",
+    photoOptional: "Фото по желанию",
+    requiredPhotoFirst: "Добавьте обязательное фото перед подтверждением.",
+    selectedPhoto: "Фото выбрано",
+    point: "пункт для проверки",
+    points: "пункта для проверки",
+  },
+} as const;
+
+function copyFor(locale: CleanerLocale) {
+  if (locale === "en" || locale === "ru") return SECTION_COPY[locale];
+  return SECTION_COPY.fr;
+}
+
 function PendingOverlay({ locale }: { locale: CleanerLocale }) {
   const { pending } = useFormStatus();
 
-  if (!pending) {
-    return null;
-  }
+  if (!pending) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/85 px-6 backdrop-blur-sm">
@@ -83,48 +146,47 @@ export function ReportForm({
   referencePhotos,
   locale,
 }: ReportFormProps) {
-  const initialViewed = Object.fromEntries(
-    sections.map((section) => [
-      section.section_key,
-      Boolean(section.existing_details_viewed),
-    ])
-  );
-
-  const initialChecked = Object.fromEntries(
-    sections.map((section) => [
-      section.section_key,
-      Boolean(section.existing_checked),
-    ])
-  );
+  const copy = copyFor(locale);
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const [viewedSections, setViewedSections] =
-    useState<Record<string, boolean>>(initialViewed);
-  const [checkedSections, setCheckedSections] =
-    useState<Record<string, boolean>>(initialChecked);
+  const [viewedSections, setViewedSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      sections.map((section) => [
+        section.section_key,
+        Boolean(section.existing_details_viewed),
+      ]),
+    ),
+  );
+  const [checkedSections, setCheckedSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      sections.map((section) => [
+        section.section_key,
+        Boolean(section.existing_checked),
+      ]),
+    ),
+  );
 
   const [photoNames, setPhotoNames] = useState<Record<string, string>>({});
-
   const [selectedReferencePhoto, setSelectedReferencePhoto] =
-  useState<ReferencePhoto | null>(null);
+    useState<ReferencePhoto | null>(null);
 
   const coverPhoto = referencePhotos.find(
-    (photo) => photo.is_cover && photo.signedUrl
+    (photo) => photo.is_cover && photo.signedUrl,
   );
 
   const requiredSections = useMemo(
     () => sections.filter((section) => section.required),
-    [sections]
+    [sections],
   );
 
   const allRequiredChecked = requiredSections.every(
-    (section) => checkedSections[section.section_key]
+    (section) => checkedSections[section.section_key],
   );
 
-  function openDetails(sectionKey: string) {
+  function openPoints(sectionKey: string) {
     setOpenSections((current) => ({
       ...current,
-      [sectionKey]: !current[sectionKey],
+      [sectionKey]: true,
     }));
 
     setViewedSections((current) => ({
@@ -133,20 +195,87 @@ export function ReportForm({
     }));
   }
 
+  function togglePoints(sectionKey: string) {
+    setOpenSections((current) => {
+      const nextOpen = !current[sectionKey];
+
+      if (nextOpen) {
+        setViewedSections((viewed) => ({
+          ...viewed,
+          [sectionKey]: true,
+        }));
+      }
+
+      return {
+        ...current,
+        [sectionKey]: nextOpen,
+      };
+    });
+  }
+
+  function validateSection(section: Section) {
+    const sectionKey = section.section_key;
+    const hasViewed = Boolean(viewedSections[sectionKey]);
+    const requiresPhoto = section.photo_requirement === "required";
+    const hasPhoto = Boolean(photoNames[sectionKey]);
+
+    if (!hasViewed) {
+      openPoints(sectionKey);
+      return;
+    }
+
+    if (requiresPhoto && !hasPhoto && !alreadySubmitted) {
+      openPoints(sectionKey);
+      return;
+    }
+
+    setCheckedSections((current) => ({
+      ...current,
+      [sectionKey]: true,
+    }));
+
+    setOpenSections((current) => ({
+      ...current,
+      [sectionKey]: false,
+    }));
+  }
+
+  function reopenForChange(sectionKey: string) {
+    setCheckedSections((current) => ({
+      ...current,
+      [sectionKey]: false,
+    }));
+
+    openPoints(sectionKey);
+  }
+
   return (
     <form action={submitCleaningReport} className="space-y-5">
       <input type="hidden" name="token" value={token} />
       <PendingOverlay locale={locale} />
+
       {Object.entries(viewedSections).map(([sectionKey, viewed]) =>
         viewed ? (
           <input
-            key={sectionKey}
+            key={`viewed_${sectionKey}`}
             type="hidden"
             name="viewedSections"
             value={sectionKey}
           />
-        ) : null
+        ) : null,
       )}
+
+      {Object.entries(checkedSections).map(([sectionKey, checked]) =>
+        checked ? (
+          <input
+            key={`checked_${sectionKey}`}
+            type="hidden"
+            name="checkedSections"
+            value={sectionKey}
+          />
+        ) : null,
+      )}
+
       {coverPhoto?.signedUrl && (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <img
@@ -164,6 +293,7 @@ export function ReportForm({
           </div>
         </div>
       )}
+
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-base font-semibold text-slate-900">
           {t(locale, "form.checklistTitle")}
@@ -174,76 +304,106 @@ export function ReportForm({
       </div>
 
       {sections.map((section) => {
-        const isOpen = Boolean(openSections[section.section_key]);
-        const hasViewed = Boolean(viewedSections[section.section_key]);
-        const isChecked = Boolean(checkedSections[section.section_key]);
+        const sectionKey = section.section_key;
+        const isOpen = Boolean(openSections[sectionKey]);
+        const hasViewed = Boolean(viewedSections[sectionKey]);
+        const isChecked = Boolean(checkedSections[sectionKey]);
+        const requiresPhoto = section.photo_requirement === "required";
+        const allowsPhoto =
+          section.photo_requirement === "required" ||
+          section.photo_requirement === "optional";
+        const hasPhoto = Boolean(photoNames[sectionKey]);
+        const canValidate =
+          hasViewed && !alreadySubmitted && (!requiresPhoto || hasPhoto);
+        const pointCount = section.detail_items.length;
 
         const sectionReferencePhotos = referencePhotos.filter(
           (photo) =>
             !photo.is_cover &&
-            photo.section_key === section.section_key &&
-            photo.signedUrl
+            photo.section_key === sectionKey &&
+            photo.signedUrl,
         );
+
+        const statusLabel = isChecked
+          ? copy.validated
+          : hasViewed
+            ? copy.ready
+            : copy.toRead;
+
+        const statusClass = isChecked
+          ? "bg-emerald-100 text-emerald-800"
+          : hasViewed
+            ? "bg-blue-100 text-blue-800"
+            : "bg-amber-100 text-amber-900";
 
         return (
           <section
-            key={section.section_key}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            key={sectionKey}
+            className={`rounded-2xl border bg-white p-4 shadow-sm ${
+              isChecked ? "border-emerald-200" : "border-slate-200"
+            }`}
           >
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    {section.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {section.detail_items.length} {section.detail_items.length > 1 ? t(locale, "form.pointsToCheck") : t(locale, "form.pointToCheck")}
-                  </p>
-                </div>
-
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${
-                    hasViewed
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-900"
-                  }`}
-                >
-                  {hasViewed ? "Points lus" : "À lire"}
-                </span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {section.title}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {pointCount} {pointCount > 1 ? copy.points : copy.point}
+                </p>
               </div>
 
-              <button
-                type="button"
-                className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold shadow-sm ring-1 ${
-                  isOpen
-                    ? "bg-slate-900 text-white ring-slate-900"
-                    : hasViewed
-                      ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
-                      : "bg-slate-950 text-white ring-slate-950"
-                }`}
-                onClick={() => openDetails(section.section_key)}
+              <span
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${statusClass}`}
               >
-                <span>
-                  {isOpen
-                    ? "Masquer les points"
-                    : hasViewed
-                      ? "Revoir les points à vérifier"
-                      : `1 · Voir les ${section.detail_items.length} points à vérifier`}
-                </span>
-                <span className="text-lg leading-none">{isOpen ? "↑" : "↓"}</span>
-              </button>
+                {statusLabel}
+              </span>
+            </div>
 
-              {!hasViewed && (
-                <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 ring-1 ring-amber-100">
-                  Ouvrez d’abord les points à vérifier. La validation sera ensuite disponible.
-                </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {requiresPhoto && (
+                <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-800 ring-1 ring-red-100">
+                  {copy.photoRequired}
+                </span>
+              )}
+              {section.photo_requirement === "optional" && (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                  {copy.photoOptional}
+                </span>
               )}
             </div>
+
+            <button
+              type="button"
+              className={`mt-4 flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold shadow-sm ring-1 ${
+                isOpen
+                  ? "bg-slate-900 text-white ring-slate-900"
+                  : isChecked
+                    ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
+                    : "bg-slate-950 text-white ring-slate-950"
+              }`}
+              onClick={() => togglePoints(sectionKey)}
+            >
+              <span>
+                {isOpen
+                  ? copy.hidePoints
+                  : hasViewed
+                    ? copy.reviewPoints
+                    : copy.readPoints(pointCount)}
+              </span>
+              <span className="text-lg leading-none">{isOpen ? "↑" : "↓"}</span>
+            </button>
+
+            {!hasViewed && (
+              <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 ring-1 ring-amber-100">
+                {copy.readFirst}
+              </p>
+            )}
 
             {isOpen && (
               <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800">
-                  Points à vérifier avant de valider
+                  {copy.pointsTitle}
                 </p>
                 <ul className="list-disc space-y-2 pl-5 text-sm font-medium text-emerald-950">
                   {section.detail_items.map((item) => (
@@ -253,9 +413,8 @@ export function ReportForm({
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {sectionReferencePhotos.length > 0 ? (
-              <div className="w-full">
+            {sectionReferencePhotos.length > 0 && (
+              <div className="mt-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {t(locale, "form.referencePhotos")}
                 </p>
@@ -280,121 +439,131 @@ export function ReportForm({
                   ))}
                 </div>
               </div>
-            ) : (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                {t(locale, "form.modelPhotosSoon")}
-              </span>
             )}
 
-              {section.photo_requirement !== "none" && !alreadySubmitted && (
-                <div className="mt-4">
-                  <input
-                    id={`photo_${section.section_key}`}
-                    type="file"
-                    name={`photo_${section.section_key}`}
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      setPhotoNames((current) => ({
-                        ...current,
-                        [section.section_key]: file?.name ?? "",
-                      }));
-                    }}
-                  />
+            {allowsPhoto && !alreadySubmitted && hasViewed && (
+              <div className="mt-4">
+                <input
+                  id={`photo_${sectionKey}`}
+                  type="file"
+                  name={`photo_${sectionKey}`}
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setPhotoNames((current) => ({
+                      ...current,
+                      [sectionKey]: file?.name ?? "",
+                    }));
+                  }}
+                />
 
-                  <label
-                    htmlFor={`photo_${section.section_key}`}
-                    className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 p-4"
+                <label
+                  htmlFor={`photo_${sectionKey}`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed p-4 ${
+                    requiresPhoto && !hasPhoto
+                      ? "border-red-300 bg-red-50"
+                      : "border-emerald-300 bg-emerald-50"
+                  }`}
+                >
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-full text-2xl text-white ${
+                      requiresPhoto && !hasPhoto ? "bg-red-600" : "bg-emerald-600"
+                    }`}
                   >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-2xl text-white">
-                      📷
+                    📷
+                  </span>
+
+                  <span className="flex-1">
+                    <span
+                      className={`block text-sm font-semibold ${
+                        requiresPhoto && !hasPhoto
+                          ? "text-red-950"
+                          : "text-emerald-950"
+                      }`}
+                    >
+                      {t(locale, "form.takePhoto")}
+                    </span>
+                    <span
+                      className={`mt-1 block text-xs ${
+                        requiresPhoto && !hasPhoto
+                          ? "text-red-800"
+                          : "text-emerald-800"
+                      }`}
+                    >
+                      {requiresPhoto ? copy.photoRequired : t(locale, "form.takePhotoBody")}
                     </span>
 
-                    <span className="flex-1">
-                      <span className="block text-sm font-semibold text-emerald-950">
-                        {t(locale, "form.takePhoto")}
+                    {hasPhoto && (
+                      <span className="mt-2 block text-xs font-medium text-emerald-700">
+                        {copy.selectedPhoto}
                       </span>
-                      <span className="mt-1 block text-xs text-emerald-800">
-                        {t(locale, "form.takePhotoBody")}
-                      </span>
+                    )}
+                  </span>
+                </label>
+              </div>
+            )}
 
-                      {photoNames[section.section_key] && (
-                        <span className="mt-2 block text-xs font-medium text-emerald-700">
-                          {t(locale, "form.photoSelected")}
-                        </span>
-                      )}
-                    </span>
-                  </label>
+            <div
+              className={`mt-4 rounded-2xl border p-4 ${
+                isChecked
+                  ? "border-emerald-200 bg-emerald-50"
+                  : hasViewed
+                    ? "border-blue-200 bg-blue-50"
+                    : "border-slate-200 bg-slate-50"
+              }`}
+            >
+              {!hasViewed && (
+                <button
+                  type="button"
+                  onClick={() => openPoints(sectionKey)}
+                  className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"
+                >
+                  {copy.readPoints(pointCount)}
+                </button>
+              )}
+
+              {hasViewed && !isChecked && (
+                <>
+                  {requiresPhoto && !hasPhoto && (
+                    <p className="mb-3 text-xs font-semibold text-red-800">
+                      {copy.requiredPhotoFirst}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={!canValidate}
+                    onClick={() => validateSection(section)}
+                    className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {copy.validate}
+                  </button>
+                </>
+              )}
+
+              {isChecked && (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-emerald-900">
+                    ✅ {copy.validatedBody}
+                  </p>
+
+                  {!alreadySubmitted && (
+                    <button
+                      type="button"
+                      onClick={() => reopenForChange(sectionKey)}
+                      className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200"
+                    >
+                      {copy.changeValidation}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
-            <label
-              onClick={(event) => {
-                if (!hasViewed && !alreadySubmitted) {
-                  event.preventDefault();
-                  openDetails(section.section_key);
-                }
-              }}
-              className={`mt-4 flex items-start gap-3 rounded-2xl border p-4 ${
-                hasViewed
-                  ? "cursor-pointer border-emerald-200 bg-emerald-50"
-                  : "cursor-pointer border-amber-200 bg-amber-50"
-              }`}
-            >
-            <input
-              type="checkbox"
-              name="checkedSections"
-              value={section.section_key}
-              checked={isChecked}
-              disabled={!hasViewed || alreadySubmitted}
-              onChange={(event) => {
-                const checked = event.target.checked;
-
-                setCheckedSections((current) => ({
-                  ...current,
-                  [section.section_key]: checked,
-                }));
-
-                if (checked) {
-                  setOpenSections((current) => ({
-                    ...current,
-                    [section.section_key]: false,
-                  }));
-                }
-              }}
-              className="mt-1 h-6 w-6"
-            />
-
-              <span>
-                <span className="block text-sm font-semibold text-slate-900">
-                  {section.high_level_check_label}
-                </span>
-
-                {!hasViewed && (
-                  <span className="mt-1 block text-xs font-semibold text-amber-800">
-                    Touchez ici pour ouvrir les points, puis vous pourrez cocher.
-                  </span>
-                )}
-
-                {hasViewed && !isChecked && !alreadySubmitted && (
-                  <span className="mt-1 block text-xs font-semibold text-emerald-800">
-                    Les points ont été ouverts. Vous pouvez maintenant cocher cette rubrique.
-                  </span>
-                )}
-
-                {isChecked && (
-                  <span className="mt-1 block text-xs font-semibold text-emerald-800">
-                    Rubrique validée.
-                  </span>
-                )}
-              </span>
-            </label>
-
             <textarea
-              name={`section_notes_${section.section_key}`}
+              name={`section_notes_${sectionKey}`}
               placeholder={t(locale, "form.notePlaceholder")}
               defaultValue={section.existing_notes ?? ""}
               disabled={alreadySubmitted}
@@ -459,8 +628,7 @@ export function ReportForm({
       </section>
 
       {!alreadySubmitted && (
-      <SubmitButton canSubmit={allRequiredChecked} locale={locale} />
-
+        <SubmitButton canSubmit={allRequiredChecked} locale={locale} />
       )}
 
       {!allRequiredChecked && !alreadySubmitted && (
@@ -470,29 +638,29 @@ export function ReportForm({
       )}
 
       {selectedReferencePhoto?.signedUrl && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-        <button
-          type="button"
-          onClick={() => setSelectedReferencePhoto(null)}
-          className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950"
-        >
-          {t(locale, "form.close")}
-        </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <button
+            type="button"
+            onClick={() => setSelectedReferencePhoto(null)}
+            className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950"
+          >
+            {t(locale, "form.close")}
+          </button>
 
-        <div className="max-h-full max-w-3xl overflow-hidden rounded-3xl bg-white">
-          <img
-            src={selectedReferencePhoto.signedUrl}
-            alt={selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
-            className="max-h-[75vh] w-full object-contain"
-          />
-          <div className="p-4">
-            <p className="font-semibold text-slate-950">
-              {selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
-            </p>
+          <div className="max-h-full max-w-3xl overflow-hidden rounded-3xl bg-white">
+            <img
+              src={selectedReferencePhoto.signedUrl}
+              alt={selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
+              className="max-h-[75vh] w-full object-contain"
+            />
+            <div className="p-4">
+              <p className="font-semibold text-slate-950">
+                {selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
     </form>
   );
 }

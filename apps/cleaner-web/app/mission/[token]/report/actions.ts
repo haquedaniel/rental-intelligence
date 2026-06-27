@@ -291,6 +291,22 @@ if (!template) {
     );
   }
 
+  const missingRequiredPhotos = translatedSections.filter((section) => {
+    if (section.photo_requirement !== "required") return false;
+
+    const value = formData.get(`photo_${section.section_key}`);
+
+    return !(value instanceof File) || value.size === 0;
+  });
+
+  if (missingRequiredPhotos.length > 0) {
+    throw new Error(
+      `Photo obligatoire manquante : ${missingRequiredPhotos
+        .map((section) => section.title)
+        .join(", ")}`
+    );
+  }
+
   const damageFound = boolValue(formData, "damage_found");
   const missingItems = boolValue(formData, "missing_items");
   const guestLeftItems = boolValue(formData, "guest_left_items");
