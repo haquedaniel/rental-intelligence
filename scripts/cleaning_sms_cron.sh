@@ -12,6 +12,8 @@ BASE_URL="${CLEANER_WEB_BASE_URL:-https://missions.leclosdelavoilerie.com}"
 LOG_FILE="${CLEANING_SMS_LOG_FILE:-/opt/rental-intelligence/outputs/logs/cleaning_sms_cron.log}"
 LOCK_FILE="${CLEANING_SMS_LOCK_FILE:-/tmp/rental-cleaning-sms-cron.lock}"
 
+mkdir -p "$(dirname "$LOG_FILE")"
+
 exec 9>"$LOCK_FILE"
 flock -n 9 || exit 0
 
@@ -21,17 +23,25 @@ flock -n 9 || exit 0
   echo "Request property filter: $REQUEST_PROPERTY_IDS"
   echo "SMS property filter: $SMS_PROPERTY_IDS"
   echo "SMS_SEND_ENABLED: $SMS_SEND_ENABLED"
+  echo "SMS_TEST_RECIPIENT: ${SMS_TEST_RECIPIENT:-}"
 
-  docker compose exec -T cockpit bash -lc '
-    missing=0
-    for v in TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER; do
-      if [ -z "${!v:-}" ]; then
-        echo "MISSING $v"
-        missing=1
-      fi
-    done
-    exit "$missing"
-  '
+  case "${SMS_SEND_ENABLED,,}" in
+    1|true|yes)
+      docker compose exec -T cockpit bash -lc '
+        missing=0
+        for v in TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER; do
+          if [ -z "${!v:-}" ]; then
+            echo "MISSING $v"
+            missing=1
+          fi
+        done
+        exit "$missing"
+      '
+      ;;
+    *)
+      echo "SMS_SEND_ENABLED is not true; skipping Twilio env check."
+      ;;
+  esac
 
   docker compose exec -T \
     -e CLEANING_REQUEST_PROPERTY_IDS="$REQUEST_PROPERTY_IDS" \
@@ -56,6 +66,7 @@ flock -n 9 || exit 0
 
   docker compose exec -T \
     -e CLEANING_SMS_PROPERTY_IDS="$SMS_PROPERTY_IDS" \
+    -e SMS_MESSAGE_TYPE_PREFIXES="mission_,cleaning_,accepted_cleaning_reminder" \
     -e SMS_SEND_ENABLED="$SMS_SEND_ENABLED" \
     -e SMS_TEST_RECIPIENT="${SMS_TEST_RECIPIENT:-}" \
     cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.send_pending_outbound_messages'

@@ -23,6 +23,18 @@ SMS_PROPERTY_ID_FILTER = {
     if value.strip()
 }
 
+SMS_MESSAGE_TYPES = {
+    value.strip()
+    for value in os.getenv("SMS_MESSAGE_TYPES", "").split(",")
+    if value.strip()
+}
+
+SMS_MESSAGE_TYPE_PREFIXES = tuple(
+    value.strip()
+    for value in os.getenv("SMS_MESSAGE_TYPE_PREFIXES", "").split(",")
+    if value.strip()
+)
+
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
 TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "").strip()
@@ -36,6 +48,46 @@ def normalize_phone(phone: str | None) -> str | None:
     if not phone:
         return None
     return phone.replace(" ", "").replace(".", "").replace("-", "").strip()
+
+
+def filter_messages_by_type(messages: list[dict]) -> list[dict]:
+    """
+    Optional safety filter.
+
+    SMS_MESSAGE_TYPES:
+      exact comma-separated message types.
+
+    SMS_MESSAGE_TYPE_PREFIXES:
+      comma-separated prefixes, for example:
+      mission_,cleaning_,accepted_cleaning_reminder
+
+    If neither is set, all message types are eligible.
+    """
+    if not SMS_MESSAGE_TYPES and not SMS_MESSAGE_TYPE_PREFIXES:
+        return messages
+
+    filtered = []
+    skipped = 0
+
+    for message in messages:
+        message_type = str(message.get("message_type") or "")
+
+        exact_match = message_type in SMS_MESSAGE_TYPES
+        prefix_match = bool(SMS_MESSAGE_TYPE_PREFIXES) and message_type.startswith(
+            SMS_MESSAGE_TYPE_PREFIXES
+        )
+
+        if exact_match or prefix_match:
+            filtered.append(message)
+        else:
+            skipped += 1
+
+    print(
+        "SMS message type filter active: "
+        f"{len(filtered)}/{len(messages)} pending messages kept, {skipped} skipped"
+    )
+
+    return filtered
 
 
 def filter_messages_by_property(supabase, messages: list[dict]) -> list[dict]:
@@ -177,6 +229,7 @@ def main() -> None:
     )
 
     messages = result.data or []
+    messages = filter_messages_by_type(messages)
     messages = filter_messages_by_property(supabase, messages)
 
     if not messages:
