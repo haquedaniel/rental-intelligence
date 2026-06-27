@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -21,8 +22,14 @@ echo "===== $(date -Is) starting ops_refresh ====="
 run_required python -m rental_intel.scripts.extract_bookings
 run_required python -m rental_intel.scripts.build_metrics
 run_required python -m rental_intel.scripts.sync_cleaning_reservations
-run_required python -m rental_intel.cleaning.create_requests_from_reservations
-run_required python -m rental_intel.cleaning.enqueue_mission_offer_messages
-run_required python -m rental_intel.cleaning.send_pending_outbound_messages
+
+# Cleaning request generation, SMS enqueueing, and SMS sending are handled only by:
+#   scripts/cleaning_sms_cron.sh
+#   scripts/payment_sms_cron.sh
+#
+# Do not run these from ops_refresh:
+#   rental_intel.cleaning.create_requests_from_reservations
+#   rental_intel.cleaning.enqueue_mission_offer_messages
+#   rental_intel.cleaning.send_pending_outbound_messages
 
 echo "===== $(date -Is) ops_refresh complete ====="
