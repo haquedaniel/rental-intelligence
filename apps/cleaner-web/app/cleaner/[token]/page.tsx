@@ -416,62 +416,165 @@ function sectionTitle(title: string, subtitle?: string) {
   );
 }
 
+
+function urgencyBadge(request: Row): string | null {
+  const amount =
+    numberValue(request, [
+      "urgency_bonus_eur",
+      "urgent_bonus_eur",
+      "urgency_fee_eur",
+      "urgent_fee_eur",
+    ]) ?? 0;
+
+  const hasUrgency =
+    amount > 0 ||
+    request.urgent === true ||
+    request.is_urgent === true ||
+    request.urgency === true ||
+    request.schedule_status === "urgent";
+
+  if (!hasUrgency) return null;
+  if (amount > 0) return `Prime urgence +${money(amount)}`;
+  return "Prime urgence";
+}
+
+function dateChoiceBadge(request: Row): string | null {
+  if (!["created", "sent"].includes(request.status)) {
+    if (request.status === "accepted") return "Rapport à envoyer";
+    return null;
+  }
+
+  const start = parseDate(
+    request.work_window_start_at ||
+      request.scheduled_start_at ||
+      request.ready_from_at ||
+      request.checkout_at,
+  );
+
+  const deadline = parseDate(
+    request.completion_deadline_at ||
+      request.ready_by_at ||
+      request.work_window_end_at ||
+      request.scheduled_end_at,
+  );
+
+  if (!start || !deadline) return "Date à choisir";
+
+  const hours = (deadline.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+  if (hours <= 28) {
+    return "Date imposée · arrivée proche";
+  }
+
+  return "Date à choisir";
+}
+
 function MissionCard({
   request,
   property,
   reservation,
   hasReport,
-  locale,
+  thumbnailUrl,
 }: {
   request: Row;
   property?: Row | null;
   reservation?: Row | null;
   hasReport: boolean;
-  locale: CleanerLocale;
+  thumbnailUrl?: string | null;
+  locale?: unknown;
 }) {
   const overdue = isOverdue(request, hasReport);
   const amount = missionAmount(request);
+  const urgency = urgencyBadge(request);
+  const dateChoice = dateChoiceBadge(request);
+  const title = propertyName(property);
 
   return (
     <Link
       href={missionHref(request)}
-      className="block rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+      className="block overflow-hidden rounded-[1.35rem] bg-white shadow-sm ring-1 ring-slate-200 transition active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(request, overdue)}`}>
-            {statusLabel(request, overdue, locale)}
-          </span>
-          <h3 className="mt-3 truncate text-base font-black text-slate-950">
-            {propertyName(property, locale)}
-          </h3>
-          <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {guestName(reservation, locale)} · {money(amount)}
-          </p>
+      <div className="flex gap-3 p-3">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.15rem] bg-slate-100">
+          {thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumbnailUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-900 text-2xl font-black text-white">
+              {title.slice(0, 1)}
+            </div>
+          )}
+
+          {overdue && (
+            <div className="absolute inset-x-1 bottom-1 rounded-full bg-red-600 px-2 py-1 text-center text-[9px] font-black uppercase text-white">
+              Retard
+            </div>
+          )}
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-          <p className="text-[10px] font-black uppercase text-slate-400">
-            {t(locale, "card.readyBefore")}
-          </p>
-          <p className="mt-1 text-xs font-black text-slate-900">
-            {dateLabel(anchorAt(request))}
-          </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${statusClass(
+                request,
+                overdue,
+              )}`}
+            >
+              {statusLabel(request, overdue)}
+            </span>
+
+            {urgency && (
+              <span className="inline-flex rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black text-orange-900 ring-1 ring-orange-200">
+                {urgency}
+              </span>
+            )}
+          </div>
+
+          <h3 className="mt-2 truncate text-base font-black text-slate-950">
+            {title}
+          </h3>
+
+          <div className="mt-1 flex min-w-0 items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-500">
+              {guestName(reservation)}
+            </p>
+            <span className="shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-black text-white">
+              {money(amount)}
+            </span>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-100">
+              Prêt avant {dateLabel(anchorAt(request))}
+            </span>
+
+            {dateChoice && (
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-blue-800 ring-1 ring-blue-100">
+                {dateChoice}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 text-xs font-bold text-slate-500 sm:grid-cols-3">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.duration")}</p>
-          <p className="mt-1 text-slate-900">{request.estimated_hours ?? "—"} h</p>
+      <div className="grid grid-cols-3 gap-px border-t border-slate-100 bg-slate-100 text-[10px] font-black text-slate-500">
+        <div className="bg-white px-3 py-2">
+          <p className="uppercase text-slate-400">Durée</p>
+          <p className="mt-0.5 text-slate-900">{request.estimated_hours ?? "—"} h</p>
         </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.linen")}</p>
-          <p className="mt-1 text-slate-900">{request.linen_required ? t(locale, "common.yes") : t(locale, "common.no")}</p>
+
+        <div className="bg-white px-3 py-2">
+          <p className="uppercase text-slate-400">Linge</p>
+          <p className="mt-0.5 text-slate-900">{request.linen_required ? "Oui" : "Non"}</p>
         </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.validation")}</p>
-          <p className="mt-1 text-slate-900">{hasReport ? t(locale, "card.reportReceived") : t(locale, "card.todo")}</p>
+
+        <div className="bg-white px-3 py-2">
+          <p className="uppercase text-slate-400">Rapport</p>
+          <p className="mt-0.5 text-slate-900">{hasReport ? "Reçu" : "À faire"}</p>
         </div>
       </div>
     </Link>
@@ -669,22 +772,22 @@ export default async function CleanerHomePage({
             </Link>
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-4">
-            <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-[1.35rem] bg-white/10 p-3 ring-1 ring-white/10 sm:p-4">
               <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.toConfirm")}</p>
-              <p className="mt-2 text-3xl font-black">{toConfirm.length}</p>
+              <p className="mt-2 text-2xl font-black sm:text-3xl">{toConfirm.length}</p>
             </div>
-            <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
+            <div className="rounded-[1.35rem] bg-white/10 p-3 ring-1 ring-white/10 sm:p-4">
               <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.confirmed")}</p>
-              <p className="mt-2 text-3xl font-black">{accepted.length}</p>
+              <p className="mt-2 text-2xl font-black sm:text-3xl">{accepted.length}</p>
             </div>
-            <div className="rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/10">
+            <div className="rounded-[1.35rem] bg-white/10 p-3 ring-1 ring-white/10 sm:p-4">
               <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.overdue")}</p>
-              <p className="mt-2 text-3xl font-black">{overdue.length}</p>
+              <p className="mt-2 text-2xl font-black sm:text-3xl">{overdue.length}</p>
             </div>
-            <div className="rounded-[1.35rem] bg-white p-4 text-slate-950">
+            <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 sm:p-4">
               <p className="text-xs font-black uppercase text-slate-400">{t(locale, "home.confirmedThisMonth")}</p>
-              <p className="mt-2 text-3xl font-black">{money(monthExpected)}</p>
+              <p className="mt-2 text-2xl font-black sm:text-3xl">{money(monthExpected)}</p>
             </div>
           </div>
         </div>
@@ -713,6 +816,7 @@ export default async function CleanerHomePage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  thumbnailUrl={coverByPropertyId[String(request.property_id)]}
                   locale={locale}
                 />
               ))}
@@ -741,6 +845,7 @@ export default async function CleanerHomePage({
                   property={property}
                   reservation={reservation}
                   hasReport={hasReport}
+                  thumbnailUrl={coverByPropertyId[String(request.property_id)]}
                   locale={locale}
                 />
               ))}
@@ -823,6 +928,7 @@ export default async function CleanerHomePage({
                       property={property}
                       reservation={reservation}
                       hasReport={hasReport}
+                  thumbnailUrl={coverByPropertyId[String(request.property_id)]}
                       locale={locale}
                     />
                   ))
@@ -845,6 +951,7 @@ export default async function CleanerHomePage({
                       property={property}
                       reservation={reservation}
                       hasReport={hasReport}
+                  thumbnailUrl={coverByPropertyId[String(request.property_id)]}
                       locale={locale}
                     />
                   ))
