@@ -18,6 +18,7 @@ COPY pyproject.toml ./
 COPY src ./src
 COPY app ./app
 COPY config ./config
+COPY scripts ./scripts
 
 # Copy outputs if present; in production this will usually be a mounted volume.
 COPY outputs ./outputs
