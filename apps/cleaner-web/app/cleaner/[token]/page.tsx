@@ -4,8 +4,53 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getCleanerLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
+import type { Metadata } from "next";
 
 type Row = Record<string, any>;
+
+type CleanerPageProps = {
+  params: Promise<{
+    token: string;
+  }>;
+};
+
+export async function generateMetadata({
+  params,
+}: CleanerPageProps): Promise<Metadata> {
+  const { token } = await params;
+
+  return {
+    title: "Pilotys",
+    applicationName: "Pilotys",
+    manifest: `/cleaner/${token}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: "Pilotys",
+      statusBarStyle: "default",
+    },
+    icons: {
+      icon: [
+        {
+          url: "/icons/icon-192.png",
+          sizes: "192x192",
+          type: "image/png",
+        },
+        {
+          url: "/icons/icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+        },
+      ],
+      apple: [
+        {
+          url: "/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
+    },
+  };
+}
 
 function money(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
