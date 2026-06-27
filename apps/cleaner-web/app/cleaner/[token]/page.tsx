@@ -786,8 +786,8 @@ export default async function CleanerHomePage({
                 <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-white sm:text-5xl">
                   {t(locale, "home.greeting")} {cleanerGreetingName(cleaner)}
                 </h1>
-                <p className="mt-2 truncate text-sm font-bold text-white/65">
-                  {textValue(cleaner, ["trading_name", "legal_name", "worker_type"], t(locale, "home.fallbackSubtitle"))}
+                <p className="mt-2 text-sm font-bold leading-snug text-white/65 sm:text-base">
+                  {cleanerWelcomeSubtitle(cleaner)}
                 </p>
               </div>
             </div>
