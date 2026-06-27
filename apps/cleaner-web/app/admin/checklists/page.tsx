@@ -5,6 +5,7 @@ import {
   addChecklistSection,
   archiveChecklistSection,
   archiveSimpleChecklist,
+  createNewChecklistVersion,
   createSimpleChecklist,
   updateChecklistSection,
   updateSimpleChecklist,
@@ -141,7 +142,7 @@ function SectionForm({ section }: { section: Row }) {
 
       <div className="flex flex-wrap gap-2">
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
-          {section.section_key}
+          Clé stable : {section.section_key}
         </span>
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
           Ordre {section.sort_order ?? 100}
@@ -310,12 +311,17 @@ function SectionForm({ section }: { section: Row }) {
         </label>
       </div>
 
+      <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs font-semibold text-amber-950 ring-1 ring-amber-100">
+        Ces champs modifient cette version. À utiliser pour une faute, une clarification ou une traduction.
+        Pour ajouter du travail ou changer le niveau d’exigence, créez une nouvelle version.
+      </p>
+
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="submit"
           className="flex-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white"
         >
-          Enregistrer
+          Corriger cette version
         </button>
 
         {section.active !== false && (
@@ -323,7 +329,7 @@ function SectionForm({ section }: { section: Row }) {
             formAction={archiveChecklistSection}
             className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-800 ring-1 ring-red-100"
           >
-            Masquer
+            Masquer cette section
           </button>
         )}
       </div>
@@ -439,6 +445,13 @@ export default async function AdminChecklistsPage({
   }));
 
   const selectedProperty = properties.find((property) => property.id === selectedPropertyId);
+
+  const { count: activeTemplateUsageCount } = activeTemplate
+    ? await supabase
+        .from("cleaning_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("checklist_template_id", activeTemplate.id)
+    : { count: 0 };
 
   return (
     <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
@@ -621,6 +634,28 @@ export default async function AdminChecklistsPage({
               </span>
             </div>
 
+            <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+              <div className="rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
+                <p className="font-black">
+                  Version {activeTemplate.version ?? "—"} · utilisée par {activeTemplateUsageCount ?? 0} mission(s)
+                </p>
+                <p className="mt-1">
+                  Petite correction : modifiez cette version. Cela peut affecter les missions déjà envoyées avec cette version.
+                </p>
+                <p className="mt-1">
+                  Changement de contenu, durée, photo obligatoire ou niveau de prestation : créez une nouvelle version.
+                  Les nouvelles missions utiliseront la nouvelle version, les anciennes gardent l’ancienne.
+                </p>
+              </div>
+
+              <form action={createNewChecklistVersion} className="flex items-stretch">
+                <input type="hidden" name="source_template_id" value={activeTemplate.id} />
+                <button className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm lg:w-auto">
+                  Créer une nouvelle version
+                </button>
+              </form>
+            </div>
+
             <form action={updateSimpleChecklist} className="mt-4 space-y-3">
               <input type="hidden" name="profile_id" value={selectedProfile.id} />
               <input type="hidden" name="template_id" value={activeTemplate.id} />
@@ -722,14 +757,14 @@ export default async function AdminChecklistsPage({
 
               <div className="flex flex-wrap gap-2">
                 <button className="flex-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
-                  Enregistrer la checklist
+                  Corriger cette version
                 </button>
 
                 <button
                   formAction={archiveSimpleChecklist}
                   className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-800 ring-1 ring-red-100"
                 >
-                  Désactiver
+                  Archiver / désactiver
                 </button>
               </div>
             </form>
@@ -752,6 +787,11 @@ export default async function AdminChecklistsPage({
             <h2 className="text-xl font-black text-slate-950">
               Ajouter une section
             </h2>
+
+            <p className="mt-2 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
+              Ajouter une section augmente le travail demandé. Si cela ne doit s’appliquer qu’aux nouvelles missions,
+              créez d’abord une nouvelle version.
+            </p>
 
             <form action={addChecklistSection} className="mt-4 space-y-3">
               <input type="hidden" name="template_id" value={activeTemplate.id} />

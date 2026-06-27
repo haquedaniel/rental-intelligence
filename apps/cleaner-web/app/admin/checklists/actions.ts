@@ -353,6 +353,154 @@ export async function copyTemplateToProfile(formData: FormData) {
   revalidatePath("/admin/checklists");
 }
 
+
+export async function createNewChecklistVersion(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+
+  const sourceTemplateId = textValue(formData, "source_template_id");
+
+  if (!sourceTemplateId) {
+    throw new Error("Checklist source manquante.");
+  }
+
+  const { data: sourceTemplate, error: sourceTemplateError } = await supabase
+    .from("cleaning_checklist_templates")
+    .select("*")
+    .eq("id", sourceTemplateId)
+    .maybeSingle();
+
+  if (sourceTemplateError || !sourceTemplate) {
+    throw new Error("Checklist source introuvable.");
+  }
+
+  if (!sourceTemplate.property_id || !sourceTemplate.cleaning_profile_id) {
+    throw new Error("Cette checklist n’est pas rattachée à un logement et un type de mission.");
+  }
+
+  const { data: existingTemplates, error: versionsError } = await supabase
+    .from("cleaning_checklist_templates")
+    .select("version")
+    .eq("property_id", sourceTemplate.property_id)
+    .eq("cleaning_profile_id", sourceTemplate.cleaning_profile_id);
+
+  if (versionsError) {
+    throw new Error(`Impossible de calculer la nouvelle version : ${versionsError.message}`);
+  }
+
+  const nextVersion =
+    Math.max(
+      0,
+      ...((existingTemplates ?? [])
+        .map((template: Row) => Number(template.version ?? 0))
+        .filter((version: number) => Number.isFinite(version))),
+    ) + 1;
+
+  const { data: sourceSections, error: sourceSectionsError } = await supabase
+    .from("cleaning_checklist_sections")
+    .select("*")
+    .eq("template_id", sourceTemplateId)
+    .order("sort_order", { ascending: true })
+    .order("order_index", { ascending: true });
+
+  if (sourceSectionsError) {
+    throw new Error(`Impossible de charger les sections source : ${sourceSectionsError.message}`);
+  }
+
+  const sourceSectionIds = (sourceSections ?? [])
+    .map((section: Row) => section.id)
+    .filter(Boolean);
+
+  const { data: sourceTranslations, error: translationsError } = sourceSectionIds.length
+    ? await supabase
+        .from("cleaning_checklist_section_translations")
+        .select("*")
+        .in("section_id", sourceSectionIds)
+    : { data: [], error: null };
+
+  if (translationsError) {
+    throw new Error(`Impossible de charger les traductions source : ${translationsError.message}`);
+  }
+
+  await deactivateOtherTemplates(
+    sourceTemplate.property_id,
+    sourceTemplate.cleaning_profile_id,
+  );
+
+  const { data: newTemplate, error: newTemplateError } = await supabase
+    .from("cleaning_checklist_templates")
+    .insert({
+      property_id: sourceTemplate.property_id,
+      cleaning_profile_id: sourceTemplate.cleaning_profile_id,
+      name: sourceTemplate.name,
+      estimated_minutes: sourceTemplate.estimated_minutes,
+      version: nextVersion,
+      active: true,
+    })
+    .select("*")
+    .single();
+
+  if (newTemplateError || !newTemplate) {
+    throw new Error(`Impossible de créer la nouvelle version : ${newTemplateError?.message}`);
+  }
+
+  const translationsByOldSectionId = new Map<string, Row[]>();
+  for (const translation of sourceTranslations ?? []) {
+    const key = String(translation.section_id);
+    const current = translationsByOldSectionId.get(key) ?? [];
+    current.push(translation);
+    translationsByOldSectionId.set(key, current);
+  }
+
+  for (const sourceSection of sourceSections ?? []) {
+    const clonedSection = { ...sourceSection };
+
+    delete clonedSection.id;
+    delete clonedSection.created_at;
+    delete clonedSection.updated_at;
+
+    clonedSection.template_id = newTemplate.id;
+
+    // Important: keep section_key unchanged.
+    // Photos modèles are linked by property_id + section_key, not by section id.
+    const { data: newSection, error: newSectionError } = await supabase
+      .from("cleaning_checklist_sections")
+      .insert(clonedSection)
+      .select("*")
+      .single();
+
+    if (newSectionError || !newSection) {
+      throw new Error(`Impossible de copier une section : ${newSectionError?.message}`);
+    }
+
+    const sectionTranslations = translationsByOldSectionId.get(String(sourceSection.id)) ?? [];
+
+    for (const translation of sectionTranslations) {
+      const clonedTranslation = { ...translation };
+
+      delete clonedTranslation.id;
+      delete clonedTranslation.created_at;
+      delete clonedTranslation.updated_at;
+
+      clonedTranslation.section_id = newSection.id;
+      clonedTranslation.updated_at = new Date().toISOString();
+
+      const { error: clonedTranslationError } = await supabase
+        .from("cleaning_checklist_section_translations")
+        .insert(clonedTranslation);
+
+      if (clonedTranslationError) {
+        throw new Error(
+          `Impossible de copier une traduction : ${clonedTranslationError.message}`,
+        );
+      }
+    }
+  }
+
+  revalidatePath("/admin/checklists");
+}
+
 export async function updateChecklistTemplate(formData: FormData) {
   await requireAdmin();
 
