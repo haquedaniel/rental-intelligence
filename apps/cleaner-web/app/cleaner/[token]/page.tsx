@@ -792,12 +792,6 @@ export default async function CleanerHomePage({
               </div>
             </div>
 
-            <Link
-              href={`/cleaner/${token}/payments`}
-              className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-950"
-            >
-              {t(locale, "home.payments")}
-            </Link>
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
