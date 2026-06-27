@@ -23,9 +23,14 @@ function safeFilename(name: string): string {
   );
 }
 
-function redirectToPhotos(propertyId: string): never {
+function redirectToPhotos(propertyId: string, templateId?: string | null): never {
   revalidatePath("/admin/photos");
-  redirect(`/admin/photos?property_id=${propertyId}`);
+
+  const params = new URLSearchParams();
+  params.set("property_id", propertyId);
+  if (templateId) params.set("template_id", templateId);
+
+  redirect(`/admin/photos?${params.toString()}`);
 }
 
 export async function uploadReferencePhoto(formData: FormData) {
@@ -34,6 +39,7 @@ export async function uploadReferencePhoto(formData: FormData) {
   const supabase = getSupabaseAdmin();
 
   const propertyId = textValue(formData, "property_id");
+  const templateId = textValue(formData, "template_id");
   const placement = textValue(formData, "placement");
   const title = textValue(formData, "title") || "Photo modèle";
   const displayOrderRaw = textValue(formData, "display_order");
@@ -112,7 +118,7 @@ export async function uploadReferencePhoto(formData: FormData) {
     throw new Error(`Impossible d'enregistrer la photo : ${insertError.message}`);
   }
 
-  redirectToPhotos(propertyId);
+  redirectToPhotos(propertyId, templateId);
 }
 
 export async function updateReferencePhoto(formData: FormData) {
@@ -121,6 +127,7 @@ export async function updateReferencePhoto(formData: FormData) {
   const supabase = getSupabaseAdmin();
 
   const propertyId = textValue(formData, "property_id");
+  const templateId = textValue(formData, "template_id");
   const photoId = textValue(formData, "photo_id");
   const placement = textValue(formData, "placement");
   const title = textValue(formData, "title") || "Photo modèle";
@@ -167,7 +174,7 @@ export async function updateReferencePhoto(formData: FormData) {
     throw new Error(`Impossible de modifier la photo : ${updateError.message}`);
   }
 
-  redirectToPhotos(propertyId);
+  redirectToPhotos(propertyId, templateId);
 }
 
 export async function deactivateReferencePhoto(formData: FormData) {
@@ -176,6 +183,7 @@ export async function deactivateReferencePhoto(formData: FormData) {
   const supabase = getSupabaseAdmin();
 
   const propertyId = textValue(formData, "property_id");
+  const templateId = textValue(formData, "template_id");
   const photoId = textValue(formData, "photo_id");
 
   if (!propertyId || !photoId) {
@@ -195,5 +203,5 @@ export async function deactivateReferencePhoto(formData: FormData) {
     throw new Error(`Impossible de désactiver la photo : ${error.message}`);
   }
 
-  redirectToPhotos(propertyId);
+  redirectToPhotos(propertyId, templateId);
 }

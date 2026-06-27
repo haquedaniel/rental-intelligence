@@ -8,7 +8,7 @@ import {
 } from "./actions";
 export const dynamic = "force-dynamic";
 type PageProps = {
-  searchParams?: Promise<{ property_id?: string }>;
+  searchParams?: Promise<{ property_id?: string; template_id?: string }>;
 };
 
 async function signedUrl(
@@ -24,11 +24,19 @@ async function signedUrl(
   return data?.signedUrl ?? null;
 }
 
+function photosUrl(propertyId: string, templateId?: string | null): string {
+  const params = new URLSearchParams();
+  params.set("property_id", propertyId);
+  if (templateId) params.set("template_id", templateId);
+  return `/admin/photos?${params.toString()}`;
+}
+
 export default async function AdminPhotosPage({ searchParams }: PageProps) {
   await requireAdmin();
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedPropertyId = resolvedSearchParams?.property_id;
+  const requestedTemplateId = resolvedSearchParams?.template_id;
 
   const supabase = getSupabaseAdmin();
 
@@ -44,25 +52,33 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
 
   const propertyId = selectedProperty?.id ?? null;
 
+  let templates: any[] = [];
+  let selectedTemplate: any | null = null;
   let sections: any[] = [];
   let photos: any[] = [];
 
   if (propertyId) {
-    const { data: templates } = await supabase
+    const { data: templateRows } = await supabase
       .from("cleaning_checklist_templates")
-      .select("id,name,version")
+      .select("id,name,version,active,cleaning_profile_id,created_at")
       .eq("property_id", propertyId)
       .eq("active", true)
       .order("version", { ascending: false })
-      .limit(1);
+      .order("created_at", { ascending: false });
 
-    const template = templates?.[0] ?? null;
+    templates = templateRows ?? [];
+    selectedTemplate =
+      templates.find((template) => template.id === requestedTemplateId) ??
+      templates[0] ??
+      null;
 
-    if (template) {
+    if (selectedTemplate) {
       const { data: sectionRows } = await supabase
         .from("cleaning_checklist_sections")
-        .select("section_key,title,order_index")
-        .eq("template_id", template.id)
+        .select("section_key,title,sort_order,order_index,active")
+        .eq("template_id", selectedTemplate.id)
+        .eq("active", true)
+        .order("sort_order", { ascending: true })
         .order("order_index", { ascending: true });
 
       sections = sectionRows ?? [];
@@ -112,7 +128,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
             {(properties ?? []).map((property) => (
               <Link
                 key={property.id}
-                href={`/admin/photos?property_id=${property.id}`}
+                href={photosUrl(property.id)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   property.id === propertyId
                     ? "bg-slate-900 text-white"
@@ -128,6 +144,41 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
         {propertyId && (
           <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="font-bold text-slate-950">
+              Checklist d’affectation
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-600">
+              Choisissez la checklist dont les sections seront proposées dans le menu d’affectation.
+              Les photos restent liées au logement et à la clé stable de section.
+            </p>
+
+            {templates.length === 0 ? (
+              <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900 ring-1 ring-amber-100">
+                Aucune checklist active pour ce logement. Activez ou créez une checklist avant d’affecter les photos aux sections.
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {templates.map((template) => (
+                  <Link
+                    key={template.id}
+                    href={photosUrl(propertyId, template.id)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                      template.id === selectedTemplate?.id
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {template.name} · v{template.version ?? "—"}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {propertyId && (
+          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 className="font-bold text-slate-950">
               Ajouter une photo
             </h2>
 
@@ -137,6 +188,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
               className="mt-4 grid gap-4 md:grid-cols-2"
             >
               <input type="hidden" name="property_id" value={propertyId} />
+              <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800">
@@ -264,6 +316,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                           name="property_id"
                           value={propertyId}
                         />
+                        <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
                         <input type="hidden" name="photo_id" value={photo.id} />
 
                         <div>
@@ -291,6 +344,12 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                             className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm"
                           >
                             <option value="cover">Photo de couverture</option>
+                            {photo.section_key &&
+                              !sections.some((section) => section.section_key === photo.section_key) && (
+                                <option value={photo.section_key}>
+                                  Section actuelle : {photo.section_key}
+                                </option>
+                              )}
                             {sections.map((section) => (
                               <option
                                 key={section.section_key}
@@ -337,6 +396,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                           name="property_id"
                           value={propertyId}
                         />
+                        <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
                         <input type="hidden" name="photo_id" value={photo.id} />
                         <button
                           type="submit"
