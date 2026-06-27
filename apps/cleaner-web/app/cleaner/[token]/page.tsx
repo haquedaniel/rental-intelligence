@@ -132,6 +132,34 @@ function cleanerInitials(cleaner: Row): string {
   return `${first}${last}` || "I";
 }
 
+function cleanerDisplayName(cleaner: Row): string {
+  const first = String(cleaner.first_name ?? "").trim();
+  const last = String(cleaner.last_name ?? "").trim();
+  const fullName = [first, last].filter(Boolean).join(" ");
+
+  return (
+    fullName ||
+    textValue(cleaner, ["trading_name", "legal_name", "name"], "votre espace")
+  );
+}
+
+function cleanerGreetingName(cleaner: Row): string {
+  const first = String(cleaner.first_name ?? "").trim();
+  if (first) return first;
+
+  return cleanerDisplayName(cleaner);
+}
+
+function cleanerWelcomeSubtitle(cleaner: Row): string {
+  const city = textValue(cleaner, ["city", "home_city", "base_city", "area"], "");
+
+  if (city !== "—" && city.trim()) {
+    return `Vos missions autour de ${city}`;
+  }
+
+  return "Vos missions, votre planning et vos paiements";
+}
+
 function propertyName(property?: Row | null, locale: CleanerLocale = "fr"): string {
   return property?.name || t(locale, "common.propertyFallback");
 }
@@ -735,7 +763,7 @@ export default async function CleanerHomePage({
     <main className="min-h-screen bg-slate-50 pb-28 text-slate-950">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.35),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.30),transparent_35%)]" />
-        <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               {cleanerPhotoUrl ? (
@@ -755,8 +783,8 @@ export default async function CleanerHomePage({
                 <p className="text-xs font-black uppercase tracking-wide text-white/45">
                   {t(locale, "home.space")}
                 </p>
-                <h1 className="mt-1 truncate text-3xl font-black tracking-tight sm:text-5xl">
-                  {t(locale, "home.greeting")} {cleaner.first_name || cleanerName(cleaner, locale)}
+                <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-white sm:text-5xl">
+                  {t(locale, "home.greeting")} {cleanerGreetingName(cleaner)}
                 </h1>
                 <p className="mt-2 truncate text-sm font-bold text-white/65">
                   {textValue(cleaner, ["trading_name", "legal_name", "worker_type"], t(locale, "home.fallbackSubtitle"))}
