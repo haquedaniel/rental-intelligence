@@ -190,28 +190,62 @@ export function ReportForm({
             key={section.section_key}
             className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {section.title}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {section.detail_items.length} {section.detail_items.length > 1 ? t(locale, "form.pointsToCheck") : t(locale, "form.pointToCheck")}
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {section.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {section.detail_items.length} {section.detail_items.length > 1 ? t(locale, "form.pointsToCheck") : t(locale, "form.pointToCheck")}
+                  </p>
+                </div>
+
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${
+                    hasViewed
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-900"
+                  }`}
+                >
+                  {hasViewed ? "Points lus" : "À lire"}
+                </span>
               </div>
 
               <button
                 type="button"
-                className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700"
+                className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold shadow-sm ring-1 ${
+                  isOpen
+                    ? "bg-slate-900 text-white ring-slate-900"
+                    : hasViewed
+                      ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
+                      : "bg-slate-950 text-white ring-slate-950"
+                }`}
                 onClick={() => openDetails(section.section_key)}
               >
-                {isOpen ? t(locale, "form.hide") : t(locale, "form.showPoints")}
+                <span>
+                  {isOpen
+                    ? "Masquer les points"
+                    : hasViewed
+                      ? "Revoir les points à vérifier"
+                      : `1 · Voir les ${section.detail_items.length} points à vérifier`}
+                </span>
+                <span className="text-lg leading-none">{isOpen ? "↑" : "↓"}</span>
               </button>
+
+              {!hasViewed && (
+                <p className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 ring-1 ring-amber-100">
+                  Ouvrez d’abord les points à vérifier. La validation sera ensuite disponible.
+                </p>
+              )}
             </div>
 
             {isOpen && (
-              <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800">
+                  Points à vérifier avant de valider
+                </p>
+                <ul className="list-disc space-y-2 pl-5 text-sm font-medium text-emerald-950">
                   {section.detail_items.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -298,10 +332,16 @@ export function ReportForm({
             </div>
 
             <label
-              className={`mt-4 flex items-start gap-3 rounded-xl border p-3 ${
+              onClick={(event) => {
+                if (!hasViewed && !alreadySubmitted) {
+                  event.preventDefault();
+                  openDetails(section.section_key);
+                }
+              }}
+              className={`mt-4 flex items-start gap-3 rounded-2xl border p-4 ${
                 hasViewed
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-slate-200 bg-slate-50"
+                  ? "cursor-pointer border-emerald-200 bg-emerald-50"
+                  : "cursor-pointer border-amber-200 bg-amber-50"
               }`}
             >
             <input
@@ -325,7 +365,7 @@ export function ReportForm({
                   }));
                 }
               }}
-              className="mt-1 h-5 w-5"
+              className="mt-1 h-6 w-6"
             />
 
               <span>
@@ -334,8 +374,20 @@ export function ReportForm({
                 </span>
 
                 {!hasViewed && (
-                  <span className="mt-1 block text-xs text-slate-500">
-                    {t(locale, "form.openDetailsFirst")}
+                  <span className="mt-1 block text-xs font-semibold text-amber-800">
+                    Touchez ici pour ouvrir les points, puis vous pourrez cocher.
+                  </span>
+                )}
+
+                {hasViewed && !isChecked && !alreadySubmitted && (
+                  <span className="mt-1 block text-xs font-semibold text-emerald-800">
+                    Les points ont été ouverts. Vous pouvez maintenant cocher cette rubrique.
+                  </span>
+                )}
+
+                {isChecked && (
+                  <span className="mt-1 block text-xs font-semibold text-emerald-800">
+                    Rubrique validée.
                   </span>
                 )}
               </span>
