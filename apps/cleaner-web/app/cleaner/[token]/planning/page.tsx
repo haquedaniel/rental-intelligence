@@ -437,7 +437,29 @@ function PropertyCalendar({
   const copy = c(locale);
   const today = parisDateKey(new Date());
   const units = Array.from({ length: 90 }, (_, index) => addDays(today, index));
-  const gridTemplateColumns = `repeat(${units.length}, 34px)`;
+  const dayWidth = 44;
+  const timelineWidth = units.length * dayWidth;
+
+  function indexFor(dateKey: string) {
+    return units.indexOf(dateKey);
+  }
+
+  function lanePosition(startKey: string, endExclusiveKey: string) {
+    const firstVisible = units.findIndex((unit) => endExclusiveKey > unit && startKey <= unit);
+    if (firstVisible < 0) return null;
+
+    let lastVisible = firstVisible;
+    for (let index = firstVisible; index < units.length; index += 1) {
+      if (endExclusiveKey > units[index] && startKey <= units[index]) {
+        lastVisible = index;
+      }
+    }
+
+    return {
+      left: firstVisible * dayWidth + 4,
+      width: Math.max((lastVisible - firstVisible + 1) * dayWidth - 8, 30),
+    };
+  }
 
   return (
     <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
@@ -455,22 +477,34 @@ function PropertyCalendar({
 
       <div className="mt-4 overflow-x-auto rounded-2xl bg-slate-50 pb-3">
         <div className="min-w-max">
-          <div className="grid grid-cols-[122px_1fr] gap-2 border-b border-slate-200 bg-white/80 p-2">
-            <div className="sticky left-0 z-20 rounded-xl bg-white px-2 py-2 text-[10px] font-black uppercase text-slate-400">
+          <div className="grid grid-cols-[112px_1fr] border-b border-slate-200 bg-white">
+            <div className="sticky left-0 z-30 bg-white px-3 py-3 text-[10px] font-black uppercase text-slate-400">
               {copy.properties}
             </div>
 
-            <div className="grid gap-1" style={{ gridTemplateColumns }}>
-              {units.map((dateKey) => (
-                <div key={dateKey} className="rounded-xl bg-slate-50 px-1 py-1 text-center">
-                  <p className="text-[8px] font-black uppercase text-slate-400">
-                    {shortDay(dateKey, locale).slice(0, 3)}
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-black text-slate-900">
-                    {dateKey.slice(8, 10)}
-                  </p>
-                </div>
-              ))}
+            <div className="relative h-[58px]" style={{ width: timelineWidth }}>
+              <div className="absolute inset-0 flex">
+                {units.map((dateKey) => {
+                  const isToday = dateKey === today;
+
+                  return (
+                    <div
+                      key={dateKey}
+                      className={`flex-none border-l px-1 py-2 text-center ${
+                        isToday ? "bg-slate-100" : "border-slate-100"
+                      }`}
+                      style={{ width: dayWidth }}
+                    >
+                      <p className="text-[8px] font-black uppercase text-slate-400">
+                        {shortDay(dateKey, locale).slice(0, 3)}
+                      </p>
+                      <p className="mt-1 text-[11px] font-black text-slate-900">
+                        {dateKey.slice(8, 10)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -488,63 +522,86 @@ function PropertyCalendar({
               );
 
               return (
-                <div key={propertyId} className="grid grid-cols-[122px_1fr] gap-2 p-2">
-                  <div className={`sticky left-0 z-10 rounded-2xl border-l-4 px-2 py-3 ${palette.label}`}>
-                    <p className="line-clamp-3 text-xs font-black text-slate-950">
-                      {propertyName(property, locale)}
-                    </p>
-                    <p className="mt-1 text-[10px] font-bold text-slate-500">
-                      {propertyRequests.length} mission(s)
-                    </p>
+                <div key={propertyId} className="grid grid-cols-[112px_1fr] bg-white">
+                  <div className={`sticky left-0 z-20 border-r border-slate-100 bg-white p-3`}>
+                    <div className={`rounded-2xl border-l-4 px-3 py-3 ${palette.label}`}>
+                      <p className="line-clamp-3 text-xs font-black text-slate-950">
+                        {propertyName(property, locale)}
+                      </p>
+                      <p className="mt-1 text-[10px] font-bold text-slate-500">
+                        {propertyRequests.length} mission(s)
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="relative rounded-2xl bg-white p-1.5">
-                    <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
-                      {units.map((dateKey) => (
-                        <div key={`${propertyId}-${dateKey}-bg`} className="rounded-xl bg-slate-50" />
-                      ))}
+                  <div className="relative h-[108px] bg-white" style={{ width: timelineWidth }}>
+                    <div className="absolute inset-0 flex">
+                      {units.map((dateKey) => {
+                        const isToday = dateKey === today;
+
+                        return (
+                          <div
+                            key={`${propertyId}-${dateKey}-bg`}
+                            className={`flex-none border-l ${
+                              isToday ? "bg-slate-100/70" : "border-slate-100 bg-slate-50/60"
+                            }`}
+                            style={{ width: dayWidth }}
+                          />
+                        );
+                      })}
                     </div>
 
-                    <div className="relative grid min-h-[74px] gap-1" style={{ gridTemplateColumns }}>
+                    <div className="absolute left-0 right-0 top-4 h-[30px]">
                       {propertyReservations.map((reservation) => {
                         if (!reservation.checkin_at || !reservation.checkout_at) return null;
 
                         const checkin = parisDateKey(new Date(reservation.checkin_at));
                         const checkout = parisDateKey(new Date(reservation.checkout_at));
-                        const span = spanForCalendar(checkin, checkout, units);
-                        if (!span) return null;
+                        const pos = lanePosition(checkin, checkout);
+                        if (!pos) return null;
 
                         return (
                           <div
                             key={reservation.id}
-                            className={`z-10 rounded-xl px-2 py-1 text-[9px] font-black shadow-sm ${palette.stay}`}
-                            style={{ gridColumn: `${span.start} / span ${span.span}` }}
+                            className={`absolute top-0 h-[28px] overflow-hidden rounded-full px-3 py-1 text-[10px] font-black shadow-sm ${palette.stay}`}
+                            style={{ left: pos.left, width: pos.width }}
                             title={`${guestName(reservation, locale)} · ${propertyName(property, locale)}`}
                           >
                             <p className="truncate">{guestName(reservation, locale)}</p>
                           </div>
                         );
                       })}
+                    </div>
 
+                    <div className="absolute left-0 right-0 bottom-4 h-[34px]">
                       {propertyRequests.map((request) => {
                         const anchor = parseDate(anchorAt(request));
                         if (!anchor) return null;
 
                         const key = parisDateKey(anchor);
-                        const index = units.indexOf(key);
+                        const index = indexFor(key);
                         if (index < 0) return null;
 
                         const overdue = isOverdue(request, false);
+                        const label =
+                          overdue
+                            ? copy.late
+                            : request.status === "accepted"
+                              ? "OK"
+                              : copy.toConfirm;
 
                         return (
                           <Link
                             key={request.id}
                             href={missionHref(request)}
-                            className={`z-20 rounded-xl px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 shadow-sm ${calendarMissionClass(request, overdue)}`}
-                            style={{ gridColumn: `${index + 1} / span 1` }}
+                            className={`absolute top-0 flex h-[32px] items-center justify-center rounded-full px-2 text-center text-[9px] font-black leading-tight ring-1 shadow-sm ${calendarMissionClass(request, overdue)}`}
+                            style={{
+                              left: index * dayWidth + 3,
+                              width: dayWidth - 6,
+                            }}
                             title={`${propertyName(property, locale)} · ${statusLabel(request, overdue, locale)} · ${fullDateLabel(anchorAt(request), locale)}`}
                           >
-                            {overdue ? copy.late : request.status === "accepted" ? "OK" : copy.toConfirm}
+                            <span className="truncate">{label}</span>
                           </Link>
                         );
                       })}
