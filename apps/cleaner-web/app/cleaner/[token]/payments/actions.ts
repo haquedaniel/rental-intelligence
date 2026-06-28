@@ -1,12 +1,24 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 const PARIS_TZ = "Europe/Paris";
+const ACTIVE_REQUEST_STATUSES = new Set([
+  "draft",
+  "sent_to_owner",
+  "paid",
+  "overdue",
+]);
 
 function textValue(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
+}
+
+function decimalValue(value: unknown): number {
+  const parsed = Number(String(value ?? "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function money(value: number): number {
@@ -33,35 +45,7 @@ function parisDateKey(value: string | Date): string {
     day: "2-digit",
   }).formatToParts(date);
 
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return `${year}-${month}-${day}`;
-}
-
-function serviceLabel(serviceType?: string | null): string {
-  switch (serviceType) {
-    case "garden_lawn":
-      return "Jardin / tonte";
-    case "deep_cleaning":
-      return "Grand ménage";
-    case "linen_laundry":
-      return "Linge / lessive";
-    case "inventory_check":
-      return "Contrôle inventaire";
-    case "maintenance_check":
-      return "Petite maintenance";
-    case "other":
-      return "Mission ponctuelle";
-    default:
-      return "Ménage";
-  }
-}
-
-function decimalValue(value: unknown): number {
-  const parsed = Number(String(value ?? "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
 }
 
 function missionPaymentDateKey(mission: any): string {
@@ -76,36 +60,56 @@ function missionPaymentDateKey(mission: any): string {
   );
 }
 
-function manualExtraLines(formData: FormData, periodEndKey: string) {
-  return [1, 2, 3]
-    .map((index) => {
-      const description = textValue(formData, `extra_description_${index}`);
-      const amount = decimalValue(formData.get(`extra_amount_${index}`));
+function missionChecklistName(mission: any): string {
+  const report = Array.isArray(mission.cleaning_reports)
+    ? mission.cleaning_reports[0]
+    : mission.cleaning_reports;
 
-      if (!description || amount <= 0) return null;
+  return (
+    report?.checklist_snapshot?.template_name ||
+    mission.title ||
+    "Ménage"
+  );
+}
 
-      return {
-        description,
-        amount_eur: money(amount),
-        work_date: periodEndKey,
-      };
-    })
-    .filter(Boolean) as Array<{
-      description: string;
-      amount_eur: number;
-      work_date: string;
-    }>;
+async function loadAlreadyIncludedMissionIds(cleanerId: string) {
+  const supabase = getSupabaseAdmin();
+
+  const { data: requests } = await supabase
+    .from("monthly_payment_requests")
+    .select("id,status")
+    .eq("cleaner_id", cleanerId);
+
+  const activeRequestIds = (requests ?? [])
+    .filter((request: any) => ACTIVE_REQUEST_STATUSES.has(String(request.status ?? "draft")))
+    .map((request: any) => request.id);
+
+  if (activeRequestIds.length === 0) return new Set<string>();
+
+  const { data: lines, error } = await supabase
+    .from("monthly_payment_request_lines")
+    .select("cleaning_request_id")
+    .in("monthly_payment_request_id", activeRequestIds)
+    .not("cleaning_request_id", "is", null);
+
+  if (error) {
+    throw new Error(`Impossible de vérifier les missions déjà demandées : ${error.message}`);
+  }
+
+  return new Set((lines ?? []).map((line: any) => String(line.cleaning_request_id)));
 }
 
 async function loadCompletedMissions(cleanerId: string, ownerId: string, startKey: string, endKey: string) {
   const supabase = getSupabaseAdmin();
+
+  const includedMissionIds = await loadAlreadyIncludedMissionIds(cleanerId);
 
   const { data, error } = await supabase
     .from("cleaning_requests")
     .select(`
       *,
       properties:property_id(id,name,owner_id),
-      cleaning_reports(id, submitted_at)
+      cleaning_reports(id, submitted_at, checklist_template_id, checklist_version, checklist_snapshot)
     `)
     .eq("assigned_cleaner_id", cleanerId)
     .in("status", ["report_submitted", "completed", "problem_reported"])
@@ -117,38 +121,12 @@ async function loadCompletedMissions(cleanerId: string, ownerId: string, startKe
 
   return (data ?? []).filter((mission: any) => {
     const workKey = missionPaymentDateKey(mission);
-    return mission.properties?.owner_id === ownerId && workKey >= startKey && workKey <= endKey;
-  });
-}
-
-async function loadExtras(cleanerId: string, ownerId: string, startKey: string, endKey: string) {
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from("cleaning_request_extras")
-    .select(`
-      *,
-      properties:property_id(id,name,owner_id),
-      cleaning_requests:cleaning_request_id(scheduled_start_at,title,service_type)
-    `)
-    .eq("cleaner_id", cleanerId)
-    .in("status", ["pending_owner_review", "approved"])
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    throw new Error(`Impossible de charger les suppléments : ${error.message}`);
-  }
-
-  return (data ?? []).filter((extra: any) => {
-    const workDate =
-      extra.cleaning_requests?.ready_by_at ??
-      extra.cleaning_requests?.completion_deadline_at ??
-      extra.cleaning_requests?.work_window_end_at ??
-      extra.cleaning_requests?.scheduled_end_at ??
-      extra.cleaning_requests?.scheduled_start_at ??
-      extra.created_at;
-    const workKey = parisDateKey(workDate);
-    return extra.properties?.owner_id === ownerId && workKey >= startKey && workKey <= endKey;
+    return (
+      mission.properties?.owner_id === ownerId &&
+      workKey >= startKey &&
+      workKey <= endKey &&
+      !includedMissionIds.has(String(mission.id))
+    );
   });
 }
 
@@ -159,6 +137,8 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
   const ownerId = textValue(formData, "owner_id");
   const period = textValue(formData, "period");
   const cleanerMessage = textValue(formData, "cleaner_message");
+  const extraDescription = textValue(formData, "extra_description");
+  const extraAmount = money(decimalValue(formData.get("extra_amount")));
 
   if (!cleanerToken || !ownerId || !period) {
     throw new Error("Intervenante, propriétaire ou période manquante.");
@@ -185,12 +165,18 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
   }
 
   const { startKey, endKey } = monthBounds(period);
-
   const missions = await loadCompletedMissions(cleaner.id, ownerId, startKey, endKey);
-  const extras = await loadExtras(cleaner.id, ownerId, startKey, endKey);
-  const manualExtras = manualExtraLines(formData, endKey);
 
-  if (missions.length === 0 && extras.length === 0 && manualExtras.length === 0) {
+  const manualExtra =
+    extraDescription && extraAmount > 0
+      ? {
+          description: extraDescription,
+          amount_eur: extraAmount,
+          work_date: endKey,
+        }
+      : null;
+
+  if (missions.length === 0 && !manualExtra) {
     throw new Error("Aucune mission terminée à demander pour ce propriétaire sur cette période.");
   }
 
@@ -203,22 +189,17 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
     .eq("period_end", endKey)
     .maybeSingle();
 
-  if (existing.data && existing.data.status !== "draft") {
+  if (existing.data && !["draft", "refused", "withdrawn", "cancelled"].includes(existing.data.status)) {
     throw new Error("Cette demande a déjà été envoyée.");
   }
 
-  const totalBase = missions.reduce(
-    (sum: number, mission: any) => sum + Number(mission.total_cost_eur ?? 0),
-    0,
+  const totalBase = money(
+    missions.reduce((sum: number, mission: any) => sum + Number(mission.total_cost_eur ?? 0), 0),
   );
-
-  const totalExtras =
-    extras.reduce(
-      (sum: number, extra: any) => sum + Number(extra.amount_eur ?? 0),
-      0,
-    ) + manualExtras.reduce((sum, extra) => sum + Number(extra.amount_eur ?? 0), 0);
-
+  const totalExtras = money(manualExtra?.amount_eur ?? 0);
+  const total = money(totalBase + totalExtras);
   const dueDays = Number(owner.payment_due_days ?? 5);
+
   const baseUrl =
     process.env.PAYMENT_REQUEST_BASE_URL ||
     process.env.CLEANER_WEB_BASE_URL ||
@@ -230,9 +211,9 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
     period_start: startKey,
     period_end: endKey,
     status: "sent_to_owner",
-    total_base_eur: money(totalBase),
-    total_extras_eur: money(totalExtras),
-    total_eur: money(totalBase + totalExtras),
+    total_base_eur: totalBase,
+    total_extras_eur: totalExtras,
+    total_eur: total,
     cleaner_message: cleanerMessage || null,
     owner_recipient_name: owner.display_name || owner.legal_name || "Propriétaire",
     owner_recipient_phone: owner.phone || null,
@@ -293,57 +274,38 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
     ...missions.map((mission: any) => ({
       monthly_payment_request_id: paymentRequestId,
       cleaning_request_id: mission.id,
-      cleaning_report_id: mission.cleaning_reports?.[0]?.id ?? null,
+      cleaning_report_id: Array.isArray(mission.cleaning_reports)
+        ? mission.cleaning_reports[0]?.id ?? null
+        : mission.cleaning_reports?.id ?? null,
       line_type: "mission",
       work_date: missionPaymentDateKey(mission),
       property_id: mission.property_id,
       property_name: mission.properties?.name ?? null,
       service_type: mission.service_type ?? "standard_cleaning",
-      description: mission.title || serviceLabel(mission.service_type),
+      description: `${missionPaymentDateKey(mission)} · ${missionChecklistName(mission)}`,
       hours: Number(mission.estimated_hours ?? 0),
       amount_eur: money(Number(mission.total_cost_eur ?? 0)),
       status: "included",
     })),
-    ...extras.map((extra: any) => {
-      const workDate =
-        extra.cleaning_requests?.ready_by_at ??
-        extra.cleaning_requests?.completion_deadline_at ??
-        extra.cleaning_requests?.work_window_end_at ??
-        extra.cleaning_requests?.scheduled_end_at ??
-        extra.cleaning_requests?.scheduled_start_at ??
-        extra.created_at;
-
-      return {
-        monthly_payment_request_id: paymentRequestId,
-        cleaning_request_id: extra.cleaning_request_id,
-        cleaning_report_id: extra.cleaning_report_id,
-        extra_id: extra.id,
-        line_type: "extra",
-        work_date: parisDateKey(workDate),
-        property_id: extra.property_id,
-        property_name: extra.properties?.name ?? null,
-        service_type: extra.cleaning_requests?.service_type ?? "other",
-        description: `Supplément exceptionnel · ${extra.reason}`,
-        hours: Number(extra.hours ?? 0),
-        amount_eur: money(Number(extra.amount_eur ?? 0)),
-        status: extra.status === "approved" ? "included" : "pending_owner_review",
-      };
-    }),
-    ...manualExtras.map((extra) => ({
-      monthly_payment_request_id: paymentRequestId,
-      cleaning_request_id: null,
-      cleaning_report_id: null,
-      extra_id: null,
-      line_type: "extra",
-      work_date: extra.work_date,
-      property_id: missions[0]?.property_id ?? extras[0]?.property_id ?? null,
-      property_name: missions[0]?.properties?.name ?? extras[0]?.properties?.name ?? null,
-      service_type: "other",
-      description: `Supplément ajouté à la demande · ${extra.description}`,
-      hours: 0,
-      amount_eur: extra.amount_eur,
-      status: "included",
-    })),
+    ...(manualExtra
+      ? [
+          {
+            monthly_payment_request_id: paymentRequestId,
+            cleaning_request_id: null,
+            cleaning_report_id: null,
+            extra_id: null,
+            line_type: "extra",
+            work_date: manualExtra.work_date,
+            property_id: missions[0]?.property_id ?? null,
+            property_name: missions[0]?.properties?.name ?? null,
+            service_type: "other",
+            description: `Supplément exceptionnel · ${manualExtra.description}`,
+            hours: 0,
+            amount_eur: manualExtra.amount_eur,
+            status: "included",
+          },
+        ]
+      : []),
   ];
 
   const { error: lineError } = await supabase
@@ -364,12 +326,15 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
 
   if (wantsSms && owner.phone && refreshedRequest) {
     const ownerLink = `${baseUrl}/owner/payments/${refreshedRequest.public_token}`;
-    const cleanerName = [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Une intervenante";
+    const cleanerName =
+      [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") ||
+      cleaner.trading_name ||
+      "Une intervenante";
 
     const body = [
       `Demande de paiement reçue`,
       `${cleanerName} vous a envoyé sa demande pour ${period}.`,
-      `Montant: ${money(totalBase + totalExtras).toFixed(2)} €`,
+      `Montant: ${total.toFixed(2)} €`,
       `À régler sous ${dueDays} jours: ${ownerLink}`,
     ].join("\n");
 
@@ -388,4 +353,5 @@ export async function sendMonthlyPaymentRequest(formData: FormData) {
 
   revalidatePath(`/cleaner/${cleanerToken}/payments`);
   revalidatePath("/admin/payments");
+  redirect(`/cleaner/${cleanerToken}/payments?sent=1`);
 }

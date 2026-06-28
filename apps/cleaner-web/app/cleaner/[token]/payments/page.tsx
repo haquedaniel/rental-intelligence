@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -8,8 +7,131 @@ import { sendMonthlyPaymentRequest } from "./actions";
 export const dynamic = "force-dynamic";
 
 const PARIS_TZ = "Europe/Paris";
+const ACTIVE_REQUEST_STATUSES = new Set(["draft", "sent_to_owner", "paid", "overdue"]);
 
 type Row = Record<string, any>;
+
+const COPY = {
+  fr: {
+    back: "← Mon planning",
+    title: "Mes gains",
+    bravo: (name: string) => `Bravo ${name}, business is good !`,
+    subtitle: "Suivez vos missions terminées, préparez vos demandes et gardez l’historique de vos paiements.",
+    earnedToDate: "Gagné au total",
+    thisMonth: "Ce mois-ci",
+    requestNow: "À demander maintenant",
+    pendingPayment: "En attente de paiement",
+    sent: "Demande envoyée ✅",
+    sentBody: "Le propriétaire a reçu votre demande de paiement.",
+    requestableTitle: "À demander maintenant",
+    requestableEmpty: "Rien à demander pour le moment. Les missions du mois en cours seront disponibles le mois prochain.",
+    requestCard: (amount: string, owner: string, month: string) =>
+      `Vous avez gagné ${amount} avec ${owner} en ${month}.`,
+    prepare: "Préparer la demande",
+    lineItems: "Missions incluses",
+    exceptionalCost: "Frais exceptionnel",
+    exceptionalPlaceholder: "Ex : déplacement exceptionnel, achat urgent…",
+    amount: "Montant",
+    messageOwner: "Message au propriétaire",
+    messagePlaceholder: "Message optionnel au propriétaire…",
+    sendRequest: "Envoyer la demande de paiement",
+    history: "Historique",
+    historyIntro: "Toutes les missions terminées, groupées par propriétaire et par demande.",
+    noHistory: "Aucune mission terminée pour le moment.",
+    notRequested: "Pas encore demandée",
+    currentMonthNotReady: "Mois en cours — demandable plus tard",
+    alreadyIncluded: "Déjà dans une demande",
+    paid: "Payée",
+    sentToOwner: "Envoyée",
+    overdue: "En retard",
+    refused: "Refusée",
+    cancelled: "Annulée",
+    ownerFallback: "Propriétaire",
+    missionFallback: "Mission",
+    checklistFallback: "Ménage",
+  },
+  en: {
+    back: "← My schedule",
+    title: "My earnings",
+    bravo: (name: string) => `Great work ${name}, business is good!`,
+    subtitle: "Track completed missions, prepare payment requests and keep your payment history.",
+    earnedToDate: "Earned to date",
+    thisMonth: "This month",
+    requestNow: "Ready to request",
+    pendingPayment: "Waiting for payment",
+    sent: "Request sent ✅",
+    sentBody: "The owner has received your payment request.",
+    requestableTitle: "Ready to request",
+    requestableEmpty: "Nothing to request right now. Current-month missions will be available next month.",
+    requestCard: (amount: string, owner: string, month: string) =>
+      `You earned ${amount} with ${owner} in ${month}.`,
+    prepare: "Prepare request",
+    lineItems: "Included missions",
+    exceptionalCost: "Exceptional cost",
+    exceptionalPlaceholder: "E.g. special trip, urgent purchase…",
+    amount: "Amount",
+    messageOwner: "Message to owner",
+    messagePlaceholder: "Optional message to the owner…",
+    sendRequest: "Send payment request",
+    history: "History",
+    historyIntro: "All completed missions, grouped by owner and payment request.",
+    noHistory: "No completed mission yet.",
+    notRequested: "Not requested yet",
+    currentMonthNotReady: "Current month — request later",
+    alreadyIncluded: "Already in a request",
+    paid: "Paid",
+    sentToOwner: "Sent",
+    overdue: "Overdue",
+    refused: "Refused",
+    cancelled: "Cancelled",
+    ownerFallback: "Owner",
+    missionFallback: "Mission",
+    checklistFallback: "Cleaning",
+  },
+  ru: {
+    back: "← Моё расписание",
+    title: "Мои доходы",
+    bravo: (name: string) => `Отлично, ${name}, работа идёт хорошо!`,
+    subtitle: "Смотрите выполненные задания, отправляйте запросы на оплату и историю платежей.",
+    earnedToDate: "Заработано всего",
+    thisMonth: "В этом месяце",
+    requestNow: "Можно запросить",
+    pendingPayment: "Ожидает оплаты",
+    sent: "Запрос отправлен ✅",
+    sentBody: "Владелец получил ваш запрос на оплату.",
+    requestableTitle: "Можно запросить сейчас",
+    requestableEmpty: "Пока нечего запрашивать. Задания текущего месяца будут доступны в следующем месяце.",
+    requestCard: (amount: string, owner: string, month: string) =>
+      `Вы заработали ${amount} у ${owner} за ${month}.`,
+    prepare: "Подготовить запрос",
+    lineItems: "Включённые задания",
+    exceptionalCost: "Дополнительные расходы",
+    exceptionalPlaceholder: "Напр. отдельная поездка, срочная покупка…",
+    amount: "Сумма",
+    messageOwner: "Сообщение владельцу",
+    messagePlaceholder: "Необязательное сообщение владельцу…",
+    sendRequest: "Отправить запрос на оплату",
+    history: "История",
+    historyIntro: "Все выполненные задания по владельцам и запросам на оплату.",
+    noHistory: "Пока нет выполненных заданий.",
+    notRequested: "Ещё не запрошено",
+    currentMonthNotReady: "Текущий месяц — запрос позже",
+    alreadyIncluded: "Уже в запросе",
+    paid: "Оплачено",
+    sentToOwner: "Отправлено",
+    overdue: "Просрочено",
+    refused: "Отклонено",
+    cancelled: "Отменено",
+    ownerFallback: "Владелец",
+    missionFallback: "Задание",
+    checklistFallback: "Уборка",
+  },
+} as const;
+
+function copy(locale: CleanerLocale) {
+  if (locale === "en" || locale === "ru") return COPY[locale];
+  return COPY.fr;
+}
 
 function money(value: unknown): string {
   return `${Number(value ?? 0).toFixed(2)} €`;
@@ -23,22 +145,7 @@ function currentPeriod(): string {
     month: "2-digit",
   }).formatToParts(now);
 
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-
-  return `${year}-${month}`;
-}
-
-function previousPeriod(period: string): string {
-  const [year, month] = period.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 2, 1, 12, 0, 0));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function nextPeriod(period: string): string {
-  const [year, month] = period.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month, 1, 12, 0, 0));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;
 }
 
 function monthBounds(period: string) {
@@ -51,7 +158,7 @@ function monthBounds(period: string) {
   };
 }
 
-function monthLabel(period: string, locale: CleanerLocale = "fr"): string {
+function monthLabel(period: string, locale: CleanerLocale): string {
   const [year, month] = period.split("-").map(Number);
   return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
@@ -76,54 +183,112 @@ function dateKey(value: string): string {
     day: "2-digit",
   }).formatToParts(new Date(value));
 
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+}
 
-  return `${year}-${month}-${day}`;
+function periodFromDateKey(key: string): string {
+  return key.slice(0, 7);
+}
+
+function paymentDateValue(row: Row): string {
+  return (
+    row.ready_by_at ||
+    row.completion_deadline_at ||
+    row.work_window_end_at ||
+    row.scheduled_end_at ||
+    row.scheduled_start_at ||
+    row.updated_at ||
+    row.created_at
+  );
 }
 
 function paymentDateKey(row: Row): string {
-  return dateKey(
-    row.ready_by_at ||
-      row.completion_deadline_at ||
-      row.work_window_end_at ||
-      row.scheduled_end_at ||
-      row.scheduled_start_at ||
-      row.updated_at ||
-      row.created_at,
-  );
+  return dateKey(paymentDateValue(row));
 }
 
-function paymentDateLabel(row: Row, locale: CleanerLocale = "fr"): string {
-  return dateLabel(
-    row.ready_by_at ||
-      row.completion_deadline_at ||
-      row.work_window_end_at ||
-      row.scheduled_end_at ||
-      row.scheduled_start_at ||
-      row.updated_at ||
-      row.created_at,
-    locale,
-  );
+function ownerName(owner: Row | undefined, locale: CleanerLocale): string {
+  const c = copy(locale);
+  return owner?.display_name || owner?.legal_name || c.ownerFallback;
 }
 
-function statusLabel(status: string | undefined, locale: CleanerLocale = "fr"): string {
+function cleanerFirstName(cleaner: Row): string {
+  return cleaner.first_name || cleaner.trading_name || "Sandrine";
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "★";
+}
+
+function requestStatusLabel(status: string | undefined, locale: CleanerLocale): string {
+  const c = copy(locale);
   switch (status) {
-    case "sent_to_owner":
-      return t(locale, "status.sentToOwner");
     case "paid":
-      return t(locale, "status.paid");
+      return c.paid;
+    case "sent_to_owner":
+      return c.sentToOwner;
     case "overdue":
-      return t(locale, "status.overdue");
+      return c.overdue;
+    case "refused":
+      return c.refused;
     case "cancelled":
     case "withdrawn":
-      return t(locale, "status.cancelled");
-    case "refused":
-      return t(locale, "status.refused");
+      return c.cancelled;
     default:
-      return t(locale, "status.draft");
+      return c.alreadyIncluded;
   }
+}
+
+function missionChecklistName(mission: Row, locale: CleanerLocale): string {
+  const c = copy(locale);
+  const report = Array.isArray(mission.cleaning_reports)
+    ? mission.cleaning_reports[0]
+    : mission.cleaning_reports;
+
+  return (
+    report?.checklist_snapshot?.template_name ||
+    mission.title ||
+    c.checklistFallback
+  );
+}
+
+async function signedOwnerPhoto(supabase: ReturnType<typeof getSupabaseAdmin>, owner: Row) {
+  if (!owner?.profile_photo_bucket || !owner?.profile_photo_path) return null;
+
+  const { data } = await supabase.storage
+    .from(owner.profile_photo_bucket)
+    .createSignedUrl(owner.profile_photo_path, 60 * 60);
+
+  return data?.signedUrl ?? null;
+}
+
+function OwnerAvatar({
+  name,
+  photoUrl,
+}: {
+  name: string;
+  photoUrl?: string | null;
+}) {
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt=""
+        className="h-14 w-14 rounded-2xl object-cover ring-1 ring-slate-200"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white">
+      {initials(name)}
+    </div>
+  );
 }
 
 export default async function CleanerPaymentsPage({
@@ -131,15 +296,14 @@ export default async function CleanerPaymentsPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams?: Promise<{ period?: string }>;
+  searchParams?: Promise<{ sent?: string }>;
 }) {
   const { token } = await params;
   const query = await searchParams;
-
-  const period = query?.period || currentPeriod();
-  const { startKey, endKey } = monthBounds(period);
-
   const supabase = getSupabaseAdmin();
+
+  const current = currentPeriod();
+  const { startKey: currentMonthStart, endKey: currentMonthEnd } = monthBounds(current);
 
   const { data: cleaner } = await supabase
     .from("cleaners")
@@ -159,286 +323,359 @@ export default async function CleanerPaymentsPage({
   }
 
   const locale = getCleanerLocale(cleaner.preferred_language);
+  const c = copy(locale);
 
   const { data: allMissions } = await supabase
     .from("cleaning_requests")
-    .select("*, properties:property_id(id,name,owner_id)")
+    .select(`
+      *,
+      properties:property_id(id,name,owner_id),
+      cleaning_reports(id, submitted_at, checklist_template_id, checklist_version, checklist_snapshot)
+    `)
     .eq("assigned_cleaner_id", cleaner.id)
     .in("status", ["report_submitted", "completed", "problem_reported"])
     .order("created_at", { ascending: true });
 
-  const missions = (allMissions ?? []).filter((mission) => {
-    const workKey = paymentDateKey(mission);
-    return workKey >= startKey && workKey <= endKey;
-  });
+  const missions = (allMissions ?? []) as Row[];
+  const missionIds = missions.map((mission) => mission.id).filter(Boolean);
 
-  const { data: extras } = await supabase
-    .from("cleaning_request_extras")
-    .select("*, properties:property_id(id,name,owner_id), cleaning_requests:cleaning_request_id(scheduled_start_at,title,service_type)")
-    .eq("cleaner_id", cleaner.id)
-    .in("status", ["pending_owner_review", "approved"])
-    .order("created_at", { ascending: true });
+  const { data: paymentLines } = missionIds.length
+    ? await supabase
+        .from("monthly_payment_request_lines")
+        .select("id,cleaning_request_id,monthly_payment_request_id,line_type,description,work_date,amount_eur,status")
+        .in("cleaning_request_id", missionIds)
+    : { data: [] as Row[] };
 
-  const ownerIds = Array.from(
-    new Set([
-      ...((missions ?? []).map((mission) => mission.properties?.owner_id).filter(Boolean)),
-      ...((extras ?? []).map((extra) => extra.properties?.owner_id).filter(Boolean)),
-    ]),
+  const paymentRequestIds = [
+    ...new Set((paymentLines ?? []).map((line) => line.monthly_payment_request_id).filter(Boolean)),
+  ];
+
+  const { data: paymentRequests } = paymentRequestIds.length
+    ? await supabase
+        .from("monthly_payment_requests")
+        .select("*")
+        .in("id", paymentRequestIds)
+    : { data: [] as Row[] };
+
+  const paymentRequestById = new Map((paymentRequests ?? []).map((request) => [request.id, request]));
+  const activeIncludedMissionIds = new Set(
+    (paymentLines ?? [])
+      .filter((line) => {
+        const request = paymentRequestById.get(line.monthly_payment_request_id);
+        return ACTIVE_REQUEST_STATUSES.has(String(request?.status ?? "draft"));
+      })
+      .map((line) => String(line.cleaning_request_id)),
   );
+  const lineByMissionId = new Map((paymentLines ?? []).map((line) => [String(line.cleaning_request_id), line]));
+
+  const ownerIds = [
+    ...new Set(missions.map((mission) => mission.properties?.owner_id).filter(Boolean)),
+  ];
 
   const { data: owners } = ownerIds.length
     ? await supabase.from("owners").select("*").in("id", ownerIds)
     : { data: [] as Row[] };
 
-  const { data: existingRequests } = await supabase
-    .from("monthly_payment_requests")
-    .select("*")
-    .eq("cleaner_id", cleaner.id)
-    .eq("period_start", startKey)
-    .eq("period_end", endKey);
-
   const ownersById = new Map((owners ?? []).map((owner) => [owner.id, owner]));
-  const existingByOwnerId = new Map((existingRequests ?? []).map((request) => [request.owner_id, request]));
 
-  const groups = ownerIds.map((ownerId) => {
-    const missionRows = (missions ?? []).filter(
-      (mission) => mission.properties?.owner_id === ownerId,
-    );
+  const ownerPhotoEntries = await Promise.all(
+    (owners ?? []).map(async (owner) => [owner.id, await signedOwnerPhoto(supabase, owner)] as const),
+  );
+  const ownerPhotoById = new Map(ownerPhotoEntries);
 
-    const extraRows = (extras ?? []).filter((extra) => {
-      const workDate = extra.cleaning_requests?.scheduled_start_at ?? extra.created_at;
-      const workKey = dateKey(workDate);
-      return extra.properties?.owner_id === ownerId && workKey >= startKey && workKey <= endKey;
-    });
+  const totalEarned = missions.reduce((sum, mission) => sum + Number(mission.total_cost_eur ?? 0), 0);
+  const currentMonthEarned = missions
+    .filter((mission) => {
+      const key = paymentDateKey(mission);
+      return key >= currentMonthStart && key <= currentMonthEnd;
+    })
+    .reduce((sum, mission) => sum + Number(mission.total_cost_eur ?? 0), 0);
 
-    const baseTotal = missionRows.reduce(
-      (sum, mission) => sum + Number(mission.total_cost_eur ?? 0),
-      0,
-    );
+  const waitingPayment = (paymentRequests ?? [])
+    .filter((request) => ["sent_to_owner", "overdue"].includes(String(request.status)))
+    .reduce((sum, request) => sum + Number(request.total_eur ?? 0), 0);
 
-    const extrasTotal = extraRows.reduce(
-      (sum, extra) => sum + Number(extra.amount_eur ?? 0),
-      0,
-    );
-
-    return {
-      ownerId,
-      owner: ownersById.get(ownerId),
-      missions: missionRows,
-      extras: extraRows,
-      baseTotal,
-      extrasTotal,
-      total: baseTotal + extrasTotal,
-      paymentRequest: existingByOwnerId.get(ownerId),
-    };
+  const requestableMissions = missions.filter((mission) => {
+    const key = paymentDateKey(mission);
+    return key < currentMonthStart && !activeIncludedMissionIds.has(String(mission.id));
   });
 
-  const grandTotal = groups.reduce((sum, group) => sum + group.total, 0);
+  const requestableGroups = new Map<string, { ownerId: string; period: string; missions: Row[] }>();
+
+  for (const mission of requestableMissions) {
+    const ownerId = mission.properties?.owner_id;
+    if (!ownerId) continue;
+
+    const period = periodFromDateKey(paymentDateKey(mission));
+    const key = `${ownerId}:${period}`;
+    const currentGroup = requestableGroups.get(key) ?? { ownerId, period, missions: [] };
+    currentGroup.missions.push(mission);
+    requestableGroups.set(key, currentGroup);
+  }
+
+  const requestable = [...requestableGroups.values()].sort((a, b) =>
+    `${a.period}:${ownerName(ownersById.get(a.ownerId), locale)}`.localeCompare(
+      `${b.period}:${ownerName(ownersById.get(b.ownerId), locale)}`,
+    ),
+  );
+
+  const requestableTotal = requestableMissions.reduce(
+    (sum, mission) => sum + Number(mission.total_cost_eur ?? 0),
+    0,
+  );
+
+  const missionsByOwner = new Map<string, Row[]>();
+  for (const mission of missions) {
+    const ownerId = mission.properties?.owner_id ?? "unknown";
+    const rows = missionsByOwner.get(ownerId) ?? [];
+    rows.push(mission);
+    missionsByOwner.set(ownerId, rows);
+  }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href={`/cleaner/${token}`} className="text-sm font-semibold text-slate-600">
-            {t(locale, "payments.backPlanning")}
+          <Link href={`/cleaner/${token}/planning`} className="text-sm font-black text-slate-500">
+            {c.back}
           </Link>
 
-          <h1 className="mt-5 text-3xl font-bold text-slate-950">
-            {t(locale, "payments.title")}
+          <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">
+            {c.title}
           </h1>
 
-          <p className="mt-2 text-slate-600">
-            {t(locale, "payments.subtitle")}
+          <p className="mt-3 text-lg font-semibold text-slate-600">
+            {c.bravo(cleanerFirstName(cleaner))}
+          </p>
+
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+            {c.subtitle}
           </p>
         </div>
 
-        <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            {monthLabel(period, locale)}
-          </p>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-slate-300">{t(locale, "payments.owners")}</p>
-              <p className="text-3xl font-bold">{groups.length}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-300">{t(locale, "payments.missions")}</p>
-              <p className="text-3xl font-bold">
-                {groups.reduce((sum, group) => sum + group.missions.length, 0)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-300">{t(locale, "payments.totalEstimated")}</p>
-              <p className="text-3xl font-bold">{money(grandTotal)}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link
-              href={`/cleaner/${token}/payments?period=${previousPeriod(period)}`}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
-            >
-              {t(locale, "payments.previousMonth")}
-            </Link>
-
-            <Link
-              href={`/cleaner/${token}/payments?period=${nextPeriod(period)}`}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white"
-            >
-              {t(locale, "payments.nextMonth")}
-            </Link>
-          </div>
-        </section>
-
-        {groups.length === 0 && (
-          <section className="rounded-3xl bg-white p-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
-            {t(locale, "payments.noneCompleted")}
+        {query?.sent === "1" && (
+          <section className="rounded-3xl bg-emerald-50 p-5 text-emerald-900 shadow-sm ring-1 ring-emerald-100">
+            <h2 className="text-lg font-black">{c.sent}</h2>
+            <p className="mt-1 text-sm font-semibold">{c.sentBody}</p>
           </section>
         )}
 
-        {groups.map((group) => {
-          const ownerName =
-            group.owner?.display_name ||
-            group.owner?.legal_name ||
-            t(locale, "payments.ownerFallback");
+        <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-sm">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-sm font-semibold text-white/50">{c.earnedToDate}</p>
+              <p className="mt-2 text-3xl font-black">{money(totalEarned)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white/50">{c.thisMonth}</p>
+              <p className="mt-2 text-3xl font-black">{money(currentMonthEarned)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white/50">{c.requestNow}</p>
+              <p className="mt-2 text-3xl font-black">{money(requestableTotal)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white/50">{c.pendingPayment}</p>
+              <p className="mt-2 text-3xl font-black">{money(waitingPayment)}</p>
+            </div>
+          </div>
+        </section>
 
-          const alreadySent = group.paymentRequest && group.paymentRequest.status !== "draft";
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-2xl font-black">{c.requestableTitle}</h2>
+          </div>
 
-          return (
-            <section key={group.ownerId} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-950">
-                    {ownerName}
-                  </h2>
+          {requestable.length === 0 ? (
+            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+              {c.requestableEmpty}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {requestable.map((group) => {
+                const owner = ownersById.get(group.ownerId);
+                const name = ownerName(owner, locale);
+                const total = group.missions.reduce(
+                  (sum, mission) => sum + Number(mission.total_cost_eur ?? 0),
+                  0,
+                );
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    {group.missions.length} {t(locale, "payments.missionCount")} · {group.extras.length} {t(locale, "payments.extraCount")}
-                  </p>
+                return (
+                  <details
+                    key={`${group.ownerId}:${group.period}`}
+                    name="payment-request"
+                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200 open:ring-slate-300"
+                  >
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex items-start gap-4">
+                        <OwnerAvatar name={name} photoUrl={ownerPhotoById.get(group.ownerId)} />
 
-                  {group.paymentRequest && (
-                    <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                      {statusLabel(group.paymentRequest.status, locale)}
-                    </p>
-                  )}
-                </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xl font-black">{name}</h3>
+                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                            {c.requestCard(money(total), name, monthLabel(group.period, locale))}
+                          </p>
+                        </div>
 
-                <div className="text-right">
-                  <p className="text-sm text-slate-500">{t(locale, "payments.total")}</p>
-                  <p className="text-3xl font-black text-slate-950">
-                    {money(group.total)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {group.missions.map((mission) => (
-                  <div key={mission.id} className="rounded-2xl bg-slate-50 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-slate-950">
-                          {mission.title || t(locale, "common.missionFallback")}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {paymentDateLabel(mission, locale)} · {mission.properties?.name}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-xs font-black uppercase text-slate-400">Total</p>
+                          <p className="text-2xl font-black">{money(total)}</p>
+                        </div>
                       </div>
-                      <p className="font-black text-slate-950">{money(mission.total_cost_eur)}</p>
-                    </div>
-                  </div>
-                ))}
 
-                {group.extras.map((extra) => (
-                  <div key={extra.id} className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-amber-950">
-                          {t(locale, "payments.exceptionalExtra")}
-                        </p>
-                        <p className="text-sm text-amber-900">
-                          {extra.reason}
-                        </p>
+                      <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">
+                        {c.prepare}
                       </div>
-                      <p className="font-black text-amber-950">{money(extra.amount_eur)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </summary>
 
-              {!alreadySent && (
-                <form action={sendMonthlyPaymentRequest} className="mt-5 space-y-4">
-                  <input type="hidden" name="cleaner_token" value={token} />
-                  <input type="hidden" name="owner_id" value={group.ownerId} />
-                  <input type="hidden" name="period" value={period} />
+                    <form action={sendMonthlyPaymentRequest} className="mt-5 space-y-4">
+                      <input type="hidden" name="cleaner_token" value={token} />
+                      <input type="hidden" name="owner_id" value={group.ownerId} />
+                      <input type="hidden" name="period" value={group.period} />
 
-                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <p className="text-sm font-black text-slate-950">
-                      {t(locale, "payments.previewTitle")}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {t(locale, "payments.previewBody").replace("{month}", monthLabel(period, locale))}
-                    </p>
-                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                      <div>
-                        <p className="font-semibold text-slate-500">{t(locale, "payments.missions")}</p>
-                        <p className="font-black text-slate-950">{money(group.baseTotal)}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-500">{t(locale, "payments.extras")}</p>
-                        <p className="font-black text-slate-950">{money(group.extrasTotal)}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-500">{t(locale, "payments.total")}</p>
-                        <p className="font-black text-slate-950">{money(group.total)}</p>
-                      </div>
-                    </div>
-                  </div>
+                      <section className="rounded-3xl bg-slate-50 p-4">
+                        <h4 className="text-sm font-black uppercase text-slate-400">
+                          {c.lineItems}
+                        </h4>
 
-                  <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
-                    <p className="text-sm font-black text-amber-950">
-                      {t(locale, "payments.optionalExtraTitle")}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-amber-900/80">
-                      {t(locale, "payments.optionalExtraBody")}
-                    </p>
+                        <div className="mt-3 space-y-2">
+                          {group.missions.map((mission) => (
+                            <div
+                              key={mission.id}
+                              className="rounded-2xl bg-white p-3 ring-1 ring-slate-200"
+                            >
+                              <div className="flex justify-between gap-3">
+                                <div>
+                                  <p className="font-black">
+                                    {dateLabel(paymentDateValue(mission), locale)} · {missionChecklistName(mission, locale)}
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                                    {mission.properties?.name ?? c.missionFallback}
+                                  </p>
+                                </div>
 
-                    {[1, 2, 3].map((index) => (
-                      <div key={index} className="mt-3 grid gap-2 md:grid-cols-[1fr_160px]">
-                        <input
-                          name={`extra_description_${index}`}
-                          placeholder={index === 1 ? t(locale, "payments.extraPlaceholder1") : t(locale, "payments.extraPlaceholderOther")}
-                          className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
+                                <p className="font-black">{money(mission.total_cost_eur)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                        <h4 className="text-sm font-black text-amber-950">{c.exceptionalCost}</h4>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_130px]">
+                          <input
+                            name="extra_description"
+                            placeholder={c.exceptionalPlaceholder}
+                            className="rounded-2xl border border-amber-200 bg-white px-3 py-3 text-sm font-semibold"
+                          />
+                          <input
+                            name="extra_amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder={c.amount}
+                            className="rounded-2xl border border-amber-200 bg-white px-3 py-3 text-sm font-semibold"
+                          />
+                        </div>
+                      </section>
+
+                      <label className="block">
+                        <span className="text-sm font-black text-slate-700">
+                          {c.messageOwner}
+                        </span>
+                        <textarea
+                          name="cleaner_message"
+                          rows={3}
+                          placeholder={c.messagePlaceholder}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm"
                         />
-                        <input
-                          name={`extra_amount_${index}`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder={t(locale, "payments.amountPlaceholder")}
-                          className="rounded-xl border border-amber-200 bg-white p-3 text-sm"
-                        />
+                      </label>
+
+                      <button className="w-full rounded-2xl bg-emerald-600 px-4 py-4 text-base font-black text-white">
+                        {c.sendRequest}
+                      </button>
+                    </form>
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-2xl font-black">{c.history}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{c.historyIntro}</p>
+          </div>
+
+          {missionsByOwner.size === 0 ? (
+            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+              {c.noHistory}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[...missionsByOwner.entries()].map(([ownerId, rows]) => {
+                const owner = ownersById.get(ownerId);
+                const name = ownerName(owner, locale);
+                const sortedRows = [...rows].sort((a, b) =>
+                  paymentDateKey(b).localeCompare(paymentDateKey(a)),
+                );
+
+                return (
+                  <details
+                    key={ownerId}
+                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center gap-4">
+                      <OwnerAvatar name={name} photoUrl={ownerPhotoById.get(ownerId)} />
+                      <div className="flex-1">
+                        <h3 className="text-xl font-black">{name}</h3>
+                        <p className="text-sm font-semibold text-slate-500">
+                          {sortedRows.length} mission(s)
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-xl">↓</span>
+                    </summary>
 
-                  <textarea
-                    name="cleaner_message"
-                    rows={3}
-                    placeholder={t(locale, "payments.messagePlaceholder")}
-                    className="w-full rounded-xl border border-slate-300 p-3 text-sm"
-                  />
+                    <div className="mt-4 space-y-2">
+                      {sortedRows.map((mission) => {
+                        const line = lineByMissionId.get(String(mission.id));
+                        const request = line ? paymentRequestById.get(line.monthly_payment_request_id) : null;
+                        const workKey = paymentDateKey(mission);
+                        const statusText = request
+                          ? requestStatusLabel(request.status, locale)
+                          : workKey >= currentMonthStart
+                            ? c.currentMonthNotReady
+                            : c.notRequested;
 
-                  <button className="w-full rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white">
-                    {t(locale, "payments.sendRequestTo")} {ownerName}
-                  </button>
-                </form>
-              )}
-            </section>
-          );
-        })}
+                        return (
+                          <div key={mission.id} className="rounded-2xl bg-slate-50 p-3">
+                            <div className="flex justify-between gap-3">
+                              <div>
+                                <p className="font-black">
+                                  {dateLabel(paymentDateValue(mission), locale)} · {missionChecklistName(mission, locale)}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">
+                                  {mission.properties?.name ?? c.missionFallback}
+                                </p>
+                                <p className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                                  {statusText}
+                                </p>
+                              </div>
+
+                              <p className="font-black">{money(mission.total_cost_eur)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
       <CleanerBottomNav cleanerToken={token} active="payments" locale={locale} />
