@@ -28,7 +28,7 @@ function OwnerForm({
   const isNew = !owner;
 
   return (
-    <form action={saveOwner} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <form action={saveOwner} encType="multipart/form-data" className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       {owner?.id && <input type="hidden" name="owner_id" value={owner.id} />}
 
       <div className="flex flex-wrap items-start justify-between gap-4">

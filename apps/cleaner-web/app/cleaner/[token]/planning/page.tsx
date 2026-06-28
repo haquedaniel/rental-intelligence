@@ -3,16 +3,201 @@ import { notFound } from "next/navigation";
 
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { getCleanerLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
+import { getCleanerLocale, intlLocale, t, type CleanerLocale } from "@/lib/cleanerI18n";
 
 export const dynamic = "force-dynamic";
 
 type Row = Record<string, any>;
 
+const PARIS_TZ = "Europe/Paris";
+
+const COPY = {
+  fr: {
+    back: "← Missions",
+    title: "Mon planning",
+    subtitle: "Vos missions à venir, par logement, avec les séjours en contexte.",
+    next14: "14 prochains jours",
+    missions: "Missions",
+    properties: "Logements",
+    hours: "Heures",
+    estimated: "Estimé",
+    overdueTitle: "À traiter en priorité",
+    overdueBody: "Ces missions sont en retard ou attendent votre réponse.",
+    calendarTitle: "Calendrier par logement",
+    calendarBody: "Faites défiler horizontalement pour voir les prochains mois.",
+    nextMission: "Prochaine mission",
+    noNextMission: "Aucune mission confirmée à venir.",
+    openMission: "Ouvrir la mission",
+    upcoming: "À venir par jour",
+    noUpcoming: "Aucune mission à venir.",
+    stays: "Séjours",
+    cleanings: "Missions",
+    today: "Aujourd’hui",
+    tomorrow: "Demain",
+    propertyFallback: "Logement",
+    guestFallback: "Séjour",
+    checklistFallback: "Ménage",
+    before: "Prêt avant",
+    duration: "Durée",
+    amount: "Montant",
+    toConfirm: "À confirmer",
+    offered: "Proposée",
+    confirmed: "Confirmée",
+    completed: "Terminée",
+    problem: "Problème",
+    late: "En retard",
+    refused: "Refusée",
+  },
+  en: {
+    back: "← Missions",
+    title: "My schedule",
+    subtitle: "Your upcoming work by property, with guest stays as context.",
+    next14: "Next 14 days",
+    missions: "Missions",
+    properties: "Properties",
+    hours: "Hours",
+    estimated: "Estimated",
+    overdueTitle: "Deal with these first",
+    overdueBody: "These missions are late or still waiting for your reply.",
+    calendarTitle: "Calendar by property",
+    calendarBody: "Scroll horizontally to see the next few months.",
+    nextMission: "Next mission",
+    noNextMission: "No confirmed upcoming mission.",
+    openMission: "Open mission",
+    upcoming: "Upcoming by day",
+    noUpcoming: "No upcoming mission.",
+    stays: "Stays",
+    cleanings: "Missions",
+    today: "Today",
+    tomorrow: "Tomorrow",
+    propertyFallback: "Property",
+    guestFallback: "Stay",
+    checklistFallback: "Cleaning",
+    before: "Ready before",
+    duration: "Duration",
+    amount: "Amount",
+    toConfirm: "To confirm",
+    offered: "Offered",
+    confirmed: "Confirmed",
+    completed: "Completed",
+    problem: "Problem",
+    late: "Late",
+    refused: "Refused",
+  },
+  ru: {
+    back: "← Задания",
+    title: "Моё расписание",
+    subtitle: "Будущие задания по объектам, с контекстом проживания гостей.",
+    next14: "Следующие 14 дней",
+    missions: "Задания",
+    properties: "Объекты",
+    hours: "Часы",
+    estimated: "Сумма",
+    overdueTitle: "Сначала обработать",
+    overdueBody: "Эти задания просрочены или ждут вашего ответа.",
+    calendarTitle: "Календарь по объектам",
+    calendarBody: "Прокрутите вправо, чтобы увидеть следующие месяцы.",
+    nextMission: "Следующее задание",
+    noNextMission: "Нет подтверждённых будущих заданий.",
+    openMission: "Открыть задание",
+    upcoming: "Ближайшие задания",
+    noUpcoming: "Нет будущих заданий.",
+    stays: "Проживания",
+    cleanings: "Задания",
+    today: "Сегодня",
+    tomorrow: "Завтра",
+    propertyFallback: "Объект",
+    guestFallback: "Проживание",
+    checklistFallback: "Уборка",
+    before: "Готово до",
+    duration: "Длительность",
+    amount: "Сумма",
+    toConfirm: "Подтвердить",
+    offered: "Предложено",
+    confirmed: "Подтверждено",
+    completed: "Завершено",
+    problem: "Проблема",
+    late: "Просрочено",
+    refused: "Отказано",
+  },
+} as const;
+
+function c(locale: CleanerLocale) {
+  if (locale === "en" || locale === "ru") return COPY[locale];
+  return COPY.fr;
+}
+
 function parseDate(value?: string | null): Date | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parisDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+}
+
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function shortDay(dateKey: string, locale: CleanerLocale): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone: PARIS_TZ,
+    weekday: "short",
+    day: "2-digit",
+  })
+    .format(date)
+    .replace(".", "");
+}
+
+function fullDateLabel(value?: string | null, locale: CleanerLocale = "fr"): string {
+  const date = parseDate(value);
+  if (!date) return "—";
+
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone: PARIS_TZ,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+    .format(date)
+    .replace(":", "h");
+}
+
+function compactDateLabel(value?: string | null, locale: CleanerLocale = "fr"): string {
+  const date = parseDate(value);
+  if (!date) return "—";
+
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone: PARIS_TZ,
+    day: "2-digit",
+    month: "short",
+  }).format(date);
+}
+
+function money(value: unknown): string {
+  return `${Number(value ?? 0).toFixed(0)} €`;
+}
+
+function propertyName(property: Row | null | undefined, locale: CleanerLocale): string {
+  return property?.name || c(locale).propertyFallback;
+}
+
+function guestName(reservation: Row | null | undefined, locale: CleanerLocale): string {
+  return reservation?.guest_name || reservation?.source_booking_id || c(locale).guestFallback;
 }
 
 function anchorAt(request: Row): string | null {
@@ -26,81 +211,11 @@ function anchorAt(request: Row): string | null {
   );
 }
 
-function parisDateKey(date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return `${year}-${month}-${day}`;
+function isDone(request: Row): boolean {
+  return ["completed", "report_submitted", "problem_reported"].includes(String(request.status));
 }
 
-function addDays(dateKey: string, days: number): string {
-  const date = new Date(`${dateKey}T12:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function shortDay(dateKey: string): string {
-  const date = new Date(`${dateKey}T12:00:00.000Z`);
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    weekday: "short",
-    day: "2-digit",
-  })
-    .format(date)
-    .replace(".", "");
-}
-
-function dateLabel(value?: string | null): string {
-  const date = parseDate(value);
-  if (!date) return "—";
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-    .format(date)
-    .replace(":", "h");
-}
-
-function propertyName(property?: Row | null, locale: CleanerLocale = "fr"): string {
-  return property?.name || t(locale, "common.propertyFallback");
-}
-
-function guestName(reservation?: Row | null, locale: CleanerLocale = "fr"): string {
-  return reservation?.guest_name || reservation?.source_booking_id || t(locale, "common.stayFallback");
-}
-
-function money(value: unknown): string {
-  const number = Number(value ?? 0);
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(Number.isFinite(number) ? number : 0);
-}
-
-function missionAmount(request: Row): number {
-  return Number(
-    request.total_cost_eur ??
-      request.cleaning_cost_eur ??
-      request.amount_eur ??
-      0,
-  );
-}
-
-function isOverdue(request: Row, hasReport: boolean): boolean {
+function isOverdue(request: Row, hasReport = false): boolean {
   if (hasReport) return false;
   if (request.status !== "accepted") return false;
 
@@ -113,36 +228,46 @@ function isOverdue(request: Row, hasReport: boolean): boolean {
 function missionHref(request: Row): string {
   if (!request.public_token) return "#";
 
-  if (["created", "sent"].includes(request.status)) {
+  if (["created", "sent"].includes(String(request.status))) {
     return `/mission/${request.public_token}/ready-day`;
   }
 
   return `/mission/${request.public_token}/report`;
 }
 
-function statusLabel(request: Row, overdue: boolean, locale: CleanerLocale = "fr"): string {
-  if (overdue) return t(locale, "status.overdue");
+function missionAmount(request: Row): number {
+  return Number(request.total_cost_eur ?? request.cleaning_cost_eur ?? request.amount_eur ?? 0);
+}
+
+function missionTitle(request: Row, locale: CleanerLocale): string {
+  return request.title || c(locale).checklistFallback;
+}
+
+function statusLabel(request: Row, overdue: boolean, locale: CleanerLocale): string {
+  const copy = c(locale);
+
+  if (overdue) return copy.late;
 
   switch (request.status) {
     case "created":
-      return t(locale, "status.toConfirm");
+      return copy.toConfirm;
     case "sent":
-      return t(locale, "status.offered");
+      return copy.offered;
     case "accepted":
-      return t(locale, "status.confirmed");
+      return copy.confirmed;
     case "report_submitted":
     case "completed":
-      return t(locale, "status.completed");
+      return copy.completed;
     case "problem_reported":
-      return t(locale, "status.problem");
+      return copy.problem;
     case "refused":
-      return t(locale, "status.refused");
+      return copy.refused;
     default:
-      return request.status || t(locale, "common.missionFallback");
+      return String(request.status || copy.missions);
   }
 }
 
-function statusClass(request: Row, overdue: boolean): string {
+function statusChipClass(request: Row, overdue: boolean): string {
   if (overdue) return "bg-red-100 text-red-800 ring-red-200";
 
   switch (request.status) {
@@ -153,12 +278,58 @@ function statusClass(request: Row, overdue: boolean): string {
       return "bg-emerald-100 text-emerald-800 ring-emerald-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-950 text-white ring-slate-950";
+      return "bg-slate-100 text-slate-700 ring-slate-200";
     case "problem_reported":
       return "bg-orange-100 text-orange-900 ring-orange-200";
     default:
       return "bg-slate-100 text-slate-700 ring-slate-200";
   }
+}
+
+function calendarMissionClass(request: Row, overdue: boolean): string {
+  if (overdue) return "bg-red-100 text-red-900 ring-red-200";
+
+  switch (request.status) {
+    case "created":
+    case "sent":
+      return "bg-amber-100 text-amber-950 ring-amber-200";
+    case "accepted":
+      return "bg-emerald-100 text-emerald-950 ring-emerald-200";
+    case "report_submitted":
+    case "completed":
+      return "bg-slate-100 text-slate-700 ring-slate-200";
+    case "problem_reported":
+      return "bg-orange-100 text-orange-950 ring-orange-200";
+    default:
+      return "bg-slate-100 text-slate-700 ring-slate-200";
+  }
+}
+
+const PROPERTY_PALETTE = [
+  {
+    label: "border-slate-300 bg-slate-50",
+    stay: "bg-slate-200 text-slate-800",
+  },
+  {
+    label: "border-emerald-300 bg-emerald-50",
+    stay: "bg-emerald-100 text-emerald-900",
+  },
+  {
+    label: "border-sky-300 bg-sky-50",
+    stay: "bg-sky-100 text-sky-900",
+  },
+  {
+    label: "border-amber-300 bg-amber-50",
+    stay: "bg-amber-100 text-amber-900",
+  },
+  {
+    label: "border-violet-300 bg-violet-50",
+    stay: "bg-violet-100 text-violet-900",
+  },
+] as const;
+
+function propertyPalette(index: number) {
+  return PROPERTY_PALETTE[index % PROPERTY_PALETTE.length];
 }
 
 function spanForCalendar(startKey: string, endExclusiveKey: string, units: string[]) {
@@ -174,149 +345,50 @@ function spanForCalendar(startKey: string, endExclusiveKey: string, units: strin
   return { start: first + 1, span: last - first + 1 };
 }
 
-function MiniPlanning({
-  reservations,
-  requests,
-  propertiesById,
-  reservationsById,
-  locale,
+function dayHeading(dateKey: string, today: string, locale: CleanerLocale): string {
+  const copy = c(locale);
+  if (dateKey === today) return copy.today;
+  if (dateKey === addDays(today, 1)) return copy.tomorrow;
+
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone: PARIS_TZ,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(date);
+}
+
+function KpiCard({
+  label,
+  value,
+  className,
 }: {
-  reservations: Row[];
-  requests: Row[];
-  propertiesById: Record<string, Row>;
-  reservationsById: Record<string, Row>;
-  locale: CleanerLocale;
+  label: string;
+  value: string;
+  className: string;
 }) {
-  const today = parisDateKey(new Date());
-  const units = Array.from({ length: 21 }, (_, index) => addDays(today, index));
-  const gridTemplateColumns = `repeat(${units.length}, 34px)`;
-
-  const visibleReservations = reservations.filter((reservation) => {
-    if (!reservation.checkin_at || !reservation.checkout_at) return false;
-    const checkin = parisDateKey(new Date(reservation.checkin_at));
-    const checkout = parisDateKey(new Date(reservation.checkout_at));
-    return checkout >= units[0] && checkin <= units[units.length - 1];
-  });
-
-  const visibleRequests = requests.filter((request) => {
-    const anchor = parseDate(anchorAt(request));
-    if (!anchor) return false;
-    const key = parisDateKey(anchor);
-    return key >= units[0] && key <= units[units.length - 1];
-  });
-
   return (
-    <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black text-slate-950">{t(locale, "calendar.miniTitle")}</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            {t(locale, "calendar.planningSubtitle")}
-          </p>
-        </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
-          {t(locale, "calendar.twentyOneDays")}
-        </span>
-      </div>
-
-      <div className="mt-4 overflow-x-auto">
-        <div className="min-w-max space-y-2">
-          <div className="grid gap-1" style={{ gridTemplateColumns }}>
-            {units.map((dateKey) => (
-              <div key={dateKey} className="rounded-xl bg-slate-50 px-1 py-1 text-center">
-                <p className="text-[8px] font-black uppercase text-slate-400">
-                  {shortDay(dateKey).slice(0, 3)}
-                </p>
-                <p className="mt-0.5 text-[10px] font-black text-slate-900">
-                  {dateKey.slice(8, 10)}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="relative rounded-2xl bg-slate-50 p-1.5">
-            <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
-              {units.map((dateKey) => (
-                <div key={`${dateKey}-bg`} className="rounded-xl bg-white/65" />
-              ))}
-            </div>
-
-            <div className="relative grid min-h-10 gap-1" style={{ gridTemplateColumns }}>
-              {visibleReservations.map((reservation) => {
-                const checkin = parisDateKey(new Date(reservation.checkin_at));
-                const checkout = parisDateKey(new Date(reservation.checkout_at));
-                const span = spanForCalendar(checkin, checkout, units);
-                if (!span) return null;
-
-                return (
-                  <div
-                    key={reservation.id}
-                    className="z-10 rounded-xl bg-slate-900 px-2 py-1 text-white shadow-sm"
-                    style={{ gridColumn: `${span.start} / span ${span.span}` }}
-                    title={`${guestName(reservation, locale)} · ${propertyName(propertiesById[String(reservation.property_id)], locale)}`}
-                  >
-                    <p className="truncate text-[10px] font-black">{guestName(reservation, locale)}</p>
-                    <p className="truncate text-[8px] font-bold text-white/60">
-                      {propertyName(propertiesById[String(reservation.property_id)], locale)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid gap-1 rounded-2xl bg-slate-50 p-1.5" style={{ gridTemplateColumns }}>
-            {units.map((dateKey) => {
-              const dayRequests = visibleRequests.filter((request) => {
-                const anchor = parseDate(anchorAt(request));
-                return anchor ? parisDateKey(anchor) === dateKey : false;
-              });
-
-              return (
-                <div
-                  key={`${dateKey}-missions`}
-                  className={`flex min-h-10 flex-col items-center justify-center gap-1 rounded-xl ${
-                    dayRequests.length ? "bg-white p-1 ring-1 ring-white" : ""
-                  }`}
-                >
-                  {dayRequests.map((request) => {
-                    const reservation = reservationsById[String(request.reservation_id)];
-                    const overdue = isOverdue(request, false);
-                    return (
-                      <Link
-                        key={request.id}
-                        href={missionHref(request)}
-                        className={`w-full rounded-lg px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 ${statusClass(request, overdue)}`}
-                        title={`${propertyName(propertiesById[String(request.property_id)], locale)} · ${guestName(reservation, locale)} · ${statusLabel(request, overdue, locale)}`}
-                      >
-                        {overdue ? t(locale, "common.overdueUpper") : request.status === "accepted" ? t(locale, "common.ok") : t(locale, "status.toConfirm")}
-                      </Link>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
+    <div className={`rounded-2xl p-3 shadow-sm ring-1 ${className}`}>
+      <p className="text-[10px] font-black uppercase leading-tight opacity-70">{label}</p>
+      <p className="mt-2 text-lg font-black sm:text-2xl">{value}</p>
+    </div>
   );
 }
 
-function MissionPlanningCard({
+function MissionCompactCard({
   request,
   property,
   reservation,
-  hasReport,
   locale,
 }: {
   request: Row;
   property?: Row | null;
   reservation?: Row | null;
-  hasReport: boolean;
   locale: CleanerLocale;
 }) {
-  const overdue = isOverdue(request, hasReport);
+  const overdue = isOverdue(request, false);
+  const copy = c(locale);
 
   return (
     <Link
@@ -325,23 +397,23 @@ function MissionPlanningCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusClass(request, overdue)}`}>
+          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusChipClass(request, overdue)}`}>
             {statusLabel(request, overdue, locale)}
           </span>
 
-          <h2 className="mt-3 truncate text-base font-black text-slate-950">
+          <h3 className="mt-3 truncate text-base font-black text-slate-950">
             {propertyName(property, locale)}
-          </h2>
+          </h3>
 
           <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {guestName(reservation, locale)} · {money(missionAmount(request))}
+            {missionTitle(request, locale)} · {guestName(reservation, locale)}
           </p>
         </div>
 
         <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-          <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.readyBefore")}</p>
+          <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
           <p className="mt-1 text-xs font-black text-slate-900">
-            {dateLabel(anchorAt(request))}
+            {compactDateLabel(anchorAt(request), locale)}
           </p>
         </div>
       </div>
@@ -349,22 +421,141 @@ function MissionPlanningCard({
   );
 }
 
-function Section({
-  title,
-  subtitle,
-  children,
+function PropertyCalendar({
+  properties,
+  reservations,
+  requests,
+  reservationsById,
+  locale,
 }: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
+  properties: Row[];
+  reservations: Row[];
+  requests: Row[];
+  reservationsById: Record<string, Row>;
+  locale: CleanerLocale;
 }) {
+  const copy = c(locale);
+  const today = parisDateKey(new Date());
+  const units = Array.from({ length: 90 }, (_, index) => addDays(today, index));
+  const gridTemplateColumns = `repeat(${units.length}, 34px)`;
+
   return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="text-lg font-black text-slate-950">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>}
+    <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-slate-950">{copy.calendarTitle}</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{copy.calendarBody}</p>
+        </div>
+
+        <div className="flex gap-2 text-[10px] font-black">
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{copy.stays}</span>
+          <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-800">{copy.cleanings}</span>
+        </div>
       </div>
-      {children}
+
+      <div className="mt-4 overflow-x-auto rounded-2xl bg-slate-50 pb-3">
+        <div className="min-w-max">
+          <div className="grid grid-cols-[122px_1fr] gap-2 border-b border-slate-200 bg-white/80 p-2">
+            <div className="sticky left-0 z-20 rounded-xl bg-white px-2 py-2 text-[10px] font-black uppercase text-slate-400">
+              {copy.properties}
+            </div>
+
+            <div className="grid gap-1" style={{ gridTemplateColumns }}>
+              {units.map((dateKey) => (
+                <div key={dateKey} className="rounded-xl bg-slate-50 px-1 py-1 text-center">
+                  <p className="text-[8px] font-black uppercase text-slate-400">
+                    {shortDay(dateKey, locale).slice(0, 3)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-black text-slate-900">
+                    {dateKey.slice(8, 10)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="divide-y divide-slate-200">
+            {properties.map((property, propertyIndex) => {
+              const palette = propertyPalette(propertyIndex);
+              const propertyId = String(property.id);
+
+              const propertyReservations = reservations.filter(
+                (reservation) => String(reservation.property_id) === propertyId,
+              );
+
+              const propertyRequests = requests.filter(
+                (request) => String(request.property_id) === propertyId,
+              );
+
+              return (
+                <div key={propertyId} className="grid grid-cols-[122px_1fr] gap-2 p-2">
+                  <div className={`sticky left-0 z-10 rounded-2xl border-l-4 px-2 py-3 ${palette.label}`}>
+                    <p className="line-clamp-3 text-xs font-black text-slate-950">
+                      {propertyName(property, locale)}
+                    </p>
+                    <p className="mt-1 text-[10px] font-bold text-slate-500">
+                      {propertyRequests.length} mission(s)
+                    </p>
+                  </div>
+
+                  <div className="relative rounded-2xl bg-white p-1.5">
+                    <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
+                      {units.map((dateKey) => (
+                        <div key={`${propertyId}-${dateKey}-bg`} className="rounded-xl bg-slate-50" />
+                      ))}
+                    </div>
+
+                    <div className="relative grid min-h-[74px] gap-1" style={{ gridTemplateColumns }}>
+                      {propertyReservations.map((reservation) => {
+                        if (!reservation.checkin_at || !reservation.checkout_at) return null;
+
+                        const checkin = parisDateKey(new Date(reservation.checkin_at));
+                        const checkout = parisDateKey(new Date(reservation.checkout_at));
+                        const span = spanForCalendar(checkin, checkout, units);
+                        if (!span) return null;
+
+                        return (
+                          <div
+                            key={reservation.id}
+                            className={`z-10 rounded-xl px-2 py-1 text-[9px] font-black shadow-sm ${palette.stay}`}
+                            style={{ gridColumn: `${span.start} / span ${span.span}` }}
+                            title={`${guestName(reservation, locale)} · ${propertyName(property, locale)}`}
+                          >
+                            <p className="truncate">{guestName(reservation, locale)}</p>
+                          </div>
+                        );
+                      })}
+
+                      {propertyRequests.map((request) => {
+                        const anchor = parseDate(anchorAt(request));
+                        if (!anchor) return null;
+
+                        const key = parisDateKey(anchor);
+                        const index = units.indexOf(key);
+                        if (index < 0) return null;
+
+                        const overdue = isOverdue(request, false);
+
+                        return (
+                          <Link
+                            key={request.id}
+                            href={missionHref(request)}
+                            className={`z-20 rounded-xl px-1 py-1 text-center text-[8px] font-black leading-tight ring-1 shadow-sm ${calendarMissionClass(request, overdue)}`}
+                            style={{ gridColumn: `${index + 1} / span 1` }}
+                            title={`${propertyName(property, locale)} · ${statusLabel(request, overdue, locale)} · ${fullDateLabel(anchorAt(request), locale)}`}
+                          >
+                            {overdue ? copy.late : request.status === "accepted" ? "OK" : copy.toConfirm}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -386,6 +577,11 @@ export default async function CleanerPlanningPage({
   if (!cleaner) notFound();
 
   const locale = getCleanerLocale(cleaner.preferred_language);
+  const copy = c(locale);
+
+  const today = parisDateKey(new Date());
+  const horizonEnd = addDays(today, 89);
+  const twoWeekEnd = addDays(today, 13);
 
   const { data: requestRows } = await supabase
     .from("cleaning_requests")
@@ -393,19 +589,34 @@ export default async function CleanerPlanningPage({
     .eq("assigned_cleaner_id", cleaner.id)
     .neq("status", "cancelled")
     .order("created_at", { ascending: false })
-    .limit(120);
+    .limit(200);
 
-  const requests = (requestRows ?? []) as Row[];
-  const propertyIds = [...new Set(requests.map((request) => request.property_id).filter(Boolean))];
-  const reservationIds = [...new Set(requests.map((request) => request.reservation_id).filter(Boolean))];
-  const requestIds = requests.map((request) => request.id).filter(Boolean);
+  const allRequests = (requestRows ?? []) as Row[];
 
-  const calendarStart = new Date();
-  calendarStart.setDate(calendarStart.getDate() - 1);
-  const calendarEnd = new Date();
-  calendarEnd.setDate(calendarEnd.getDate() + 22);
+  const relevantRequests = allRequests.filter((request) => {
+    const anchor = parseDate(anchorAt(request));
+    if (!anchor) return false;
 
-  const [propertiesResult, reservationsResult, calendarReservationsResult, reportsResult] = await Promise.all([
+    const key = parisDateKey(anchor);
+
+    return (
+      (key >= today && key <= horizonEnd) ||
+      isOverdue(request, false) ||
+      ["created", "sent"].includes(String(request.status))
+    );
+  });
+
+  const propertyIds = [
+    ...new Set(relevantRequests.map((request) => request.property_id).filter(Boolean)),
+  ];
+  const reservationIds = [
+    ...new Set(relevantRequests.map((request) => request.reservation_id).filter(Boolean)),
+  ];
+
+  const calendarStart = new Date(`${today}T00:00:00.000Z`);
+  const calendarEnd = new Date(`${horizonEnd}T23:59:59.000Z`);
+
+  const [propertiesResult, reservationsResult, calendarReservationsResult] = await Promise.all([
     propertyIds.length
       ? supabase.from("properties").select("*").in("id", propertyIds)
       : Promise.resolve({ data: [] }),
@@ -421,67 +632,119 @@ export default async function CleanerPlanningPage({
           .lte("checkin_at", calendarEnd.toISOString())
           .order("checkin_at", { ascending: true })
       : Promise.resolve({ data: [] }),
-    requestIds.length
-      ? supabase.from("cleaning_reports").select("id,cleaning_request_id").in("cleaning_request_id", requestIds)
-      : Promise.resolve({ data: [] }),
   ]);
 
+  const properties = ((propertiesResult.data ?? []) as Row[]).sort((a, b) =>
+    propertyName(a, locale).localeCompare(propertyName(b, locale), intlLocale(locale)),
+  );
+
   const propertiesById = Object.fromEntries(
-    ((propertiesResult.data ?? []) as Row[]).map((property) => [String(property.id), property]),
+    properties.map((property) => [String(property.id), property]),
   );
 
   const reservationsById = Object.fromEntries(
     ((reservationsResult.data ?? []) as Row[]).map((reservation) => [String(reservation.id), reservation]),
   );
 
-  const reportsByRequestId = new Set(
-    ((reportsResult.data ?? []) as Row[]).map((report) => String(report.cleaning_request_id)),
-  );
+  const overdue = relevantRequests.filter((request) => isOverdue(request, false));
+  const toConfirm = relevantRequests.filter((request) => ["created", "sent"].includes(String(request.status)));
 
-  const enriched = requests
-    .map((request) => ({
-      request,
-      property: propertiesById[String(request.property_id)],
-      reservation: reservationsById[String(request.reservation_id)],
-      hasReport: reportsByRequestId.has(String(request.id)),
-      anchor: parseDate(anchorAt(request)),
-    }))
-    .sort((a, b) => (a.anchor?.getTime() ?? 0) - (b.anchor?.getTime() ?? 0));
+  const twoWeekRequests = relevantRequests.filter((request) => {
+    if (isDone(request)) return false;
+    const anchor = parseDate(anchorAt(request));
+    if (!anchor) return false;
+    const key = parisDateKey(anchor);
+    return key >= today && key <= twoWeekEnd;
+  });
 
-  const overdue = enriched.filter(({ request, hasReport }) => isOverdue(request, hasReport));
-  const toConfirm = enriched.filter(({ request }) => ["created", "sent"].includes(request.status));
-  const confirmed = enriched.filter(
-    ({ request, hasReport }) => request.status === "accepted" && !isOverdue(request, hasReport),
-  );
+  const twoWeekProperties = new Set(twoWeekRequests.map((request) => String(request.property_id)));
+  const twoWeekHours = twoWeekRequests.reduce((sum, request) => sum + Number(request.estimated_hours ?? 0), 0);
+  const twoWeekEarnings = twoWeekRequests.reduce((sum, request) => sum + missionAmount(request), 0);
+
+  const nextMission = [...relevantRequests]
+    .filter((request) => request.status === "accepted" && !isDone(request) && !isOverdue(request, false))
+    .sort((a, b) => {
+      const at = parseDate(anchorAt(a))?.getTime() ?? 0;
+      const bt = parseDate(anchorAt(b))?.getTime() ?? 0;
+      return at - bt;
+    })[0];
+
+  const upcoming = [...relevantRequests]
+    .filter((request) => {
+      if (isDone(request)) return false;
+      const anchor = parseDate(anchorAt(request));
+      if (!anchor) return false;
+      return parisDateKey(anchor) >= today;
+    })
+    .sort((a, b) => {
+      const at = parseDate(anchorAt(a))?.getTime() ?? 0;
+      const bt = parseDate(anchorAt(b))?.getTime() ?? 0;
+      return at - bt;
+    });
+
+  const groupedUpcoming = new Map<string, Row[]>();
+  for (const request of upcoming) {
+    const anchor = parseDate(anchorAt(request));
+    if (!anchor) continue;
+
+    const key = parisDateKey(anchor);
+    const rows = groupedUpcoming.get(key) ?? [];
+    rows.push(request);
+    groupedUpcoming.set(key, rows);
+  }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5 text-slate-950">
-      <div className="mx-auto max-w-3xl space-y-5">
-        <header className="rounded-[2rem] bg-slate-950 p-5 text-white">
-          <p className="text-xs font-black uppercase tracking-wide text-white/50">
-            {t(locale, "planning.headerKicker")}
-          </p>
-          <h1 className="mt-2 text-3xl font-black">{t(locale, "planning.title")}</h1>
-          <p className="mt-2 text-sm font-semibold text-white/60">
-            {t(locale, "planning.subtitle")}
-          </p>
-        </header>
+    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div>
+          <Link href={`/cleaner/${token}`} className="text-sm font-black text-slate-500">
+            {copy.back}
+          </Link>
 
-        {overdue.length > 0 && (
-          <section className="rounded-[1.75rem] bg-red-50 p-5 shadow-sm ring-1 ring-red-100">
-            <h2 className="text-lg font-black text-red-950">{t(locale, "planning.overdueTitle")}</h2>
-            <p className="mt-1 text-sm font-semibold text-red-800/70">
-              {t(locale, "planning.overdueBody")}
-            </p>
+          <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">
+            {copy.title}
+          </h1>
 
-            <div className="mt-4 space-y-3">
-              {overdue.map(({ request, property, reservation, hasReport }) => (
-                <MissionPlanningCard
+          <p className="mt-2 max-w-2xl text-sm font-semibold text-slate-500">
+            {copy.subtitle}
+          </p>
+        </div>
+
+        <section className="grid grid-cols-4 gap-2">
+          <KpiCard
+            label={copy.missions}
+            value={String(twoWeekRequests.length)}
+            className="bg-emerald-50 text-emerald-950 ring-emerald-100"
+          />
+          <KpiCard
+            label={copy.properties}
+            value={String(twoWeekProperties.size)}
+            className="bg-sky-50 text-sky-950 ring-sky-100"
+          />
+          <KpiCard
+            label={copy.hours}
+            value={`${String(Math.round(twoWeekHours * 10) / 10).replace(".", ",")} h`}
+            className="bg-amber-50 text-amber-950 ring-amber-100"
+          />
+          <KpiCard
+            label={copy.estimated}
+            value={money(twoWeekEarnings)}
+            className="bg-violet-50 text-violet-950 ring-violet-100"
+          />
+        </section>
+
+        {(overdue.length > 0 || toConfirm.length > 0) && (
+          <section className="rounded-[2rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
+            <h2 className="text-lg font-black text-amber-950">{copy.overdueTitle}</h2>
+            <p className="mt-1 text-sm font-semibold text-amber-800/80">{copy.overdueBody}</p>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {[...overdue, ...toConfirm].slice(0, 4).map((request) => (
+                <MissionCompactCard
                   key={request.id}
                   request={request}
-                  property={property}
-                  reservation={reservation}
-                  hasReport={hasReport}
+                  property={propertiesById[String(request.property_id)]}
+                  reservation={reservationsById[String(request.reservation_id)]}
                   locale={locale}
                 />
               ))}
@@ -489,51 +752,88 @@ export default async function CleanerPlanningPage({
           </section>
         )}
 
-        <MiniPlanning
+        <PropertyCalendar
+          properties={properties}
           reservations={(calendarReservationsResult.data ?? []) as Row[]}
-          requests={requests}
-          propertiesById={propertiesById}
+          requests={relevantRequests}
           reservationsById={reservationsById}
           locale={locale}
         />
 
-        {toConfirm.length > 0 && (
-          <Section title={t(locale, "planning.toConfirmTitle")} subtitle={t(locale, "planning.toConfirmSubtitle")}>
-            <div className="space-y-3">
-              {toConfirm.map(({ request, property, reservation, hasReport }) => (
-                <MissionPlanningCard
-                  key={request.id}
-                  request={request}
-                  property={property}
-                  reservation={reservation}
-                  hasReport={hasReport}
-                  locale={locale}
-                />
-              ))}
-            </div>
-          </Section>
-        )}
+        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-xl font-black text-slate-950">{copy.nextMission}</h2>
 
-        <Section title={t(locale, "planning.confirmedTitle")} subtitle={t(locale, "planning.confirmedSubtitle")}>
-          {confirmed.length === 0 ? (
-            <p className="rounded-3xl bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
-              {t(locale, "planning.noConfirmed")}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {confirmed.map(({ request, property, reservation, hasReport }) => (
-                <MissionPlanningCard
-                  key={request.id}
-                  request={request}
-                  property={property}
-                  reservation={reservation}
-                  hasReport={hasReport}
+            {!nextMission ? (
+              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                {copy.noNextMission}
+              </p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <MissionCompactCard
+                  request={nextMission}
+                  property={propertiesById[String(nextMission.property_id)]}
+                  reservation={reservationsById[String(nextMission.reservation_id)]}
                   locale={locale}
                 />
-              ))}
-            </div>
-          )}
-        </Section>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
+                    <p className="mt-1 text-xs font-black">{compactDateLabel(anchorAt(nextMission), locale)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.duration}</p>
+                    <p className="mt-1 text-xs font-black">{nextMission.estimated_hours ?? "—"} h</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.amount}</p>
+                    <p className="mt-1 text-xs font-black">{money(missionAmount(nextMission))}</p>
+                  </div>
+                </div>
+
+                <Link
+                  href={missionHref(nextMission)}
+                  className="block rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
+                >
+                  {copy.openMission}
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-xl font-black text-slate-950">{copy.upcoming}</h2>
+
+            {groupedUpcoming.size === 0 ? (
+              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                {copy.noUpcoming}
+              </p>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {[...groupedUpcoming.entries()].slice(0, 8).map(([dateKey, rows]) => (
+                  <div key={dateKey}>
+                    <h3 className="text-sm font-black text-slate-500">
+                      {dayHeading(dateKey, today, locale)}
+                    </h3>
+
+                    <div className="mt-2 space-y-2">
+                      {rows.map((request) => (
+                        <MissionCompactCard
+                          key={request.id}
+                          request={request}
+                          property={propertiesById[String(request.property_id)]}
+                          reservation={reservationsById[String(request.reservation_id)]}
+                          locale={locale}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </section>
       </div>
 
       <CleanerBottomNav cleanerToken={token} active="planning" locale={locale} />

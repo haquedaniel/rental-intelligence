@@ -466,24 +466,25 @@ export default async function CleanerPaymentsPage({
           </section>
         )}
 
-        <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-sm">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <p className="text-sm font-semibold text-white/50">{c.earnedToDate}</p>
-              <p className="mt-2 text-3xl font-black">{money(totalEarned)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white/50">{c.thisMonth}</p>
-              <p className="mt-2 text-3xl font-black">{money(currentMonthEarned)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white/50">{c.requestNow}</p>
-              <p className="mt-2 text-3xl font-black">{money(requestableTotal)}</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white/50">{c.pendingPayment}</p>
-              <p className="mt-2 text-3xl font-black">{money(waitingPayment)}</p>
-            </div>
+        <section className="grid grid-cols-4 gap-2">
+          <div className="rounded-2xl bg-emerald-50 p-3 shadow-sm ring-1 ring-emerald-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-emerald-700">{c.earnedToDate}</p>
+            <p className="mt-2 text-lg font-black text-emerald-950 sm:text-2xl">{money(totalEarned)}</p>
+          </div>
+
+          <div className="rounded-2xl bg-sky-50 p-3 shadow-sm ring-1 ring-sky-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-sky-700">{c.thisMonth}</p>
+            <p className="mt-2 text-lg font-black text-sky-950 sm:text-2xl">{money(currentMonthEarned)}</p>
+          </div>
+
+          <div className="rounded-2xl bg-amber-50 p-3 shadow-sm ring-1 ring-amber-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-amber-700">{c.requestNow}</p>
+            <p className="mt-2 text-lg font-black text-amber-950 sm:text-2xl">{money(requestableTotal)}</p>
+          </div>
+
+          <div className="rounded-2xl bg-violet-50 p-3 shadow-sm ring-1 ring-violet-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-violet-700">{c.pendingPayment}</p>
+            <p className="mt-2 text-lg font-black text-violet-950 sm:text-2xl">{money(waitingPayment)}</p>
           </div>
         </section>
 

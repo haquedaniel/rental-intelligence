@@ -28,11 +28,12 @@ async function uploadOwnerProfilePhoto({
 }) {
   const value = formData.get("profile_photo");
 
-  if (!(value instanceof File)) return null;
+  if (!value || typeof value === "string") return null;
+  if (!("arrayBuffer" in value) || !("size" in value)) return null;
   if (value.size === 0) return null;
 
   const bucket = "owner-profile-photos";
-  const filename = safeFilename(value.name || "owner-photo.jpg");
+  const filename = safeFilename("name" in value ? String(value.name || "owner-photo.jpg") : "owner-photo.jpg");
   const storagePath = [
     "owners",
     ownerId,
@@ -44,7 +45,7 @@ async function uploadOwnerProfilePhoto({
   const { error: uploadError } = await supabase.storage
     .from(bucket)
     .upload(storagePath, buffer, {
-      contentType: value.type || "application/octet-stream",
+      contentType: "type" in value ? String(value.type || "application/octet-stream") : "application/octet-stream",
       upsert: false,
     });
 
