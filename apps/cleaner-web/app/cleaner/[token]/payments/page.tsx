@@ -11,6 +11,12 @@ const ACTIVE_REQUEST_STATUSES = new Set(["draft", "sent_to_owner", "paid", "over
 
 type Row = Record<string, any>;
 
+type RequestableGroup = {
+  ownerId: string;
+  period: string;
+  missions: Row[];
+};
+
 const COPY = {
   fr: {
     back: "← Mon planning",
@@ -400,7 +406,7 @@ export default async function CleanerPaymentsPage({
     return key < currentMonthStart && !activeIncludedMissionIds.has(String(mission.id));
   });
 
-  const requestableGroups = new Map<string, { ownerId: string; period: string; missions: Row[] }>();
+  const requestableGroups = new Map<string, RequestableGroup>();
 
   for (const mission of requestableMissions) {
     const ownerId = mission.properties?.owner_id;
@@ -408,7 +414,7 @@ export default async function CleanerPaymentsPage({
 
     const period = periodFromDateKey(paymentDateKey(mission));
     const key = `${ownerId}:${period}`;
-    const currentGroup = requestableGroups.get(key) ?? { ownerId, period, missions: [] };
+    const currentGroup: RequestableGroup = requestableGroups.get(key) ?? { ownerId, period, missions: [] as Row[] };
     currentGroup.missions.push(mission);
     requestableGroups.set(key, currentGroup);
   }
@@ -427,7 +433,7 @@ export default async function CleanerPaymentsPage({
   const missionsByOwner = new Map<string, Row[]>();
   for (const mission of missions) {
     const ownerId = mission.properties?.owner_id ?? "unknown";
-    const rows = missionsByOwner.get(ownerId) ?? [];
+    const rows: Row[] = missionsByOwner.get(ownerId) ?? [];
     rows.push(mission);
     missionsByOwner.set(ownerId, rows);
   }
