@@ -1,0 +1,493 @@
+SMS SENDING DOCS
+
+ This is based on the current cron wrapper, the enqueue_mission_offer_messages and send_pending_outbound_messages modules we inspected, and the logs from today.
+
+Cleaning SMS pipeline: reservation → mission → queued SMS → sent SMS
+0. Big picture
+
+There are three separate stages:
+
+1. Create/update cleaning_requests from reservations
+2. Create pending outbound_messages from cleaning_requests
+3. Send pending outbound_messages via Twilio
+
+The important design point is that creating a mission is not the same as sending an SMS.
+
+The mission lives in:
+
+cleaning_requests
+
+The SMS queue lives in:
+
+outbound_messages
+
+A mission can exist without any SMS being sent. An SMS can be queued as pending without being sent. Only the sender module actually contacts Twilio.
+
+1. The host cron wrapper
+
+Current script:
+
+scripts/cleaning_sms_cron.sh
+
+The server version currently does this:
+
+PROPERTY_ID="20000000-0000-0000-0000-000000000001"
+BASE_URL="https://missions.leclosdelavoilerie.com"
+LOG_FILE="/opt/rental-intelligence/outputs/logs/cleaning_sms_cron.log"
+LOCK_FILE="/tmp/rental-cleaning-sms-cron.lock"
+
+So the current server script is hardcoded to La Peskerezh only. It also hardcodes SMS_SEND_ENABLED="true" during the sender step. That is why your temporary environment override did not work when you ran the host wrapper.
+
+The wrapper is a host-side script, not a container-side script. It starts with:
+
+cd /opt/rental-intelligence
+
+and then calls docker compose exec -T cockpit .... So it should be run from the VPS host like:
+
+cd /opt/rental-intelligence
+bash scripts/cleaning_sms_cron.sh
+
+not from inside the cockpit container.
+
+It also uses flock:
+
+LOCK_FILE="/tmp/rental-cleaning-sms-cron.lock"
+flock -n 9 || exit 0
+
+So if a previous cron run is still active, the next run exits quietly instead of overlapping.
+
+2. Step 1 — create/update missions
+
+The wrapper runs:
+
+python -m rental_intel.cleaning.create_requests_from_reservations
+
+with these variables:
+
+CLEANING_REQUEST_PROPERTY_IDS="$PROPERTY_ID"
+CLEANING_REQUEST_INITIAL_STATUS="created"
+CLEANING_READY_DAY_MAX_DAYS="3"
+
+In the current server script, PROPERTY_ID is only La Peskerezh, so the create/update step only touches La Peskerezh unless we fix the wrapper.
+
+What this module does:
+
+reservations
+→ cleaning_requests
+
+For each eligible reservation, it selects the property cleaning profile, chooses an available cleaner, computes the schedule/deadline, computes cost, creates or updates a cleaning_requests row, and logs something like:
+
+Created/Updated: Property · Guest · date · Cleaner · price · mission link
+
+The source we inspected shows that it selects an available cleaner, builds the request payload, inserts a new cleaning_requests row if none exists, or updates the existing one if one already exists. It also logs summary counts such as created, updated, cancelled, missing_config, no_candidate, no_available, and locked.
+
+Important behaviour:
+
+existing_request absent
+→ insert cleaning_requests
+
+existing_request present
+→ update cleaning_requests
+
+existing accepted request changes materially
+→ set status back to sent for reconfirmation
+
+locked/accepted human state
+→ avoid blindly overwriting cleaner commitment
+
+The logs show this clearly with lines like:
+
+Summary: created=0 updated=12 cancelled=0 missing_config=0 no_candidate=0 no_available=0 locked=1
+
+That means the script is idempotent: repeated cron runs usually update existing generated missions rather than creating duplicates.
+
+3. Step 2 — enqueue mission offer / modified / cancellation SMS
+
+The wrapper then runs:
+
+python -m rental_intel.cleaning.enqueue_mission_offer_messages
+
+with:
+
+CLEANING_SMS_PROPERTY_IDS="$PROPERTY_ID"
+CLEANER_WEB_BASE_URL="$BASE_URL"
+
+This module does not send SMS. It only inserts rows into outbound_messages with:
+
+channel = sms
+status = pending
+provider = twilio
+message_type = mission_offer / mission_modified / mission_cancelled
+
+The code builds cleaner links like:
+
+https://missions.leclosdelavoilerie.com/mission/{public_token}/ready-day
+
+so the SMS sends the cleaner to the ready-day choice page, not directly to the report page.
+
+Event key / duplicate protection
+
+This module creates an event_key based on a fingerprint of the request state:
+
+cleaning_request_id
+assigned_cleaner_id
+scheduled_start_at
+scheduled_end_at
+work_window_start_at
+work_window_end_at
+completion_deadline_at
+urgent
+number_of_guests
+linen_required
+laundry_required
+total_cost_eur
+travel_distance_km
+
+That fingerprint is hashed and used in the outbound message event_key. This prevents duplicate SMS for the same state, but allows a new SMS if the important mission details change.
+
+Status behaviour
+
+For cleaning_requests.status = created:
+
+no existing event_key
+→ create mission_offer SMS
+
+For cleaning_requests.status = sent:
+
+if state changed and there was a previous sent offer/modified SMS
+→ create mission_modified SMS
+
+if status is already sent but there is no prior SMS audit trail
+→ skip, to avoid spamming old/backfilled missions
+
+For cleaning_requests.status = cancelled:
+
+cancel any pending non-cancellation messages
+if a prior offer/modification was actually sent
+→ create mission_cancelled SMS
+
+The module also skips if the assigned cleaner is missing or if the cleaner has no phone number. It normalizes phone numbers by removing spaces, dots, and hyphens.
+
+Test lab safety
+
+If a request has test_scenario_id, the enqueuer does not create a real Twilio pending message. It marks the outbound message as already sent, sets provider to test_lab, and marks it as test data. That is a safety guard so test scenarios never go to Twilio.
+
+4. Step 3 — accepted mission reminders
+
+The wrapper then runs:
+
+python -m rental_intel.scripts.enqueue_accepted_cleaning_reminders --lookahead-days 30
+
+with:
+
+CLEANING_SMS_PROPERTY_IDS="$PROPERTY_ID"
+CLEANER_WEB_BASE_URL="$BASE_URL"
+
+This script targets missions already accepted by the cleaner. From the logs, it appears to create scheduled reminders such as:
+
+accepted_j_minus_7
+accepted_j_minus_1
+
+It also skips reminders that are already stale, for example if the due time has already passed before the reminder was created. The logs show STALE ... accepted_j_minus_7 and STALE ... accepted_j_minus_1, which means it did not send/create old reminders retroactively.
+
+This script also only enqueues messages. It does not send them directly.
+
+5. Step 4 — overdue cleaner and owner alerts
+
+The wrapper then runs:
+
+python -m rental_intel.scripts.enqueue_overdue_cleaning_alerts --grace-minutes 90 --lookback-days 14
+
+with:
+
+CLEANING_SMS_PROPERTY_IDS="$PROPERTY_ID"
+CLEANER_WEB_BASE_URL="$BASE_URL"
+
+This looks for accepted missions that are overdue. It can create at least two types of alert:
+
+cleaning_overdue_cleaner_nudge
+cleaning_overdue_owner_alert
+
+The logs show duplicate protection here too:
+
+SKIP ... already queued cleaning_overdue_cleaner_nudge
+SKIP ... already queued cleaning_overdue_owner_alert
+
+So repeated cron runs should not keep creating the same overdue alert.
+
+Again: this step queues messages. It does not send them directly.
+
+6. Step 5 — send pending outbound SMS
+
+The wrapper finally runs:
+
+python -m rental_intel.cleaning.send_pending_outbound_messages
+
+with:
+
+CLEANING_SMS_PROPERTY_IDS="$PROPERTY_ID"
+SMS_SEND_ENABLED="true"
+
+This is the only step that actually calls Twilio.
+
+The sender selects from:
+
+outbound_messages
+
+where:
+
+channel = sms
+status = pending
+attempt_count < SMS_MAX_ATTEMPTS
+
+It orders by created_at ascending and sends a maximum of 20 per run. The default SMS_MAX_ATTEMPTS is 5.
+
+Property filter
+
+If CLEANING_SMS_PROPERTY_IDS is set, the sender looks up the linked cleaning_requests, checks their property_id, and keeps only messages whose request property is in the allowed list. It logs:
+
+SMS property filter active: X/Y pending messages kept, Z skipped
+
+If CLEANING_SMS_PROPERTY_IDS is empty, the sender does not filter by property and can send all pending SMS. That is powerful but dangerous.
+
+Dry run mode
+
+The sender has:
+
+SMS_SEND_ENABLED=false
+
+as the default. If SMS_SEND_ENABLED is false, it prints what it would send, shows the first few message bodies, and leaves messages as pending.
+
+This is the safest way to test:
+
+SMS_SEND_ENABLED=false
+CLEANING_SMS_PROPERTY_IDS="..."
+Test recipient override
+
+The sender supports:
+
+SMS_TEST_RECIPIENT="+336..."
+
+If set, the message’s intended recipient stays in the database as recipient_phone, but the actual Twilio send goes to the test recipient. The sender records the actual number in provider_to.
+
+This is useful for safe end-to-end testing without contacting the cleaner.
+
+Successful send
+
+On success, the sender updates outbound_messages:
+
+status = sent
+provider = twilio
+provider_message_id = Twilio SID
+provider_to = actual recipient
+attempt_count += 1
+last_attempt_at = now
+sent_at = now
+error_message = null
+
+It also updates the linked cleaning_requests row:
+
+status: created → sent
+
+but only if the mission is still created. It deliberately does not overwrite later human statuses such as accepted or refused.
+
+Failed send
+
+On failure, it updates the message:
+
+status = failed
+provider = twilio
+provider_to = actual recipient
+attempt_count += 1
+last_attempt_at = now
+error_message = error text
+
+Because the query only picks status = pending, failed messages will not be retried unless we manually reset them to pending, or change the retry logic later.
+
+7. Current important environment variables
+Mission creation
+CLEANING_REQUEST_PROPERTY_IDS
+
+Which property IDs to create/update cleaning_requests for.
+
+Example:
+
+CLEANING_REQUEST_PROPERTY_IDS="20000000-0000-0000-0000-000000000001,20000000-0000-0000-0000-000000000002"
+CLEANING_REQUEST_INITIAL_STATUS
+
+Usually:
+
+created
+
+Meaning generated missions start as created, then the sender changes them to sent after the offer SMS actually goes out.
+
+CLEANING_READY_DAY_MAX_DAYS
+
+Currently 3. This controls how many ready-day choices are generated/shown around the cleaning window.
+
+SMS enqueue/send
+CLEANING_SMS_PROPERTY_IDS
+
+Which property IDs can have SMS queued/sent.
+
+This should normally match or be narrower than CLEANING_REQUEST_PROPERTY_IDS.
+
+CLEANER_WEB_BASE_URL
+
+Used to build mission links.
+
+Production:
+
+https://missions.leclosdelavoilerie.com
+SMS_SEND_ENABLED
+
+Controls actual Twilio sending.
+
+false → dry run; messages remain pending
+true  → send via Twilio
+SMS_TEST_RECIPIENT
+
+If set, all SMS go to that number instead of the intended cleaner/owner.
+
+SMS_MAX_ATTEMPTS
+
+Default 5, but note that current failed messages are marked failed, so this limit only applies while a message is still pending.
+
+Twilio
+TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN
+TWILIO_FROM_NUMBER
+
+The cron wrapper checks these before doing the rest.
+
+8. What went wrong today
+
+You tried to run:
+
+SMS_SEND_ENABLED=true
+CLEANING_SMS_PROPERTY_IDS="...0002"
+bash scripts/cleaning_sms_cron.sh
+
+But the current host wrapper ignores those values because it sets:
+
+PROPERTY_ID="...0001"
+
+and later passes:
+
+-e CLEANING_SMS_PROPERTY_IDS="$PROPERTY_ID"
+-e SMS_SEND_ENABLED="true"
+
+So the cron run still operated on La Peskerezh, not Apt 2. The logs confirm it sent 7 pending messages for La Peskerezh/Daniel/Sandrine while skipping other pending messages based on the hardcoded filter.
+
+Apt 2 messages remained pending because the sender was never run with Apt 2 as the actual filter.
+
+The correct direct Apt 2 sender command is:
+
+cd /opt/rental-intelligence
+
+docker compose exec -T \
+  -e SMS_SEND_ENABLED=true \
+  -e SMS_TEST_RECIPIENT= \
+  -e CLEANING_SMS_PROPERTY_IDS="20000000-0000-0000-0000-000000000002" \
+  cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.send_pending_outbound_messages'
+9. Safe activation recipe for a new property
+
+For a new property, do this sequence:
+
+A. Generate missions only
+docker compose exec -T \
+  -e CLEANING_REQUEST_PROPERTY_IDS="PROPERTY_ID_HERE" \
+  -e CLEANING_REQUEST_INITIAL_STATUS="created" \
+  -e CLEANING_READY_DAY_MAX_DAYS="3" \
+  cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.create_requests_from_reservations'
+B. Queue messages only
+docker compose exec -T \
+  -e CLEANING_SMS_PROPERTY_IDS="PROPERTY_ID_HERE" \
+  -e CLEANER_WEB_BASE_URL="https://missions.leclosdelavoilerie.com" \
+  cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.enqueue_mission_offer_messages'
+C. Audit before sending
+
+Check:
+
+no past missions
+right cleaner
+right phone number
+outbound_messages status = pending
+provider_message_id = null
+D. Dry-run sender
+docker compose exec -T \
+  -e SMS_SEND_ENABLED=false \
+  -e CLEANING_SMS_PROPERTY_IDS="PROPERTY_ID_HERE" \
+  cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.send_pending_outbound_messages'
+E. Send live
+docker compose exec -T \
+  -e SMS_SEND_ENABLED=true \
+  -e SMS_TEST_RECIPIENT= \
+  -e CLEANING_SMS_PROPERTY_IDS="PROPERTY_ID_HERE" \
+  cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.send_pending_outbound_messages'
+10. Recommended fixed cron wrapper behaviour
+
+The cron wrapper should not hardcode one property forever. It should have safe defaults but respect overrides.
+
+The logic should be:
+
+DEFAULT_PROPERTY_IDS="...0001,...0002"
+
+REQUEST_PROPERTY_IDS="${CLEANING_REQUEST_PROPERTY_IDS:-${CLEANING_SMS_PROPERTY_IDS:-$DEFAULT_PROPERTY_IDS}}"
+SMS_PROPERTY_IDS="${CLEANING_SMS_PROPERTY_IDS:-$REQUEST_PROPERTY_IDS}"
+SMS_SEND_ENABLED="${SMS_SEND_ENABLED:-true}"
+BASE_URL="${CLEANER_WEB_BASE_URL:-https://missions.leclosdelavoilerie.com}"
+
+That gives us:
+
+normal cron
+→ La Peskerezh + Apt 2
+
+manual dry run for Apt 2
+→ SMS_SEND_ENABLED=false CLEANING_SMS_PROPERTY_IDS=...0002 bash scripts/cleaning_sms_cron.sh
+
+manual send for one property
+→ SMS_SEND_ENABLED=true CLEANING_SMS_PROPERTY_IDS=...0002 bash scripts/cleaning_sms_cron.sh
+
+The key rule for future us:
+
+Never run live sender with empty CLEANING_SMS_PROPERTY_IDS unless you intentionally want to send every pending SMS in the database.
+11. Current property IDs
+La Peskerezh
+20000000-0000-0000-0000-000000000001
+
+Voilerie Apt 2
+20000000-0000-0000-0000-000000000002
+
+Voilerie Apt 4
+20000000-0000-0000-0000-000000000004
+
+Voilerie Apt 5
+20000000-0000-0000-0000-000000000005
+
+For now, the intended active SMS set is:
+
+20000000-0000-0000-0000-000000000001,
+20000000-0000-0000-0000-000000000002
+12. Mental model
+
+The safest way to think about it:
+
+create_requests_from_reservations
+= creates/updates the work
+
+enqueue_* scripts
+= decide who should be notified and create pending messages
+
+send_pending_outbound_messages
+= actually sends pending messages through Twilio
+
+And the two main safety switches are:
+
+CLEANING_SMS_PROPERTY_IDS
+= which property messages are allowed through
+
+SMS_SEND_ENABLED
+= whether Twilio is actually called
+
+Today’s issue came from the wrapper overriding both of those with hardcoded values.
