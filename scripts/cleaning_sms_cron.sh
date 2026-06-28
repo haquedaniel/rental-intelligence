@@ -66,6 +66,12 @@ flock -n 9 || exit 0
 
   docker compose exec -T \
     -e CLEANING_SMS_PROPERTY_IDS="$SMS_PROPERTY_IDS" \
+    -e CLEANER_WEB_BASE_URL="$BASE_URL" \
+    -e CLEANING_REPORT_ALERT_LOOKBACK_DAYS="${CLEANING_REPORT_ALERT_LOOKBACK_DAYS:-7}" \
+    cockpit bash -lc 'cd /app && python -m rental_intel.scripts.enqueue_cleaning_report_owner_alerts'
+
+  docker compose exec -T \
+    -e CLEANING_SMS_PROPERTY_IDS="$SMS_PROPERTY_IDS" \
     -e SMS_MESSAGE_TYPE_PREFIXES="mission_,cleaning_,accepted_cleaning_reminder" \
     -e SMS_SEND_ENABLED="$SMS_SEND_ENABLED" \
     -e SMS_TEST_RECIPIENT="${SMS_TEST_RECIPIENT:-}" \
