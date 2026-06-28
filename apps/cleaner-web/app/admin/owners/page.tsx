@@ -77,6 +77,17 @@ function OwnerForm({
             placeholder="Daniel Haque et Aurore Fourrier"
           />
         </label>
+        <label className="block">
+          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            Photo propriétaire
+          </span>
+          <input
+            type="file"
+            name="profile_photo"
+            accept="image/*"
+            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+          />
+        </label>
 
         <label className="block">
           <span className="text-sm font-semibold text-slate-800">Email facturation</span>
