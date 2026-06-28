@@ -50,6 +50,7 @@ def main() -> None:
         supabase.table("property_reference_photos")
         .select("id,storage_bucket,storage_path,original_storage_path,optimized_at,is_active")
         .eq("is_active", True)
+        .is_("optimized_at", "null")
         .limit(args.limit)
         .execute()
         .data
