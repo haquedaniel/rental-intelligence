@@ -230,3 +230,156 @@ export async function updateCleaner(formData: FormData) {
 
   redirectToCleaners();
 }
+
+function cleanerAppBaseUrl(): string {
+  return (
+    process.env.CLEANER_WEB_BASE_URL ||
+    process.env.PAYMENT_REQUEST_BASE_URL ||
+    "https://missions.leclosdelavoilerie.com"
+  ).replace(/\/$/, "");
+}
+
+function cleanerDisplayNameForInvite(cleaner: Record<string, any>): string {
+  return cleaner.first_name || cleaner.trading_name || "Sandrine";
+}
+
+function cleanerWelcomeLinkForInvite(publicToken: string): string {
+  return `${cleanerAppBaseUrl()}/cleaner/${publicToken}/welcome`;
+}
+
+function inviteCleanerSmsBody(cleaner: Record<string, any>, publicToken: string): string {
+  const language = String(cleaner.preferred_language || "fr");
+  const name = cleanerDisplayNameForInvite(cleaner);
+  const link = cleanerWelcomeLinkForInvite(publicToken);
+
+  if (language === "en") {
+    return [
+      `Hello ${name}, welcome to Pilotys.`,
+      "Here is your space for missions, schedule and payments:",
+      link,
+      "Add it to your phone home screen so it works like an app.",
+    ].join("\n");
+  }
+
+  if (language === "ru") {
+    return [
+      `Здравствуйте, ${name}! Добро пожаловать в Pilotys.`,
+      "Ваше пространство для заданий, расписания и оплат:",
+      link,
+      "Добавьте ссылку на главный экран телефона, чтобы пользоваться как приложением.",
+    ].join("\n");
+  }
+
+  return [
+    `Bonjour ${name}, bienvenue sur Pilotys.`,
+    "Voici votre espace pour vos missions, votre planning et vos paiements :",
+    link,
+    "Ajoutez-le à l’écran d’accueil de votre téléphone pour y accéder comme une app.",
+  ].join("\n");
+}
+
+export async function inviteCleaner(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+  const cleanerId = textValue(formData, "cleaner_id");
+
+  if (!cleanerId) {
+    throw new Error("Intervenante manquante.");
+  }
+
+  const { data: cleaner, error } = await supabase
+    .from("cleaners")
+    .select("*")
+    .eq("id", cleanerId)
+    .maybeSingle();
+
+  if (error || !cleaner) {
+    throw new Error(`Intervenante introuvable : ${error?.message ?? ""}`);
+  }
+
+  const phone = String(cleaner.phone ?? "").trim();
+
+  if (!phone) {
+    throw new Error("Aucun téléphone n’est renseigné pour cette intervenante.");
+  }
+
+  let publicToken = String(cleaner.public_token ?? "").trim();
+
+  if (!publicToken) {
+    publicToken = randomUUID().replaceAll("-", "");
+
+    const { error: tokenError } = await supabase
+      .from("cleaners")
+      .update({
+        public_token: publicToken,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", cleanerId);
+
+    if (tokenError) {
+      throw new Error(`Impossible de créer le lien intervenante : ${tokenError.message}`);
+    }
+  }
+
+  const now = new Date();
+  const body = inviteCleanerSmsBody(cleaner, publicToken);
+
+  const { error: messageError } = await supabase
+    .from("outbound_messages")
+    .insert({
+      channel: "sms",
+      message_type: "cleaner_invite",
+      recipient_phone: phone,
+      body,
+      status: "pending",
+      provider: "twilio",
+      cleaner_id: cleanerId,
+      event_key: `cleaner_invite:${cleanerId}:${now.getTime()}`,
+      created_at: now.toISOString(),
+    });
+
+  if (messageError) {
+    throw new Error(`Impossible de préparer le SMS : ${messageError.message}`);
+  }
+
+  const { error: updateError } = await supabase
+    .from("cleaners")
+    .update({
+      app_invited_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    })
+    .eq("id", cleanerId);
+
+  if (updateError) {
+    throw new Error(`SMS préparé, mais statut invitation non mis à jour : ${updateError.message}`);
+  }
+
+  revalidatePath("/admin/cleaners");
+}
+
+export async function resetCleanerOnboarding(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdmin();
+  const cleanerId = textValue(formData, "cleaner_id");
+
+  if (!cleanerId) {
+    throw new Error("Intervenante manquante.");
+  }
+
+  const { error } = await supabase
+    .from("cleaners")
+    .update({
+      app_first_opened_at: null,
+      app_onboarded_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", cleanerId);
+
+  if (error) {
+    throw new Error(`Impossible de réinitialiser l’accueil : ${error.message}`);
+  }
+
+  revalidatePath("/admin/cleaners");
+}
