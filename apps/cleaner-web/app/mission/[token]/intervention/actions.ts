@@ -195,6 +195,113 @@ export async function acceptIntervention(formData: FormData) {
   redirect(`/mission/${token}/intervention`);
 }
 
+
+export async function changeInterventionSlot(formData: FormData) {
+  const token = textValue(formData, "token");
+  const selectedStartRaw = textValue(formData, "selected_start_at");
+
+  if (!token) throw new Error("Lien mission manquant.");
+  if (!selectedStartRaw) throw new Error("Merci de choisir un nouveau créneau.");
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: request, error } = await supabase
+    .from("cleaning_requests")
+    .select("*,cleaners(*),properties(*)")
+    .eq("public_token", token)
+    .eq("mission_type", "intervention")
+    .maybeSingle();
+
+  if (error || !request) {
+    throw new Error(`Mission introuvable : ${error?.message ?? ""}`);
+  }
+
+  if (request.status !== "accepted") {
+    throw new Error("Le créneau ne peut être modifié que pour une intervention acceptée.");
+  }
+
+  const selectedStart = new Date(selectedStartRaw);
+  if (Number.isNaN(selectedStart.getTime())) {
+    throw new Error("Créneau invalide.");
+  }
+
+  const estimatedHours = Math.max(Number(request.estimated_hours ?? 1), 0.25);
+  const selectedEnd = addHours(selectedStart, estimatedHours);
+
+  const windowStart = new Date(
+    request.work_window_start_at ||
+      request.scheduled_start_at ||
+      request.created_at,
+  );
+
+  const deadline = new Date(
+    request.work_window_end_at ||
+      request.completion_deadline_at ||
+      request.scheduled_end_at,
+  );
+
+  if (selectedStart < windowStart) {
+    throw new Error("Le créneau choisi est avant le début autorisé.");
+  }
+
+  if (selectedEnd > deadline) {
+    throw new Error("Le créneau choisi dépasse l’échéance de l’intervention.");
+  }
+
+  if (!request.allow_occupied_intervention) {
+    const { data: reservations } = await supabase
+      .from("reservations")
+      .select("*")
+      .eq("property_id", request.property_id)
+      .lt("checkin_at", selectedEnd.toISOString())
+      .gt("checkout_at", selectedStart.toISOString());
+
+    const blocking = ((reservations ?? []) as any[])
+      .filter((reservation) => !isReservationCancelled(reservation))
+      .filter((reservation) => overlaps(selectedStart, selectedEnd, reservation));
+
+    if (blocking.length > 0) {
+      throw new Error(
+        "Ce créneau tombe pendant une période occupée. Le propriétaire n’a pas autorisé les interventions pendant occupation.",
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  const selectedStartIso = selectedStart.toISOString();
+  const selectedEndIso = selectedEnd.toISOString();
+
+  const { error: updateError } = await supabase
+    .from("cleaning_requests")
+    .update({
+      scheduled_start_at: selectedStartIso,
+      scheduled_end_at: selectedEndIso,
+      ready_by_at: selectedEndIso,
+      ready_by_date: selectedEndIso.slice(0, 10),
+      schedule_status: "confirmed",
+      updated_at: now,
+    })
+    .eq("id", request.id);
+
+  if (updateError) {
+    throw new Error(`Impossible de modifier le créneau : ${updateError.message}`);
+  }
+
+  await enqueueOwnerSms(
+    request,
+    [
+      "Créneau d’intervention modifié",
+      `${request.cleaners?.first_name ?? "L’intervenant"} a modifié le créneau : ${request.title}`,
+      `Nouveau créneau : ${fullDateTimeLabel(selectedStartIso)} → ${fullDateTimeLabel(selectedEndIso)}`,
+      `Mission : ${BASE_URL.replace(/\/$/, "")}/mission/${token}/intervention`,
+    ].join("\n"),
+  );
+
+  revalidatePath(`/mission/${token}/intervention`);
+  redirect(`/mission/${token}/intervention`);
+}
+
+
 export async function refuseIntervention(formData: FormData) {
   const token = textValue(formData, "token");
   const reason = textValue(formData, "reason");

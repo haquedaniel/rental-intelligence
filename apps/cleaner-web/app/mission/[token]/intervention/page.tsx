@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { acceptIntervention, refuseIntervention } from "./actions";
+import { acceptIntervention, changeInterventionSlot, refuseIntervention } from "./actions";
+import { InterventionSlotPicker } from "./InterventionSlotPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,40 @@ function slotFmt(value?: string | null) {
     timeZone: "Europe/Paris",
   })
     .format(new Date(value))
+    .replace(":", "h");
+}
+
+function parisDateKeyForSlot(date: Date): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function slotDateLabel(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    timeZone: "Europe/Paris",
+  }).format(date);
+}
+
+function slotTimeLabel(date: Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  })
+    .format(date)
     .replace(":", "h");
 }
 
@@ -173,6 +208,14 @@ export default async function InterventionMissionPage({
 
   const slots = buildSlots({ request, reservations });
 
+  const slotOptions = slots.map((slot) => ({
+    value: slot.start.toISOString(),
+    dateKey: parisDateKeyForSlot(slot.start),
+    dateLabel: slotDateLabel(slot.start),
+    timeLabel: `${slotTimeLabel(slot.start)} → ${slotTimeLabel(slot.end)}`,
+    occupied: slot.occupied,
+  }));
+
   let referencePhotoUrl: string | null = null;
   if (request.reference_photo_path) {
     const { data } = await supabase.storage
@@ -297,21 +340,7 @@ export default async function InterventionMissionPage({
                   Aucun créneau disponible. Demandez au propriétaire de modifier les dates ou d’autoriser une intervention pendant occupation.
                 </div>
               ) : (
-                <label className="mt-4 block">
-                  <span className="text-sm font-bold text-slate-800">Créneau proposé</span>
-                  <select
-                    name="selected_start_at"
-                    required
-                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-slate-950"
-                  >
-                    {slots.map((slot) => (
-                      <option key={slot.start.toISOString()} value={slot.start.toISOString()}>
-                        {slotFmt(slot.start.toISOString())} → {slotFmt(slot.end.toISOString())}
-                        {slot.occupied ? " · ⚠ logement occupé" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <InterventionSlotPicker slots={slotOptions} />
               )}
 
               <button
@@ -341,17 +370,51 @@ export default async function InterventionMissionPage({
               Créneau confirmé : {fmt(request.scheduled_start_at)} → {fmt(request.scheduled_end_at)}
             </div>
 
+            {slots.length > 0 && (
+              <details className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <summary className="cursor-pointer text-sm font-black text-slate-800">
+                  Modifier le créneau
+                </summary>
+
+                <form action={changeInterventionSlot} className="mt-4">
+                  <input type="hidden" name="token" value={token} />
+
+                  <p className="text-sm font-semibold text-slate-500">
+                    Choisissez une nouvelle date puis une heure. Le propriétaire sera prévenu.
+                  </p>
+
+                  <InterventionSlotPicker
+                    slots={slotOptions}
+                    defaultValue={request.scheduled_start_at}
+                  />
+
+                  <button className="mt-4 w-full rounded-2xl bg-slate-950 px-5 py-4 text-base font-black text-white">
+                    Enregistrer le nouveau créneau
+                  </button>
+                </form>
+              </details>
+            )}
+
             {reportAvailable ? (
               <Link
                 href={`/mission/${token}/intervention/report`}
                 className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
               >
-                Ouvrir le rapport d’intervention
+                Envoyer le rapport d’intervention
               </Link>
             ) : (
-              <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-600">
-                Le rapport sera disponible ici le jour de l’intervention.
-              </div>
+              <>
+                <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-600">
+                  Le rapport est surtout prévu le jour de l’intervention, mais vous pouvez l’envoyer plus tôt si l’intervention est déjà terminée.
+                </div>
+
+                <Link
+                  href={`/mission/${token}/intervention/report`}
+                  className="block rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200"
+                >
+                  Envoyer le rapport maintenant
+                </Link>
+              </>
             )}
           </section>
         )}

@@ -197,10 +197,6 @@ function missionHref(request: Row): string {
   if (!request.public_token) return "#";
 
   if (isIntervention(request)) {
-    if (request.status === "accepted") {
-      return `/mission/${request.public_token}/intervention/report`;
-    }
-
     return `/mission/${request.public_token}/intervention`;
   }
 
