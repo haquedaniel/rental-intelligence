@@ -225,8 +225,24 @@ function isOverdue(request: Row, hasReport = false): boolean {
   return anchor.getTime() < Date.now();
 }
 
+function missionAmount(request: Row): number {
+  return Number(request.total_cost_eur ?? request.cleaning_cost_eur ?? request.amount_eur ?? 0);
+}
+
+function isIntervention(request: Row): boolean {
+  return request.mission_type === "intervention";
+}
+
 function missionHref(request: Row): string {
   if (!request.public_token) return "#";
+
+  if (isIntervention(request)) {
+    if (request.status === "accepted") {
+      return `/mission/${request.public_token}/intervention/report`;
+    }
+
+    return `/mission/${request.public_token}/intervention`;
+  }
 
   if (["created", "sent"].includes(String(request.status))) {
     return `/mission/${request.public_token}/ready-day`;
@@ -235,11 +251,11 @@ function missionHref(request: Row): string {
   return `/mission/${request.public_token}/report`;
 }
 
-function missionAmount(request: Row): number {
-  return Number(request.total_cost_eur ?? request.cleaning_cost_eur ?? request.amount_eur ?? 0);
-}
-
 function missionTitle(request: Row, locale: CleanerLocale): string {
+  if (isIntervention(request)) {
+    return request.title || "Intervention ponctuelle";
+  }
+
   return request.title || c(locale).checklistFallback;
 }
 
@@ -288,6 +304,10 @@ function statusChipClass(request: Row, overdue: boolean): string {
 
 function calendarMissionClass(request: Row, overdue: boolean): string {
   if (overdue) return "bg-red-100 text-red-900 ring-red-200";
+
+  if (isIntervention(request)) {
+    return "bg-violet-100 text-violet-950 ring-violet-200";
+  }
 
   switch (request.status) {
     case "created":
@@ -389,24 +409,36 @@ function MissionCompactCard({
 }) {
   const overdue = isOverdue(request, false);
   const copy = c(locale);
+  const intervention = isIntervention(request);
+  const title = intervention ? missionTitle(request, locale) : propertyName(property, locale);
+  const subtitle = intervention
+    ? propertyName(property, locale)
+    : `${missionTitle(request, locale)} · ${guestName(reservation, locale)}`;
+
+  const cardClassName = [
+    "block min-w-0 rounded-[1.35rem] p-4 shadow-sm ring-1",
+    intervention
+      ? "bg-violet-50/80 ring-violet-100"
+      : "bg-white ring-slate-200",
+  ].join(" ");
 
   return (
     <Link
       href={missionHref(request)}
-      className="block rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-slate-200"
+      className={cardClassName}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusChipClass(request, overdue)}`}>
             {statusLabel(request, overdue, locale)}
           </span>
 
           <h3 className="mt-3 truncate text-base font-black text-slate-950">
-            {propertyName(property, locale)}
+            {title}
           </h3>
 
           <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {missionTitle(request, locale)} · {guestName(reservation, locale)}
+            {subtitle}
           </p>
         </div>
 
@@ -508,7 +540,7 @@ function PropertyCalendar({
   }
 
   return (
-    <section className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <section className="w-full min-w-0 overflow-hidden rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-slate-950">{copy.calendarTitle}</h2>
@@ -521,8 +553,8 @@ function PropertyCalendar({
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl bg-slate-50 pb-3">
-        <div className="min-w-max">
+      <div className="mt-4 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-2xl bg-slate-50 pb-3">
+        <div className="min-w-max max-w-none">
           <div className="grid grid-cols-[112px_1fr] border-b border-slate-200 bg-white">
             <div className="sticky left-0 z-30 bg-white px-3 py-3 text-[10px] font-black uppercase text-slate-400">
               {copy.properties}
@@ -828,8 +860,8 @@ export default async function CleanerPlanningPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen w-full overflow-x-hidden bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
+      <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
         <div>
           <Link href={`/cleaner/${token}`} className="text-sm font-black text-slate-500">
             {copy.back}
@@ -844,7 +876,7 @@ export default async function CleanerPlanningPage({
           </p>
         </div>
 
-        <section className="grid grid-cols-4 gap-2">
+        <section className="grid min-w-0 grid-cols-4 gap-2">
           <KpiCard
             label={copy.missions}
             value={String(twoWeekRequests.length)}
@@ -894,8 +926,8 @@ export default async function CleanerPlanningPage({
           locale={locale}
         />
 
-        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <section className="grid min-w-0 gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="text-xl font-black text-slate-950">{copy.nextMission}</h2>
 
             {!nextMission ? (
@@ -936,7 +968,7 @@ export default async function CleanerPlanningPage({
             )}
           </section>
 
-          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="text-xl font-black text-slate-950">{copy.upcoming}</h2>
 
             {groupedUpcoming.size === 0 ? (

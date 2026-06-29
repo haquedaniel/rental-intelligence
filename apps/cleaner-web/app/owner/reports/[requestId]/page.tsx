@@ -48,8 +48,20 @@ function money(value: unknown): string {
 }
 
 function fullName(cleaner?: Row | null): string {
-  if (!cleaner) return "Intervenante";
-  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || cleaner.name || "Intervenante";
+  if (!cleaner) return "Intervenant non renseigné";
+
+  const first = String(cleaner.first_name ?? "").trim();
+  const last = String(cleaner.last_name ?? "").trim();
+  const full = [first, last].filter(Boolean).join(" ");
+
+  return (
+    full ||
+    String(cleaner.trading_name ?? "").trim() ||
+    String(cleaner.legal_name ?? "").trim() ||
+    String(cleaner.name ?? "").trim() ||
+    String(cleaner.email ?? "").trim() ||
+    "Intervenant non renseigné"
+  );
 }
 
 function sectionLabel(sectionKey?: string | null, sectionsByKey?: Record<string, Row>): string {
