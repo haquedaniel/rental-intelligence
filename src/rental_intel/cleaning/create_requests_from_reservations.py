@@ -28,6 +28,7 @@ PROPERTY_ID_FILTER = {
 READY_DAY_MAX_DAYS = int(os.getenv("CLEANING_READY_DAY_MAX_DAYS", "3"))
 READY_BY_HOUR = int(os.getenv("CLEANING_READY_BY_HOUR", "16"))
 DEFAULT_CLEANER_DISTANCE_KM = float(os.getenv("DEFAULT_CLEANER_DISTANCE_KM", "0.0"))
+NO_CHOICE_BONUS_PERCENT = float(os.getenv("CLEANING_NO_CHOICE_BONUS_PERCENT", "10"))
 CLEANER_WEB_BASE_URL = os.getenv("CLEANER_WEB_BASE_URL", "http://localhost:3000")
 
 # Keep this as "sent" for now so we do not break the existing cleaner mission page.
@@ -474,6 +475,27 @@ def select_available_cleaner(
     return None, None, rejection_reasons, scheduled_start_local, scheduled_end_local
 
 
+def count_ready_day_options(checkout_at: datetime, deadline_at: datetime) -> int:
+    checkout_local = checkout_at.astimezone(PARIS)
+    checkout_date = checkout_local.date()
+    deadline_utc = deadline_at.astimezone(timezone.utc)
+
+    count = 0
+
+    for offset in range(0, READY_DAY_MAX_DAYS + 1):
+        ready_local = datetime.combine(
+            checkout_date + timedelta(days=offset),
+            time(hour=READY_BY_HOUR, minute=0),
+            tzinfo=PARIS,
+        )
+        ready_utc = ready_local.astimezone(timezone.utc)
+
+        if ready_utc <= deadline_utc:
+            count += 1
+
+    return count
+
+
 def ready_deadline_at(checkout_at: datetime, next_checkin_at: datetime | None) -> datetime:
     checkout_local = checkout_at.astimezone(PARIS)
 
@@ -584,9 +606,11 @@ def build_request_payload(
     work_window_start_at = checkout_at.astimezone(timezone.utc)
     completion_deadline_at = ready_deadline_at(checkout_at, next_checkin_at)
 
-    urgent = False
-    if next_checkin_at:
-        urgent = (next_checkin_at - checkout_at) <= timedelta(hours=36)
+    ready_option_count = count_ready_day_options(
+        checkout_at=checkout_at,
+        deadline_at=completion_deadline_at,
+    )
+    urgent = ready_option_count == 1
 
     if travel_distance_km is None or travel_distance_km == "":
         distance_km = DEFAULT_CLEANER_DISTANCE_KM
@@ -596,7 +620,7 @@ def build_request_payload(
     included_radius = float(cleaner.get("included_radius_km") or 0)
     hourly_rate = float(cleaner.get("hourly_rate_eur") or 0)
     travel_rate = float(cleaner.get("travel_rate_per_km_eur") or 0)
-    urgency_bonus_percent = float(cleaner.get("urgency_bonus_percent") or 15)
+    urgency_bonus_percent = NO_CHOICE_BONUS_PERCENT
 
     estimated_hours = float(profile["estimated_hours"])
     billable_travel_km = max(0.0, distance_km - included_radius)
@@ -651,6 +675,7 @@ def build_request_payload(
     meta = {
         "scheduled_start_local": scheduled_start_local,
         "urgent": urgent,
+        "ready_option_count": ready_option_count,
         "total": total,
     }
 
