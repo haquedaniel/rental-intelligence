@@ -479,6 +479,12 @@ function urgencyBadge(request: Row): string | null {
 }
 
 function dateChoiceBadge(request: Row): string | null {
+  if (request.mission_type === "intervention") {
+    if (["created", "sent"].includes(request.status)) return "Créneau à choisir";
+    if (request.status === "accepted") return "Créneau confirmé";
+    return null;
+  }
+
   if (!["created", "sent"].includes(request.status)) {
     if (request.status === "accepted") return "Rapport à envoyer";
     return null;
@@ -535,10 +541,32 @@ function MissionCard({
     ? propertyName(property)
     : guestName(reservation);
 
+  const cardClassName = [
+    "block overflow-hidden rounded-[1.35rem] shadow-sm ring-1 transition active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-md",
+    intervention
+      ? "bg-violet-50/80 ring-violet-100"
+      : "bg-white ring-slate-200",
+  ].join(" ");
+
+  const footerClassName = [
+    "grid grid-cols-3 gap-px border-t text-[10px] font-black text-slate-500",
+    intervention
+      ? "border-violet-100 bg-violet-100"
+      : "border-slate-100 bg-slate-100",
+  ].join(" ");
+
+  const footerCellClassName = intervention
+    ? "bg-violet-50/70 px-3 py-2"
+    : "bg-white px-3 py-2";
+
+  const amountClassName = intervention
+    ? "shrink-0 rounded-full bg-violet-700 px-2.5 py-1 text-xs font-black text-white"
+    : "shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-black text-white";
+
   return (
     <Link
       href={missionHref(request)}
-      className="block overflow-hidden rounded-[1.35rem] bg-white shadow-sm ring-1 ring-slate-200 transition active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-md"
+      className={cardClassName}
     >
       <div className="flex gap-3 p-3">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.15rem] bg-slate-100">
@@ -564,6 +592,12 @@ function MissionCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-1.5">
+            {intervention && (
+              <span className="inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-black text-violet-900 ring-1 ring-violet-200">
+                Intervention
+              </span>
+            )}
+
             <span
               className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${statusClass(
                 request,
@@ -588,7 +622,7 @@ function MissionCard({
             <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-500">
               {subtitle}
             </p>
-            <span className="shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-black text-white">
+            <span className={amountClassName}>
               {money(amount)}
             </span>
           </div>
@@ -607,18 +641,18 @@ function MissionCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-px border-t border-slate-100 bg-slate-100 text-[10px] font-black text-slate-500">
-        <div className="bg-white px-3 py-2">
+      <div className={footerClassName}>
+        <div className={footerCellClassName}>
           <p className="uppercase text-slate-400">Durée</p>
           <p className="mt-0.5 text-slate-900">{request.estimated_hours ?? "—"} h</p>
         </div>
 
-        <div className="bg-white px-3 py-2">
-          <p className="uppercase text-slate-400">Type</p>
-          <p className="mt-0.5 text-slate-900">{intervention ? "Intervention" : request.linen_required ? "Linge" : "Ménage"}</p>
+        <div className={footerCellClassName}>
+          <p className="uppercase text-slate-400">Mission</p>
+          <p className="mt-0.5 text-slate-900">{intervention ? "Ponctuelle" : request.linen_required ? "Ménage + linge" : "Ménage"}</p>
         </div>
 
-        <div className="bg-white px-3 py-2">
+        <div className={footerCellClassName}>
           <p className="uppercase text-slate-400">Rapport</p>
           <p className="mt-0.5 text-slate-900">{hasReport ? "Reçu" : "À faire"}</p>
         </div>
