@@ -162,11 +162,22 @@ export async function createInterventionMission(formData: FormData) {
     throw new Error("Logement, intervenant, titre et échéance sont obligatoires.");
   }
 
-  const [{ data: cleaner, error: cleanerError }, { data: property, error: propertyError }] =
-    await Promise.all([
-      supabase.from("cleaners").select("*").eq("id", cleanerId).maybeSingle(),
-      supabase.from("properties").select("*").eq("id", propertyId).maybeSingle(),
-    ]);
+  const [
+    { data: cleaner, error: cleanerError },
+    { data: property, error: propertyError },
+    { data: cleaningProfile, error: profileError },
+  ] = await Promise.all([
+    supabase.from("cleaners").select("*").eq("id", cleanerId).maybeSingle(),
+    supabase.from("properties").select("*").eq("id", propertyId).maybeSingle(),
+    supabase
+      .from("property_cleaning_profiles")
+      .select("id")
+      .eq("property_id", propertyId)
+      .eq("active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (cleanerError || !cleaner) {
     throw new Error(`Intervenant introuvable : ${cleanerError?.message ?? ""}`);
@@ -174,6 +185,12 @@ export async function createInterventionMission(formData: FormData) {
 
   if (propertyError || !property) {
     throw new Error(`Logement introuvable : ${propertyError?.message ?? ""}`);
+  }
+
+  if (profileError || !cleaningProfile) {
+    throw new Error(
+      `Aucun profil technique trouvé pour ce logement. Créez d’abord un profil ménage pour ce logement : ${profileError?.message ?? ""}`,
+    );
   }
 
   const publicToken = randomUUID().replaceAll("-", "");
@@ -188,6 +205,7 @@ export async function createInterventionMission(formData: FormData) {
       title,
       mission_description: missionDescription || null,
       property_id: propertyId,
+      cleaning_profile_id: cleaningProfile.id,
       assigned_cleaner_id: cleanerId,
       public_token: publicToken,
       status: "sent",
