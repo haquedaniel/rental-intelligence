@@ -421,6 +421,31 @@ function MissionCompactCard({
   );
 }
 
+function isReservationCancelled(reservation: Row): boolean {
+  if (reservation.cancelled_at || reservation.canceled_at) return true;
+
+  const statusText = [
+    reservation.status,
+    reservation.booking_status,
+    reservation.reservation_status,
+    reservation.source_status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return statusText.includes("cancel") || statusText.includes("annul");
+}
+
+function calendarMissionIcon(request: Row, overdue: boolean): string {
+  if (overdue) return "!";
+  if (request.status === "accepted") return "✓";
+  if (request.status === "report_submitted" || request.status === "completed") return "✓";
+  if (request.status === "problem_reported") return "?";
+  if (request.status === "refused") return "×";
+  return "!";
+}
+
 function PropertyCalendar({
   properties,
   reservations,
@@ -437,8 +462,29 @@ function PropertyCalendar({
   const copy = c(locale);
   const today = parisDateKey(new Date());
   const units = Array.from({ length: 90 }, (_, index) => addDays(today, index));
-  const dayWidth = 44;
+  const dayWidth = 48;
   const timelineWidth = units.length * dayWidth;
+
+  const monthBlocks: Array<{ key: string; label: string; left: number; width: number }> = [];
+  for (const dateKey of units) {
+    const monthKey = dateKey.slice(0, 7);
+    const existing = monthBlocks.find((block) => block.key === monthKey);
+
+    if (existing) {
+      existing.width += dayWidth;
+    } else {
+      const monthDate = new Date(`${monthKey}-01T12:00:00.000Z`);
+      monthBlocks.push({
+        key: monthKey,
+        label: new Intl.DateTimeFormat(intlLocale(locale), {
+          month: "short",
+          year: "numeric",
+        }).format(monthDate),
+        left: units.indexOf(dateKey) * dayWidth,
+        width: dayWidth,
+      });
+    }
+  }
 
   function indexFor(dateKey: string) {
     return units.indexOf(dateKey);
@@ -457,7 +503,7 @@ function PropertyCalendar({
 
     return {
       left: firstVisible * dayWidth + 4,
-      width: Math.max((lastVisible - firstVisible + 1) * dayWidth - 8, 30),
+      width: Math.max((lastVisible - firstVisible + 1) * dayWidth - 8, 32),
     };
   }
 
@@ -482,8 +528,20 @@ function PropertyCalendar({
               {copy.properties}
             </div>
 
-            <div className="relative h-[58px]" style={{ width: timelineWidth }}>
-              <div className="absolute inset-0 flex">
+            <div className="relative h-[82px]" style={{ width: timelineWidth }}>
+              <div className="absolute left-0 top-0 h-[24px]">
+                {monthBlocks.map((block) => (
+                  <div
+                    key={block.key}
+                    className="absolute top-0 h-[24px] border-l border-slate-200 px-2 text-left text-[10px] font-black uppercase text-slate-400"
+                    style={{ left: block.left, width: block.width }}
+                  >
+                    {block.label}
+                  </div>
+                ))}
+              </div>
+
+              <div className="absolute bottom-0 left-0 flex h-[58px]">
                 {units.map((dateKey) => {
                   const isToday = dateKey === today;
 
@@ -498,7 +556,7 @@ function PropertyCalendar({
                       <p className="text-[8px] font-black uppercase text-slate-400">
                         {shortDay(dateKey, locale).slice(0, 3)}
                       </p>
-                      <p className="mt-1 text-[11px] font-black text-slate-900">
+                      <p className="mt-1 text-[12px] font-black text-slate-900">
                         {dateKey.slice(8, 10)}
                       </p>
                     </div>
@@ -523,7 +581,7 @@ function PropertyCalendar({
 
               return (
                 <div key={propertyId} className="grid grid-cols-[112px_1fr] bg-white">
-                  <div className={`sticky left-0 z-20 border-r border-slate-100 bg-white p-3`}>
+                  <div className="sticky left-0 z-20 border-r border-slate-100 bg-white p-3">
                     <div className={`rounded-2xl border-l-4 px-3 py-3 ${palette.label}`}>
                       <p className="line-clamp-3 text-xs font-black text-slate-950">
                         {propertyName(property, locale)}
@@ -534,7 +592,7 @@ function PropertyCalendar({
                     </div>
                   </div>
 
-                  <div className="relative h-[108px] bg-white" style={{ width: timelineWidth }}>
+                  <div className="relative h-[112px] bg-white" style={{ width: timelineWidth }}>
                     <div className="absolute inset-0 flex">
                       {units.map((dateKey) => {
                         const isToday = dateKey === today;
@@ -573,7 +631,7 @@ function PropertyCalendar({
                       })}
                     </div>
 
-                    <div className="absolute left-0 right-0 bottom-4 h-[34px]">
+                    <div className="absolute left-0 right-0 bottom-4 h-[36px]">
                       {propertyRequests.map((request) => {
                         const anchor = parseDate(anchorAt(request));
                         if (!anchor) return null;
@@ -583,25 +641,20 @@ function PropertyCalendar({
                         if (index < 0) return null;
 
                         const overdue = isOverdue(request, false);
-                        const label =
-                          overdue
-                            ? copy.late
-                            : request.status === "accepted"
-                              ? "OK"
-                              : copy.toConfirm;
+                        const icon = calendarMissionIcon(request, overdue);
 
                         return (
                           <Link
                             key={request.id}
                             href={missionHref(request)}
-                            className={`absolute top-0 flex h-[32px] items-center justify-center rounded-full px-2 text-center text-[9px] font-black leading-tight ring-1 shadow-sm ${calendarMissionClass(request, overdue)}`}
+                            className={`absolute top-0 flex h-[34px] items-center justify-center rounded-full text-base font-black ring-1 shadow-sm ${calendarMissionClass(request, overdue)}`}
                             style={{
-                              left: index * dayWidth + 3,
-                              width: dayWidth - 6,
+                              left: index * dayWidth + 7,
+                              width: 34,
                             }}
                             title={`${propertyName(property, locale)} · ${statusLabel(request, overdue, locale)} · ${fullDateLabel(anchorAt(request), locale)}`}
                           >
-                            <span className="truncate">{label}</span>
+                            {icon}
                           </Link>
                         );
                       })}
@@ -703,10 +756,34 @@ export default async function CleanerPlanningPage({
     ((reservationsResult.data ?? []) as Row[]).map((reservation) => [String(reservation.id), reservation]),
   );
 
-  const overdue = relevantRequests.filter((request) => isOverdue(request, false));
-  const toConfirm = relevantRequests.filter((request) => ["created", "sent"].includes(String(request.status)));
+  const cancelledReservationIds = new Set(
+    ((reservationsResult.data ?? []) as Row[])
+      .filter(isReservationCancelled)
+      .map((reservation) => String(reservation.id)),
+  );
 
-  const twoWeekRequests = relevantRequests.filter((request) => {
+  const visibleRequests = relevantRequests.filter((request) => {
+    if (!request.reservation_id) return true;
+    return !cancelledReservationIds.has(String(request.reservation_id));
+  });
+
+  const visibleCalendarReservations = ((calendarReservationsResult.data ?? []) as Row[]).filter(
+    (reservation) => !isReservationCancelled(reservation),
+  );
+
+  const displayPropertyIds = new Set([
+    ...visibleRequests.map((request) => String(request.property_id)).filter(Boolean),
+    ...visibleCalendarReservations.map((reservation) => String(reservation.property_id)).filter(Boolean),
+  ]);
+
+  const displayProperties = properties.filter((property) =>
+    displayPropertyIds.has(String(property.id)),
+  );
+
+  const overdue = visibleRequests.filter((request) => isOverdue(request, false));
+  const toConfirm = visibleRequests.filter((request) => ["created", "sent"].includes(String(request.status)));
+
+  const twoWeekRequests = visibleRequests.filter((request) => {
     if (isDone(request)) return false;
     const anchor = parseDate(anchorAt(request));
     if (!anchor) return false;
@@ -718,7 +795,7 @@ export default async function CleanerPlanningPage({
   const twoWeekHours = twoWeekRequests.reduce((sum, request) => sum + Number(request.estimated_hours ?? 0), 0);
   const twoWeekEarnings = twoWeekRequests.reduce((sum, request) => sum + missionAmount(request), 0);
 
-  const nextMission = [...relevantRequests]
+  const nextMission = [...visibleRequests]
     .filter((request) => request.status === "accepted" && !isDone(request) && !isOverdue(request, false))
     .sort((a, b) => {
       const at = parseDate(anchorAt(a))?.getTime() ?? 0;
@@ -726,7 +803,7 @@ export default async function CleanerPlanningPage({
       return at - bt;
     })[0];
 
-  const upcoming = [...relevantRequests]
+  const upcoming = [...visibleRequests]
     .filter((request) => {
       if (isDone(request)) return false;
       const anchor = parseDate(anchorAt(request));
@@ -810,9 +887,9 @@ export default async function CleanerPlanningPage({
         )}
 
         <PropertyCalendar
-          properties={properties}
-          reservations={(calendarReservationsResult.data ?? []) as Row[]}
-          requests={relevantRequests}
+          properties={displayProperties}
+          reservations={visibleCalendarReservations}
+          requests={visibleRequests}
           reservationsById={reservationsById}
           locale={locale}
         />
@@ -868,7 +945,7 @@ export default async function CleanerPlanningPage({
               </p>
             ) : (
               <div className="mt-4 space-y-4">
-                {[...groupedUpcoming.entries()].slice(0, 8).map(([dateKey, rows]) => (
+                {[...groupedUpcoming.entries()].map(([dateKey, rows]) => (
                   <div key={dateKey}>
                     <h3 className="text-sm font-black text-slate-500">
                       {dayHeading(dateKey, today, locale)}
