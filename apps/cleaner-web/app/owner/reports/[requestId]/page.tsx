@@ -33,6 +33,20 @@ function formatShortDate(value?: string | null): string {
   }).format(new Date(value));
 }
 
+function money(value: unknown): string {
+  const number = Number(value ?? 0);
+
+  if (!Number.isFinite(number)) {
+    return "0 €";
+  }
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 2,
+  }).format(number);
+}
+
 function fullName(cleaner?: Row | null): string {
   if (!cleaner) return "Intervenante";
   return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || cleaner.name || "Intervenante";
@@ -141,6 +155,39 @@ async function signedPhotoRows(supabase: ReturnType<typeof getSupabaseAdmin>, ph
   );
 }
 
+async function signedInterventionPhotoRows(supabase: ReturnType<typeof getSupabaseAdmin>, photos: Row[]) {
+  return Promise.all(
+    photos.map(async (photo) => {
+      if (!photo.bucket || !photo.path) {
+        return { ...photo, signedUrl: null };
+      }
+
+      const { data, error } = await supabase.storage
+        .from(photo.bucket)
+        .createSignedUrl(photo.path, 60 * 60);
+
+      return {
+        ...photo,
+        signedUrl: error ? null : data?.signedUrl ?? null,
+      };
+    }),
+  );
+}
+
+async function signedStorageUrl(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  bucket?: string | null,
+  path?: string | null,
+): Promise<string | null> {
+  if (!bucket || !path) return null;
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, 60 * 60);
+
+  return error ? null : data?.signedUrl ?? null;
+}
+
 async function findChecklistTemplate(supabase: ReturnType<typeof getSupabaseAdmin>, request: Row) {
   if (request.checklist_template_id) {
     const { data: frozenTemplate } = await supabase
@@ -247,6 +294,372 @@ export default async function OwnerReportPage({ params }: PageProps) {
       .eq("cleaning_request_id", request.id)
       .maybeSingle(),
   ]);
+
+  if (request.mission_type === "intervention") {
+    const [
+      { data: interventionReport },
+      { data: interventionPhotoRows },
+      { data: expenseRows },
+    ] = await Promise.all([
+      supabase
+        .from("intervention_reports")
+        .select("*")
+        .eq("cleaning_request_id", request.id)
+        .maybeSingle(),
+      supabase
+        .from("intervention_report_photos")
+        .select("*")
+        .eq("cleaning_request_id", request.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("intervention_expenses")
+        .select("*")
+        .eq("cleaning_request_id", request.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    const proofPhotos = await signedInterventionPhotoRows(supabase, interventionPhotoRows ?? []);
+    const referencePhotoUrl = await signedStorageUrl(
+      supabase,
+      request.reference_photo_bucket || "intervention-reference-photos",
+      request.reference_photo_path,
+    );
+
+    const expenses = expenseRows ?? [];
+    const materialTotal = expenses.reduce(
+      (sum: number, expense: Row) => sum + Number(expense.amount_eur ?? 0),
+      0,
+    );
+
+    const actualHours = Number(
+      interventionReport?.actual_hours ??
+        request.actual_hours ??
+        request.estimated_hours ??
+        0,
+    );
+
+    const estimatedHours = Number(request.estimated_hours ?? 0);
+    const hourlyRate = Number(request.hourly_rate_eur_snapshot ?? 0);
+    const labourTotal = Math.round(actualHours * hourlyRate * 100) / 100;
+    const finalTotal = Number(request.total_cost_eur ?? labourTotal + materialTotal);
+
+    const hasProblem =
+      request.status === "problem_reported" ||
+      interventionReport?.status === "problem" ||
+      Boolean(interventionReport?.issue_notes);
+
+    if (!interventionReport) {
+      return (
+        <main className="min-h-screen bg-slate-50 px-4 py-6">
+          <div className="mx-auto max-w-3xl space-y-4">
+            <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+              ← Retour cockpit
+            </Link>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <p className="text-xs font-black uppercase tracking-wide text-violet-500">
+                Intervention ponctuelle
+              </p>
+              <h1 className="mt-2 text-2xl font-black text-slate-950">
+                Rapport non reçu
+              </h1>
+              <p className="mt-2 text-slate-600">
+                L’intervention existe, mais aucun rapport n’a encore été envoyé.
+              </p>
+
+              <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm font-black text-slate-950">
+                  {request.title || "Intervention"}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  {property?.name ?? "Logement"} · {fullName(cleaner)}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-slate-600">
+                  Créneau : {formatDateTime(request.scheduled_start_at)} → {formatDateTime(request.scheduled_end_at)}
+                </p>
+              </div>
+            </section>
+          </div>
+        </main>
+      );
+    }
+
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-5">
+        <div className="mx-auto max-w-5xl space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+              ← Retour cockpit
+            </Link>
+
+            <Link
+              href="/owner/payments"
+              className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+            >
+              Paiements
+            </Link>
+          </div>
+
+          <section
+            className={`overflow-hidden rounded-[2rem] shadow-sm ring-1 ${
+              hasProblem
+                ? "bg-orange-950 text-white ring-orange-900"
+                : "bg-violet-950 text-white ring-violet-900"
+            }`}
+          >
+            <div className="p-6 sm:p-8">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-white/60">
+                    Rapport d’intervention
+                  </p>
+
+                  <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">
+                    {hasProblem ? "Point à vérifier" : "Intervention terminée"}
+                  </h1>
+
+                  <p className="mt-3 max-w-2xl text-base font-semibold text-white/75">
+                    {request.title || "Mission ponctuelle"}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950">
+                  {hasProblem ? "À contrôler" : "Rapport reçu"}
+                </span>
+              </div>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-4">
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-xs font-black uppercase text-white/50">Logement</p>
+                  <p className="mt-1 text-lg font-black">{property?.name ?? "Logement"}</p>
+                </div>
+
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-xs font-black uppercase text-white/50">Intervenant</p>
+                  <p className="mt-1 text-lg font-black">{fullName(cleaner)}</p>
+                </div>
+
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-xs font-black uppercase text-white/50">Temps réel</p>
+                  <p className="mt-1 text-lg font-black">{actualHours || "—"} h</p>
+                </div>
+
+                <div className="rounded-3xl bg-white/10 p-4">
+                  <p className="text-xs font-black uppercase text-white/50">Total</p>
+                  <p className="mt-1 text-lg font-black">{money(finalTotal)}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
+            <div className="space-y-5">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Mission demandée
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  Consignes données
+                </h2>
+
+                {referencePhotoUrl && (
+                  <a href={referencePhotoUrl} target="_blank" rel="noreferrer">
+                    <img
+                      src={referencePhotoUrl}
+                      alt=""
+                      className="mt-4 max-h-96 w-full rounded-3xl object-cover ring-1 ring-slate-200"
+                    />
+                  </a>
+                )}
+
+                <p className="mt-4 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">
+                  {request.mission_description || "Aucune consigne détaillée."}
+                </p>
+              </section>
+
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Rapport intervenant
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  Travail réalisé
+                </h2>
+
+                <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-emerald-950 ring-1 ring-emerald-100">
+                  <p className="whitespace-pre-wrap text-sm font-semibold leading-6">
+                    {interventionReport.work_summary || "Aucun détail fourni."}
+                  </p>
+                </div>
+
+                {interventionReport.issue_notes && (
+                  <div className="mt-3 rounded-2xl bg-orange-50 p-4 text-orange-950 ring-1 ring-orange-100">
+                    <p className="text-xs font-black uppercase tracking-wide text-orange-600">
+                      Remarque / suite à prévoir
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-6">
+                      {interventionReport.issue_notes}
+                    </p>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                      Photos de preuve
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">
+                      Vérification visuelle
+                    </h2>
+                  </div>
+
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                    {proofPhotos.length} photo(s)
+                  </span>
+                </div>
+
+                {proofPhotos.length === 0 ? (
+                  <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Aucune photo de preuve n’a été jointe à ce rapport.
+                  </p>
+                ) : (
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {proofPhotos.map((photo: Row) => (
+                      <a
+                        key={photo.id}
+                        href={photo.signedUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group overflow-hidden rounded-3xl bg-slate-100 ring-1 ring-slate-200"
+                      >
+                        {photo.signedUrl ? (
+                          <img
+                            src={photo.signedUrl}
+                            alt=""
+                            className="h-40 w-full object-cover transition group-hover:scale-[1.02]"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center text-sm font-semibold text-slate-400">
+                            Photo indisponible
+                          </div>
+                        )}
+
+                        <div className="p-3">
+                          <p className="truncate text-sm font-black text-slate-950">
+                            Photo d’intervention
+                          </p>
+                          <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                            {formatDateTime(photo.created_at)}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <aside className="space-y-5">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Coût intervention
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-slate-950">
+                  {money(finalTotal)}
+                </h2>
+
+                <div className="mt-4 space-y-2 text-sm font-bold">
+                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                    <span className="text-slate-500">Temps prévu</span>
+                    <span className="text-slate-950">{estimatedHours || "—"} h</span>
+                  </div>
+
+                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                    <span className="text-slate-500">Temps réel</span>
+                    <span className="text-slate-950">{actualHours || "—"} h</span>
+                  </div>
+
+                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                    <span className="text-slate-500">Main d’œuvre</span>
+                    <span className="text-slate-950">{money(labourTotal)}</span>
+                  </div>
+
+                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                    <span className="text-slate-500">Frais matériel</span>
+                    <span className="text-slate-950">{money(materialTotal)}</span>
+                  </div>
+
+                  <div className="flex justify-between rounded-2xl bg-violet-50 p-3 text-violet-950 ring-1 ring-violet-100">
+                    <span>Total</span>
+                    <span>{money(finalTotal)}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Frais matériel
+                </p>
+
+                {expenses.length === 0 ? (
+                  <p className="mt-3 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Aucun frais matériel déclaré.
+                  </p>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {expenses.map((expense: Row) => (
+                      <div key={expense.id} className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-100">
+                        <div className="flex justify-between gap-3 text-sm font-bold">
+                          <span className="text-amber-950">{expense.label}</span>
+                          <span className="text-amber-950">{money(expense.amount_eur)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Détails
+                </p>
+
+                <dl className="mt-3 space-y-3 text-sm">
+                  <div>
+                    <dt className="font-bold text-slate-400">Créneau</dt>
+                    <dd className="font-black text-slate-950">
+                      {formatDateTime(request.scheduled_start_at)} → {formatDateTime(request.scheduled_end_at)}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="font-bold text-slate-400">Rapport envoyé</dt>
+                    <dd className="font-black text-slate-950">
+                      {formatDateTime(interventionReport.updated_at || interventionReport.created_at)}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="font-bold text-slate-400">Statut</dt>
+                    <dd className="font-black text-slate-950">{request.status}</dd>
+                  </div>
+
+                  <div>
+                    <dt className="font-bold text-slate-400">Adresse</dt>
+                    <dd className="font-semibold text-slate-700">{property?.address ?? "—"}</dd>
+                  </div>
+                </dl>
+              </section>
+            </aside>
+          </section>
+        </div>
+      </main>
+    );
+  }
 
   if (!report) {
     return (
