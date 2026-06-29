@@ -95,6 +95,8 @@ def scheduled_text(request: dict) -> str:
 
 
 def mission_link(request: dict) -> str:
+    if request.get("mission_type") == "intervention":
+        return f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}/intervention"
     return f"{CLEANER_WEB_BASE_URL}/mission/{request['public_token']}"
 
 
@@ -106,6 +108,25 @@ def render_template(
 ) -> str:
     property_name = (property_ or {}).get("name") or "Logement"
 
+    if request.get("mission_type") == "intervention":
+        title = request.get("title") or "Intervention"
+        return "\n".join(
+            [
+                f"Bonjour {first_name(cleaner)} 👋",
+                "",
+                "Petit rappel pour l’intervention acceptée.",
+                "",
+                f"🏠 {property_name}",
+                f"🛠️ {title}",
+                f"📅 créneau prévu le {scheduled_text(request)}",
+                "",
+                "Détail mission :",
+                mission_link(request),
+                "",
+                "Merci !",
+            ]
+        )
+
     return template.format(
         cleaner_first_name=first_name(cleaner),
         cleaner_name=full_name(cleaner) or first_name(cleaner),
@@ -116,7 +137,8 @@ def render_template(
 
 
 def event_key(request: dict, rule: dict) -> str:
-    return f"cleaning:{request['id']}:reminder:{rule['rule_key']}"
+    prefix = "intervention" if request.get("mission_type") == "intervention" else "cleaning"
+    return f"{prefix}:{request['id']}:reminder:{rule['rule_key']}"
 
 
 def compute_due_at(request: dict, rule: dict) -> datetime | None:
@@ -179,7 +201,7 @@ def insert_message(
     payload = {
         "cleaning_request_id": request["id"],
         "channel": rule.get("channel") or "sms",
-        "message_type": "accepted_cleaning_reminder",
+        "message_type": "accepted_intervention_reminder" if request.get("mission_type") == "intervention" else "accepted_cleaning_reminder",
         "recipient_phone": recipient_phone,
         "body": body,
         "status": "pending",

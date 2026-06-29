@@ -16,7 +16,7 @@ function fmt(value?: string | null) {
   }).format(new Date(value));
 }
 
-function shortFmt(value?: string | null) {
+function slotFmt(value?: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "short",
@@ -25,7 +25,9 @@ function shortFmt(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Paris",
-  }).format(new Date(value)).replace(":", "h");
+  })
+    .format(new Date(value))
+    .replace(":", "h");
 }
 
 function nameFor(row: any) {
@@ -48,16 +50,29 @@ function isReservationCancelled(reservation: Row): boolean {
   return statusText.includes("cancel") || statusText.includes("annul");
 }
 
-function addHours(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 60 * 60 * 1000);
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
-function ceilToNextHour(date: Date): Date {
+function addHours(date: Date, hours: number): Date {
+  return addMinutes(date, hours * 60);
+}
+
+function ceilToNextHalfHour(date: Date): Date {
   const copy = new Date(date);
-  if (copy.getUTCMinutes() || copy.getUTCSeconds() || copy.getUTCMilliseconds()) {
-    copy.setUTCHours(copy.getUTCHours() + 1);
+  const minutes = copy.getUTCMinutes();
+
+  if (minutes === 0 || minutes === 30) {
+    copy.setUTCSeconds(0, 0);
+    return copy;
   }
-  copy.setUTCMinutes(0, 0, 0);
+
+  if (minutes < 30) {
+    copy.setUTCMinutes(30, 0, 0);
+  } else {
+    copy.setUTCHours(copy.getUTCHours() + 1, 0, 0, 0);
+  }
+
   return copy;
 }
 
@@ -97,18 +112,11 @@ function buildSlots({
   }
 
   const starts: Date[] = [];
+  let cursor = ceilToNextHalfHour(windowStart);
 
-  if (addHours(windowStart, durationHours) <= deadline) {
-    starts.push(windowStart);
-  }
-
-  let cursor = ceilToNextHour(windowStart);
-
-  while (addHours(cursor, durationHours) <= deadline && starts.length < 240) {
-    if (!starts.some((date) => date.getTime() === cursor.getTime())) {
-      starts.push(new Date(cursor));
-    }
-    cursor = addHours(cursor, 1);
+  while (addHours(cursor, durationHours) <= deadline && starts.length < 160) {
+    starts.push(new Date(cursor));
+    cursor = addMinutes(cursor, 60);
   }
 
   return starts
@@ -116,13 +124,19 @@ function buildSlots({
       const end = addHours(start, durationHours);
       const occupied = reservations.some((reservation) => overlaps(start, end, reservation));
 
-      return {
-        start,
-        end,
-        occupied,
-      };
+      return { start, end, occupied };
     })
     .filter((slot) => allowOccupied || !slot.occupied);
+}
+
+function money(value: unknown) {
+  const number = Number(value ?? 0);
+  if (!Number.isFinite(number)) return "0 €";
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 2,
+  }).format(number);
 }
 
 export default async function InterventionMissionPage({
@@ -158,13 +172,35 @@ export default async function InterventionMissionPage({
   );
 
   const slots = buildSlots({ request, reservations });
+
+  let referencePhotoUrl: string | null = null;
+  if (request.reference_photo_path) {
+    const { data } = await supabase.storage
+      .from(request.reference_photo_bucket || "intervention-reference-photos")
+      .createSignedUrl(request.reference_photo_path, 60 * 60);
+
+    referencePhotoUrl = data?.signedUrl ?? null;
+  }
+
   const accepted = request.status === "accepted";
   const refused = request.status === "refused";
   const done = request.status === "report_submitted" || request.status === "problem_reported";
+  const cleanerToken = request.cleaners?.public_token ?? null;
+
+  const scheduledStart = request.scheduled_start_at ? new Date(request.scheduled_start_at) : null;
+  const reportAvailable =
+    accepted &&
+    (!scheduledStart || Date.now() >= scheduledStart.getTime() - 2 * 60 * 60 * 1000);
+
+  const hourlyRate = Number(request.hourly_rate_eur_snapshot ?? 0);
+  const actualHours = Number(request.actual_hours ?? request.estimated_hours ?? 0);
+  const labourTotal = Math.round(actualHours * hourlyRate * 100) / 100;
+  const materialTotal = Number(request.material_expenses_total_eur ?? 0);
+  const totalCost = Number(request.total_cost_eur ?? labourTotal + materialTotal);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-5">
+      <div className="mx-auto max-w-2xl space-y-5 pb-24">
         <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/50">
             Mission ponctuelle
@@ -176,34 +212,72 @@ export default async function InterventionMissionPage({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-xs font-black uppercase text-white/40">Fenêtre possible</p>
+              <p className="text-xs font-black uppercase text-white/40">
+                {done ? "Créneau réalisé" : accepted ? "Créneau confirmé" : "Fenêtre possible"}
+              </p>
               <p className="mt-1 text-sm font-black">
-                {fmt(windowStart)} → {fmt(windowEnd)}
+                {accepted || done
+                  ? `${fmt(request.scheduled_start_at)} → ${fmt(request.scheduled_end_at)}`
+                  : `${fmt(windowStart)} → ${fmt(windowEnd)}`}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-xs font-black uppercase text-white/40">Estimation</p>
+              <p className="text-xs font-black uppercase text-white/40">
+                {done ? "Coût final" : "Estimation"}
+              </p>
               <p className="mt-1 font-black">
-                {request.estimated_hours ?? "—"} h · {request.total_cost_eur ?? 0} €
+                {done
+                  ? money(totalCost)
+                  : `${request.estimated_hours ?? "—"} h · ${money(request.total_cost_eur)}`}
               </p>
             </div>
           </div>
         </section>
 
-        {request.allow_occupied_intervention ? (
+        {done && (
+          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-lg font-black text-slate-950">Détail final</h2>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-slate-700">
+              <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                <span>Main d’œuvre</span>
+                <span>{actualHours} h × {money(hourlyRate)} = {money(labourTotal)}</span>
+              </div>
+              <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+                <span>Frais matériel</span>
+                <span>{money(materialTotal)}</span>
+              </div>
+              <div className="flex justify-between rounded-2xl bg-emerald-50 p-3 text-emerald-950">
+                <span>Total</span>
+                <span>{money(totalCost)}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!done && request.allow_occupied_intervention ? (
           <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-950 ring-1 ring-amber-100">
             Le propriétaire autorise un créneau même si le logement est occupé. Les créneaux concernés sont signalés.
           </div>
-        ) : (
+        ) : !done ? (
           <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
             Les créneaux pendant une occupation voyageur sont exclus automatiquement.
           </div>
-        )}
+        ) : null}
 
         <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
           <h2 className="text-lg font-black text-slate-950">Consignes</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">
+
+          {referencePhotoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={referencePhotoUrl}
+              alt=""
+              className="mt-4 max-h-80 w-full rounded-2xl object-cover ring-1 ring-slate-200"
+            />
+          )}
+
+          <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">
             {request.mission_description || "Aucune consigne détaillée."}
           </p>
         </section>
@@ -220,39 +294,24 @@ export default async function InterventionMissionPage({
 
               {slots.length === 0 ? (
                 <div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-900 ring-1 ring-red-100">
-                  Aucun créneau disponible dans cette fenêtre. Demandez au propriétaire de modifier les dates ou d’autoriser une intervention pendant occupation.
+                  Aucun créneau disponible. Demandez au propriétaire de modifier les dates ou d’autoriser une intervention pendant occupation.
                 </div>
               ) : (
-                <div className="mt-4 grid gap-2">
-                  {slots.slice(0, 80).map((slot, index) => (
-                    <label
-                      key={slot.start.toISOString()}
-                      className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-3 text-sm font-bold ${
-                        slot.occupied
-                          ? "border-amber-200 bg-amber-50 text-amber-950"
-                          : "border-slate-200 bg-slate-50 text-slate-900"
-                      }`}
-                    >
-                      <span>
-                        <input
-                          type="radio"
-                          name="selected_start_at"
-                          value={slot.start.toISOString()}
-                          required
-                          defaultChecked={index === 0}
-                          className="mr-2"
-                        />
-                        {shortFmt(slot.start.toISOString())} → {shortFmt(slot.end.toISOString())}
-                      </span>
-
-                      {slot.occupied && (
-                        <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-black text-amber-950">
-                          Logement occupé
-                        </span>
-                      )}
-                    </label>
-                  ))}
-                </div>
+                <label className="mt-4 block">
+                  <span className="text-sm font-bold text-slate-800">Créneau proposé</span>
+                  <select
+                    name="selected_start_at"
+                    required
+                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-slate-950"
+                  >
+                    {slots.map((slot) => (
+                      <option key={slot.start.toISOString()} value={slot.start.toISOString()}>
+                        {slotFmt(slot.start.toISOString())} → {slotFmt(slot.end.toISOString())}
+                        {slot.occupied ? " · ⚠ logement occupé" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
 
               <button
@@ -276,18 +335,24 @@ export default async function InterventionMissionPage({
           </section>
         )}
 
-        {accepted && (
+        {accepted && !done && (
           <section className="space-y-3">
             <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
               Créneau confirmé : {fmt(request.scheduled_start_at)} → {fmt(request.scheduled_end_at)}
             </div>
 
-            <Link
-              href={`/mission/${token}/intervention/report`}
-              className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
-            >
-              Envoyer le rapport d’intervention
-            </Link>
+            {reportAvailable ? (
+              <Link
+                href={`/mission/${token}/intervention/report`}
+                className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
+              >
+                Ouvrir le rapport d’intervention
+              </Link>
+            ) : (
+              <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-600">
+                Le rapport sera disponible ici le jour de l’intervention.
+              </div>
+            )}
           </section>
         )}
 
@@ -298,9 +363,20 @@ export default async function InterventionMissionPage({
         )}
 
         {done && (
-          <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
-            Rapport transmis. Merci.
-          </div>
+          <section className="space-y-3">
+            <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
+              Rapport transmis. Merci.
+            </div>
+
+            {cleanerToken && (
+              <Link
+                href={`/cleaner/${cleanerToken}`}
+                className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
+              >
+                Retour aux missions
+              </Link>
+            )}
+          </section>
         )}
       </div>
     </main>
