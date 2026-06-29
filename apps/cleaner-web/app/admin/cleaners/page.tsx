@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
-import { createCleaner, updateCleaner } from "./actions";
+import { createCleaner, inviteCleaner, resetCleanerOnboarding, updateCleaner } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,33 @@ const PAYMENT_METHOD_OPTIONS = [
   ["other", "Autre"],
 ];
 
+const LANGUAGE_OPTIONS = [
+  ["fr", "Français"],
+  ["en", "English"],
+  ["ru", "Русский"],
+];
+
+const CLEANER_WEB_BASE_URL =
+  process.env.CLEANER_WEB_BASE_URL ||
+  process.env.PAYMENT_REQUEST_BASE_URL ||
+  "https://missions.leclosdelavoilerie.com";
+
 type Cleaner = Record<string, any>;
+
+
+function cleanerAppLink(cleaner: Cleaner) {
+  return `${CLEANER_WEB_BASE_URL.replace(/\/$/, "")}/cleaner/${cleaner.public_token}`;
+}
+
+function dateTimeLabel(value?: string | null) {
+  if (!value) return "—";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
+}
 
 function fullName(cleaner: Cleaner) {
   return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ");
@@ -259,6 +285,12 @@ function CleanerForm({
             label="Statut"
             defaultValue={cleaner?.status ?? "active"}
             options={STATUS_OPTIONS}
+          />
+          <SelectInput
+            name="preferred_language"
+            label="Langue de l’app"
+            defaultValue={cleaner?.preferred_language ?? "fr"}
+            options={LANGUAGE_OPTIONS}
           />
           <TextInput
             name="address"
@@ -594,6 +626,74 @@ export default async function AdminCleanersPage() {
               </summary>
 
               <div className="mt-6 border-t border-slate-100 pt-6">
+                {cleaner.public_token && (
+                  <section className="mb-6 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-bold text-amber-950">
+                          Accès intervenante
+                        </h3>
+                        <p className="mt-1 text-sm font-semibold text-amber-900/70">
+                          Lien personnel vers l’application, invitation SMS et test de l’écran d’accueil.
+                        </p>
+                      </div>
+
+                      <a
+                        href={cleanerAppLink(cleaner)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white"
+                      >
+                        Ouvrir l’espace
+                      </a>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl bg-white p-3 text-xs font-semibold text-slate-600 ring-1 ring-amber-100">
+                      <p className="font-black text-slate-950">Lien à copier</p>
+                      <p className="mt-1 break-all">{cleanerAppLink(cleaner)}</p>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 text-xs font-bold text-slate-600 md:grid-cols-3">
+                      <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
+                        <p className="text-[10px] font-black uppercase text-slate-400">
+                          Invitation
+                        </p>
+                        <p className="mt-1">{dateTimeLabel(cleaner.app_invited_at)}</p>
+                      </div>
+
+                      <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
+                        <p className="text-[10px] font-black uppercase text-slate-400">
+                          Première ouverture
+                        </p>
+                        <p className="mt-1">{dateTimeLabel(cleaner.app_first_opened_at)}</p>
+                      </div>
+
+                      <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
+                        <p className="text-[10px] font-black uppercase text-slate-400">
+                          Accueil terminé
+                        </p>
+                        <p className="mt-1">{dateTimeLabel(cleaner.app_onboarded_at)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <form action={inviteCleaner}>
+                        <input type="hidden" name="cleaner_id" value={cleaner.id} />
+                        <button className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white">
+                          Envoyer invitation SMS
+                        </button>
+                      </form>
+
+                      <form action={resetCleanerOnboarding}>
+                        <input type="hidden" name="cleaner_id" value={cleaner.id} />
+                        <button className="rounded-full bg-white px-4 py-2 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
+                          Réinitialiser l’accueil
+                        </button>
+                      </form>
+                    </div>
+                  </section>
+                )}
+
                 <CleanerForm
                   cleaner={cleaner}
                   action={updateCleaner}
