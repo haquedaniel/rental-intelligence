@@ -189,8 +189,20 @@ function isOverdue(request: Row, hasReport: boolean): boolean {
   return anchor.getTime() < Date.now();
 }
 
+function isIntervention(request: Row): boolean {
+  return request.mission_type === "intervention";
+}
+
 function missionHref(request: Row): string {
   if (!request.public_token) return "#";
+
+  if (isIntervention(request)) {
+    if (request.status === "accepted") {
+      return `/mission/${request.public_token}/intervention/report`;
+    }
+
+    return `/mission/${request.public_token}/intervention`;
+  }
 
   if (["created", "sent"].includes(request.status)) {
     return `/mission/${request.public_token}/ready-day`;
@@ -515,7 +527,13 @@ function MissionCard({
   const amount = missionAmount(request);
   const urgency = urgencyBadge(request);
   const dateChoice = dateChoiceBadge(request);
-  const title = propertyName(property);
+  const intervention = isIntervention(request);
+  const title = intervention
+    ? request.title || "Intervention ponctuelle"
+    : propertyName(property);
+  const subtitle = intervention
+    ? propertyName(property)
+    : guestName(reservation);
 
   return (
     <Link
@@ -568,7 +586,7 @@ function MissionCard({
 
           <div className="mt-1 flex min-w-0 items-center gap-2">
             <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-500">
-              {guestName(reservation)}
+              {subtitle}
             </p>
             <span className="shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-black text-white">
               {money(amount)}
@@ -577,7 +595,7 @@ function MissionCard({
 
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-100">
-              Prêt avant {dateLabel(anchorAt(request))}
+              {intervention ? "À faire avant" : "Prêt avant"} {dateLabel(anchorAt(request))}
             </span>
 
             {dateChoice && (
@@ -596,8 +614,8 @@ function MissionCard({
         </div>
 
         <div className="bg-white px-3 py-2">
-          <p className="uppercase text-slate-400">Linge</p>
-          <p className="mt-0.5 text-slate-900">{request.linen_required ? "Oui" : "Non"}</p>
+          <p className="uppercase text-slate-400">Type</p>
+          <p className="mt-0.5 text-slate-900">{intervention ? "Intervention" : request.linen_required ? "Linge" : "Ménage"}</p>
         </div>
 
         <div className="bg-white px-3 py-2">

@@ -211,7 +211,11 @@ export async function createInterventionMission(formData: FormData) {
       status: "sent",
       scheduled_start_at: scheduledStartAt || deadlineAt,
       scheduled_end_at: deadlineAt,
-      ready_by_at: deadlineAt,
+      work_window_start_at: scheduledStartAt || now,
+      work_window_end_at: deadlineAt,
+      completion_deadline_at: deadlineAt,
+      ready_by_at: null,
+      schedule_status: "waiting_for_ready_day",
       estimated_hours: estimatedHours,
       hourly_rate_eur_snapshot: hourlyRate,
       total_cost_eur: totalCost,
@@ -219,7 +223,8 @@ export async function createInterventionMission(formData: FormData) {
       allow_actual_hours_edit: true,
       allow_material_expenses: boolValue(formData, "allow_material_expenses"),
       no_backup_escalation: true,
-      occupied_warning_acknowledged_at: boolValue(formData, "occupied_warning_acknowledged")
+      allow_occupied_intervention: boolValue(formData, "allow_occupied_intervention"),
+      occupied_warning_acknowledged_at: boolValue(formData, "allow_occupied_intervention")
         ? now
         : null,
       created_at: now,

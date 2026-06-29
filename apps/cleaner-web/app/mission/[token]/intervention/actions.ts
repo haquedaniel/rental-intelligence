@@ -13,6 +13,45 @@ function textValue(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
 }
 
+function addHours(date: Date, hours: number): Date {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000);
+}
+
+function isReservationCancelled(reservation: Record<string, any>): boolean {
+  if (reservation.cancelled_at || reservation.canceled_at) return true;
+
+  const statusText = [
+    reservation.status,
+    reservation.booking_status,
+    reservation.reservation_status,
+    reservation.source_status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return statusText.includes("cancel") || statusText.includes("annul");
+}
+
+function overlaps(start: Date, end: Date, reservation: Record<string, any>): boolean {
+  if (!reservation.checkin_at || !reservation.checkout_at) return false;
+
+  const checkin = new Date(reservation.checkin_at);
+  const checkout = new Date(reservation.checkout_at);
+
+  return start < checkout && end > checkin;
+}
+
+function fullDateTimeLabel(value?: string | null): string {
+  if (!value) return "—";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
+}
+
 async function ownerPhonesForProperty(propertyId: string): Promise<string[]> {
   const supabase = getSupabaseAdmin();
 
@@ -55,8 +94,10 @@ async function enqueueOwnerSms(request: any, body: string) {
 
 export async function acceptIntervention(formData: FormData) {
   const token = textValue(formData, "token");
+  const selectedStartRaw = textValue(formData, "selected_start_at");
 
   if (!token) throw new Error("Lien mission manquant.");
+  if (!selectedStartRaw) throw new Error("Merci de choisir un créneau d’intervention.");
 
   const supabase = getSupabaseAdmin();
 
@@ -71,13 +112,67 @@ export async function acceptIntervention(formData: FormData) {
     throw new Error(`Mission introuvable : ${error?.message ?? ""}`);
   }
 
+  const selectedStart = new Date(selectedStartRaw);
+  if (Number.isNaN(selectedStart.getTime())) {
+    throw new Error("Créneau invalide.");
+  }
+
+  const estimatedHours = Math.max(Number(request.estimated_hours ?? 1), 0.25);
+  const selectedEnd = addHours(selectedStart, estimatedHours);
+
+  const windowStart = new Date(
+    request.work_window_start_at ||
+      request.scheduled_start_at ||
+      request.created_at,
+  );
+
+  const deadline = new Date(
+    request.work_window_end_at ||
+      request.completion_deadline_at ||
+      request.scheduled_end_at,
+  );
+
+  if (selectedStart < windowStart) {
+    throw new Error("Le créneau choisi est avant le début autorisé.");
+  }
+
+  if (selectedEnd > deadline) {
+    throw new Error("Le créneau choisi dépasse l’échéance de l’intervention.");
+  }
+
+  if (!request.allow_occupied_intervention) {
+    const { data: reservations } = await supabase
+      .from("reservations")
+      .select("*")
+      .eq("property_id", request.property_id)
+      .lt("checkin_at", selectedEnd.toISOString())
+      .gt("checkout_at", selectedStart.toISOString());
+
+    const blocking = ((reservations ?? []) as any[])
+      .filter((reservation) => !isReservationCancelled(reservation))
+      .filter((reservation) => overlaps(selectedStart, selectedEnd, reservation));
+
+    if (blocking.length > 0) {
+      throw new Error(
+        "Ce créneau tombe pendant une période occupée. Le propriétaire n’a pas autorisé les interventions pendant occupation.",
+      );
+    }
+  }
+
   const now = new Date().toISOString();
+  const selectedStartIso = selectedStart.toISOString();
+  const selectedEndIso = selectedEnd.toISOString();
 
   const { error: updateError } = await supabase
     .from("cleaning_requests")
     .update({
       status: "accepted",
       accepted_at: now,
+      scheduled_start_at: selectedStartIso,
+      scheduled_end_at: selectedEndIso,
+      ready_by_at: selectedEndIso,
+      ready_by_date: selectedEndIso.slice(0, 10),
+      schedule_status: "confirmed",
       updated_at: now,
     })
     .eq("id", request.id);
@@ -91,6 +186,7 @@ export async function acceptIntervention(formData: FormData) {
     [
       "Intervention acceptée",
       `${request.cleaners?.first_name ?? "L’intervenant"} a accepté : ${request.title}`,
+      `Créneau : ${fullDateTimeLabel(selectedStartIso)} → ${fullDateTimeLabel(selectedEndIso)}`,
       `Mission : ${BASE_URL.replace(/\/$/, "")}/mission/${token}/intervention`,
     ].join("\n"),
   );

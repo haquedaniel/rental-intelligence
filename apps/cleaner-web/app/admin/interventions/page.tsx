@@ -163,9 +163,9 @@ export default async function AdminInterventionsPage({
 
             <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
               <label className="flex gap-3 text-sm font-bold text-amber-950">
-                <input name="occupied_warning_acknowledged" type="checkbox" />
+                <input name="allow_occupied_intervention" type="checkbox" />
                 <span>
-                  J’ai vérifié que l’intervention peut avoir lieu même si le logement est occupé, ou que l’accès sera coordonné avec le voyageur.
+                  Autoriser l’intervenant à choisir un créneau même si le logement est occupé. Un avertissement sera affiché au moment du choix.
                 </span>
               </label>
             </div>
