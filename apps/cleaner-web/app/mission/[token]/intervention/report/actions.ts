@@ -46,6 +46,145 @@ async function uploadFile(file: File, prefix: string) {
   return { bucket: PHOTO_BUCKET, path };
 }
 
+
+type SmsRow = Record<string, any>;
+
+function appBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_CLEANER_WEB_BASE_URL ||
+    process.env.CLEANER_WEB_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://missions.leclosdelavoilerie.com"
+  ).replace(/\/$/, "");
+}
+
+function smsMoney(value: unknown): string {
+  const number = Number(value ?? 0);
+
+  if (!Number.isFinite(number)) return "0 €";
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 2,
+  }).format(number);
+}
+
+function smsName(row?: SmsRow | null, fallback = "Intervenant"): string {
+  if (!row) return fallback;
+
+  const first = String(row.first_name ?? "").trim();
+  const last = String(row.last_name ?? "").trim();
+  const full = [first, last].filter(Boolean).join(" ");
+
+  return (
+    full ||
+    String(row.trading_name ?? "").trim() ||
+    String(row.legal_name ?? "").trim() ||
+    String(row.name ?? "").trim() ||
+    fallback
+  );
+}
+
+function smsPhone(row?: SmsRow | null): string | null {
+  if (!row) return null;
+
+  const raw =
+    row.phone ||
+    row.mobile ||
+    row.mobile_phone ||
+    row.sms_phone ||
+    row.notification_phone ||
+    null;
+
+  const phone = String(raw ?? "").trim();
+  return phone || null;
+}
+
+async function enqueueOwnerInterventionReportSms({
+  request,
+  finalStatus,
+  totalCost,
+}: {
+  request: SmsRow;
+  finalStatus: string;
+  totalCost: number;
+}) {
+  const supabase = getSupabaseAdmin();
+
+  const [{ data: property }, { data: cleaner }] = await Promise.all([
+    supabase
+      .from("properties")
+      .select("*")
+      .eq("id", request.property_id)
+      .maybeSingle(),
+    request.assigned_cleaner_id
+      ? supabase
+          .from("cleaners")
+          .select("*")
+          .eq("id", request.assigned_cleaner_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const ownerId = property?.owner_id || request.owner_id || null;
+
+  if (!ownerId) {
+    console.warn("Intervention report SMS skipped: no owner id", request.id);
+    return;
+  }
+
+  const { data: owner } = await supabase
+    .from("owners")
+    .select("*")
+    .eq("id", ownerId)
+    .maybeSingle();
+
+  const recipientPhone = smsPhone(owner);
+
+  if (!recipientPhone) {
+    console.warn("Intervention report SMS skipped: no owner phone", request.id, ownerId);
+    return;
+  }
+
+  const eventKey = `intervention:${request.id}:report_submitted_owner`;
+
+  const { data: existing } = await supabase
+    .from("outbound_messages")
+    .select("id")
+    .eq("event_key", eventKey)
+    .limit(1);
+
+  if (existing && existing.length > 0) return;
+
+  const reportUrl = `${appBaseUrl()}/owner/reports/${request.id}`;
+  const isProblem = finalStatus === "problem_reported";
+
+  const body = [
+    isProblem ? "Intervention terminée avec point à vérifier" : "Intervention terminée",
+    `${smsName(cleaner)} a envoyé le rapport.`,
+    `🏠 ${property?.name || "Logement"}`,
+    `🛠️ ${request.title || "Intervention ponctuelle"}`,
+    `Montant : ${smsMoney(totalCost)}`,
+    `Rapport : ${reportUrl}`,
+  ].join("\n");
+
+  const { error } = await supabase.from("outbound_messages").insert({
+    channel: "sms",
+    message_type: "intervention_report_submitted_owner",
+    recipient_phone: recipientPhone,
+    body,
+    status: "pending",
+    cleaning_request_id: request.id,
+    event_key: eventKey,
+  });
+
+  if (error) {
+    console.error("Could not enqueue owner intervention report SMS", error.message);
+  }
+}
+
+
 export async function submitInterventionReport(formData: FormData) {
   const token = textValue(formData, "token");
 
@@ -125,11 +264,6 @@ export async function submitInterventionReport(formData: FormData) {
     .delete()
     .eq("cleaning_request_id", request.id);
 
-  await supabase
-    .from("intervention_expenses")
-    .delete()
-    .eq("cleaning_request_id", request.id);
-
   let materialTotal = 0;
 
   for (let i = 1; i <= 5; i += 1) {
@@ -174,6 +308,12 @@ export async function submitInterventionReport(formData: FormData) {
   if (updateError) {
     throw new Error(`Rapport enregistré, mais mission non mise à jour : ${updateError.message}`);
   }
+
+  await enqueueOwnerInterventionReportSms({
+    request,
+    finalStatus,
+    totalCost,
+  });
 
   redirect(`/mission/${token}/intervention?reported=1`);
 }

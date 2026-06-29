@@ -76,7 +76,11 @@ python -m rental_intel.scripts.enqueue_cleaner_payment_request_reminders'
     -e SMS_MESSAGE_TYPE_PREFIXES="mission_,cleaning_,accepted_cleaning_reminder" \
     -e SMS_SEND_ENABLED="$SMS_SEND_ENABLED" \
     -e SMS_TEST_RECIPIENT="${SMS_TEST_RECIPIENT:-}" \
-    cockpit bash -lc 'cd /app && python -m rental_intel.cleaning.send_pending_outbound_messages'
+    cockpit bash -lc 'cd /app && unset CLEANING_SMS_PROPERTY_IDS
+unset SMS_MESSAGE_TYPES
+unset SMS_MESSAGE_TYPE_PREFIXES
+export SMS_SEND_ENABLED=true
+python -m rental_intel.cleaning.send_pending_outbound_messages'
 
   echo "===== $(date -Is) cleaning SMS cron end ====="
 } >> "$LOG_FILE" 2>&1
