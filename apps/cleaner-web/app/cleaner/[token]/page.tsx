@@ -1,5 +1,5 @@
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
@@ -625,6 +625,10 @@ export default async function CleanerHomePage({
 
   const cleaner = cleanerResult.data as Row | null;
   if (!cleaner) notFound();
+
+  if (!cleaner.app_onboarded_at) {
+    redirect(`/cleaner/${token}/welcome`);
+  }
 
   const locale = getCleanerLocale(cleaner.preferred_language);
 
