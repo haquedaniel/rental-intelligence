@@ -125,6 +125,11 @@ export async function submitInterventionReport(formData: FormData) {
     .delete()
     .eq("cleaning_request_id", request.id);
 
+  await supabase
+    .from("intervention_expenses")
+    .delete()
+    .eq("cleaning_request_id", request.id);
+
   let materialTotal = 0;
 
   for (let i = 1; i <= 5; i += 1) {
