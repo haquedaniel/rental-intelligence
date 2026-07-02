@@ -474,63 +474,150 @@ function MoneyHero() {
 }
 
 function MetricBreakdown({ metric }: { metric: MetricId }) {
-  const configs = {
-    realised: {
-      title: "Lecture du réalisé",
-      intro: "Séjours terminés + prorata des séjours actuellement occupés.",
-      lines: [
-        ["Séjours terminés", 78, "7 840 €", "emerald"],
-        ["Séjours en cours", 6, "586 €", "sky"],
-        ["Aujourd’hui", 3, "+42 €", "violet"],
-      ],
-    },
-    gross: {
-      title: "CA brut annuel",
-      intro: "Réservations confirmées, annulations exclues.",
-      lines: [
-        ["Airbnb", 52, "12 940 €", "sky"],
-        ["Direct", 18, "4 480 €", "emerald"],
-        ["Booking", 26, "6 460 €", "violet"],
-        ["Autres", 4, "980 €", "slate"],
-      ],
-    },
-    net: {
-      title: "Après variables",
-      intro: "Vue rapide des principaux coûts variables avant analyse complète.",
-      lines: [
-        ["CA brut", 100, "24 860 €", "emerald"],
-        ["Ménage", 14, "-3 240 €", "amber"],
-        ["Commissions", 6, "-1 120 €", "sky"],
-        ["Interventions", 3, "-430 €", "violet"],
-        ["Linge / autres", 4, "-650 €", "slate"],
-        ["Après variables", 74, "18 420 €", "emerald"],
-      ],
-    },
-  }[metric];
+  if (metric === "gross") {
+    const rows = [
+      { label: "La Peskerezh", value: 10480, width: 42, tone: "emerald" as Tone },
+      { label: "Apt 4 · Balcon", value: 6480, width: 26, tone: "sky" as Tone },
+      { label: "Apt 5 · Sous les toits", value: 4320, width: 17, tone: "amber" as Tone },
+      { label: "Apt 2 · Jardin", value: 3580, width: 15, tone: "violet" as Tone },
+    ];
+
+    return (
+      <div className="mt-4 rounded-[1.75rem] bg-white/8 p-4 ring-1 ring-white/10">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-white">CA brut par logement</p>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Réservations confirmées, annulations exclues.
+            </p>
+          </div>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/70">
+            annuel
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {rows.map((row) => (
+            <div key={row.label} className="grid grid-cols-[112px_1fr_86px] items-center gap-2 text-xs font-black sm:grid-cols-[150px_1fr_96px]">
+              <span className="truncate text-white/55">{row.label}</span>
+              <div className="h-4 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full ${toneSolid(row.tone)}`}
+                  style={{ width: `${row.width}%` }}
+                />
+              </div>
+              <span className="text-right text-white">{formatMoney(row.value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (metric === "net") {
+    const gross = 24860;
+    const deductions = [
+      { label: "Ménage", value: 3240, tone: "amber" as Tone },
+      { label: "Commissions", value: 1120, tone: "sky" as Tone },
+      { label: "Interventions", value: 430, tone: "violet" as Tone },
+      { label: "Linge / autres", value: 650, tone: "slate" as Tone },
+      { label: "Maintenance", value: 1000, tone: "red" as Tone },
+    ];
+
+    let running = gross;
+    const waterfall = [
+      {
+        label: "CA brut",
+        left: 0,
+        width: 100,
+        tone: "emerald" as Tone,
+        display: formatMoney(gross),
+      },
+      ...deductions.map((item) => {
+        running -= item.value;
+        return {
+          label: item.label,
+          left: (running / gross) * 100,
+          width: (item.value / gross) * 100,
+          tone: item.tone,
+          display: `-${formatMoney(item.value)}`,
+        };
+      }),
+      {
+        label: "Après variables",
+        left: 0,
+        width: (running / gross) * 100,
+        tone: "emerald" as Tone,
+        display: formatMoney(running),
+      },
+    ];
+
+    return (
+      <div className="mt-4 rounded-[1.75rem] bg-white/8 p-4 ring-1 ring-white/10">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-white">Cascade variables</p>
+            <p className="mt-1 text-xs font-bold text-white/45">
+              Les coûts partent du brut et mènent progressivement au résultat après variables.
+            </p>
+          </div>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/70">
+            waterfall
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {waterfall.map((row) => (
+            <div key={row.label} className="grid grid-cols-[104px_1fr_80px] items-center gap-2 text-xs font-black sm:grid-cols-[140px_1fr_96px]">
+              <span className="truncate text-white/55">{row.label}</span>
+              <div className="relative h-5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`absolute top-0 h-full rounded-full ${toneSolid(row.tone)}`}
+                  style={{
+                    left: `${Math.max(0, row.left)}%`,
+                    width: `${Math.max(3, row.width)}%`,
+                  }}
+                />
+              </div>
+              <span className="text-right text-white">{row.display}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const rows = [
+    { label: "Séjours terminés", value: 7840, width: 92, tone: "emerald" as Tone },
+    { label: "Prorata en cours", value: 586, width: 7, tone: "sky" as Tone },
+    { label: "Depuis ce matin", value: 42, width: 3, tone: "violet" as Tone },
+  ];
 
   return (
     <div className="mt-4 rounded-[1.75rem] bg-white/8 p-4 ring-1 ring-white/10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-white">{configs.title}</p>
-          <p className="mt-1 text-xs font-bold text-white/45">{configs.intro}</p>
+          <p className="text-sm font-black text-white">Lecture du réalisé</p>
+          <p className="mt-1 text-xs font-bold text-white/45">
+            Séjours terminés + prorata des séjours en cours.
+          </p>
         </div>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/70">
-          détail
+          live
         </span>
       </div>
 
-      <div className="mt-4 space-y-2">
-        {configs.lines.map(([label, width, value, tone]) => (
-          <div key={label} className="grid grid-cols-[96px_1fr_76px] items-center gap-2 text-xs font-black sm:grid-cols-[130px_1fr_90px]">
-            <span className="truncate text-white/55">{label}</span>
-            <div className="h-3 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-4 space-y-3">
+        {rows.map((row) => (
+          <div key={row.label} className="grid grid-cols-[112px_1fr_80px] items-center gap-2 text-xs font-black sm:grid-cols-[150px_1fr_96px]">
+            <span className="truncate text-white/55">{row.label}</span>
+            <div className="h-4 overflow-hidden rounded-full bg-white/10">
               <div
-                className={`h-full rounded-full ${toneSolid(tone as Tone)}`}
-                style={{ width: `${width}%` }}
+                className={`h-full rounded-full ${toneSolid(row.tone)}`}
+                style={{ width: `${row.width}%` }}
               />
             </div>
-            <span className="text-right text-white">{value}</span>
+            <span className="text-right text-white">{formatMoney(row.value)}</span>
           </div>
         ))}
       </div>
@@ -546,25 +633,22 @@ function SmartBrief() {
         <p className="relative text-xs font-black uppercase tracking-[0.18em] text-slate-400">
           À retenir maintenant
         </p>
+
         <p className="relative mt-3 text-xl font-black leading-8 text-slate-950 sm:text-2xl sm:leading-9">
-          Vous devez valider la demande de paiement de Sandrine aujourd’hui.
-          Apt 2 est lent du 15 au 20 juillet : vu le marché, une baisse de prix modérée semble pertinente.
+          Vous devez{" "}
+          <Link href="/owner/payments" className="underline decoration-amber-400 decoration-4 underline-offset-4">
+            valider la demande de paiement de Sandrine
+          </Link>{" "}
+          aujourd’hui.{" "}
+          <button className="font-black underline decoration-sky-300 decoration-4 underline-offset-4">
+            Apt 2 est lent du 15 au 20 juillet
+          </button>{" "}
+          : vu le marché, une baisse de prix modérée semble pertinente.
         </p>
 
-        <div className="relative mt-5 flex flex-wrap gap-2">
-          <Link
-            href="/owner/payments"
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white"
-          >
-            Valider paiement
-          </Link>
-          <button className="rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-900 ring-1 ring-amber-100">
-            Voir prix Apt 2
-          </button>
-          <button className="rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
-            Pourquoi ?
-          </button>
-        </div>
+        <p className="relative mt-4 text-sm font-bold leading-6 text-slate-500">
+          Cette zone doit rester courte : deux phrases maximum, avec les liens directement dans le texte.
+        </p>
       </div>
     </ShellCard>
   );
@@ -580,8 +664,8 @@ function ListingCarousel({
   const selected = scope === "all" ? null : listings.find((listing) => listing.id === scope);
 
   return (
-    <section>
-      <div className="mb-3 flex items-end justify-between gap-3">
+    <section className="space-y-3">
+      <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-wide text-slate-400">
             Logements
@@ -596,7 +680,7 @@ function ListingCarousel({
       <div className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5 lg:-mx-8 lg:px-8">
         <button
           onClick={() => setScope("all")}
-          className={`min-w-[74%] snap-start overflow-hidden rounded-[2rem] p-4 text-left shadow-sm ring-1 transition sm:min-w-[320px] ${
+          className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] p-3 text-left shadow-sm ring-1 transition sm:min-w-[340px] ${
             scope === "all"
               ? "bg-slate-950 text-white ring-slate-950"
               : "bg-white text-slate-950 ring-slate-200"
@@ -605,7 +689,7 @@ function ListingCarousel({
           <div className="flex h-44 flex-col justify-between rounded-[1.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 p-4 text-white">
             <div className="flex justify-between">
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black">
-                tous
+                combiné
               </span>
               <span className="text-3xl font-black">4</span>
             </div>
@@ -622,7 +706,7 @@ function ListingCarousel({
           <button
             key={listing.id}
             onClick={() => setScope(listing.id)}
-            className={`min-w-[74%] snap-start overflow-hidden rounded-[2rem] bg-white p-3 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 sm:min-w-[320px] ${
+            className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] bg-white p-3 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 sm:min-w-[340px] ${
               scope === listing.id ? "ring-4 ring-slate-950" : "ring-slate-200"
             }`}
           >
@@ -631,6 +715,8 @@ function ListingCarousel({
               style={{ backgroundImage: listing.gradient }}
             >
               <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
+              <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
+
               <div className="relative flex justify-between">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-black text-slate-950 shadow-sm">
                   {listing.short}
@@ -653,14 +739,112 @@ function ListingCarousel({
                   {formatMoney(listing.revenue)}
                 </p>
               </div>
-              <div className="max-w-[130px] rounded-2xl bg-slate-50 px-3 py-2 text-right text-xs font-black text-slate-500">
+              <div className="max-w-[135px] rounded-2xl bg-slate-50 px-3 py-2 text-right text-xs font-black text-slate-500">
                 {listing.next}
               </div>
             </div>
           </button>
         ))}
       </div>
+
+      <MiniPlanning scope={scope} setScope={setScope} />
     </section>
+  );
+}
+
+function MiniPlanning({
+  scope,
+  setScope,
+}: {
+  scope: Scope;
+  setScope: (scope: Scope) => void;
+}) {
+  const visibleListings = scope === "all"
+    ? listings
+    : listings.filter((listing) => listing.id === scope);
+
+  return (
+    <ShellCard className="overflow-hidden">
+      <div className="border-b border-slate-100 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              Planning
+            </p>
+            <h3 className="text-xl font-black text-slate-950">
+              Réservations à venir
+            </h3>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+            scroll horizontal →
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <div className="min-w-[920px]">
+          <div className="grid grid-cols-[126px_1fr] border-b border-slate-100">
+            <div className="bg-white" />
+            <div
+              className="grid gap-1 px-2 py-3"
+              style={{ gridTemplateColumns: "repeat(18, 3.25rem)" }}
+            >
+              {planningDays.map((day) => (
+                <div
+                  key={day}
+                  className="rounded-2xl bg-slate-50 px-2 py-2 text-center text-[11px] font-black text-slate-500 ring-1 ring-slate-100"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {visibleListings.map((listing) => {
+            const rowReservations = planningReservations.filter(
+              (reservation) => reservation.listingId === listing.id,
+            );
+
+            return (
+              <div key={listing.id} className="grid grid-cols-[126px_1fr] border-b border-slate-100 last:border-b-0">
+                <button
+                  onClick={() => setScope(listing.id)}
+                  className="flex items-center gap-2 bg-white px-3 py-4 text-left"
+                >
+                  <span className={`h-3 w-3 rounded-full ${toneSolid(listing.tone)}`} />
+                  <span className="min-w-0 truncate text-sm font-black text-slate-800">
+                    {listing.name.replace(" · ", " ")}
+                  </span>
+                </button>
+
+                <div
+                  className="grid gap-1 px-2 py-4"
+                  style={{ gridTemplateColumns: "repeat(18, 3.25rem)" }}
+                >
+                  {planningDays.map((day) => (
+                    <div key={`${listing.id}-${day}`} className="h-14 rounded-2xl bg-slate-50/60" />
+                  ))}
+
+                  {rowReservations.map((reservation) => (
+                    <button
+                      key={reservation.id}
+                      onClick={() => setScope(reservation.listingId)}
+                      className={`relative z-10 -mt-14 h-14 rounded-2xl px-4 text-left text-white shadow-sm ring-1 ring-white/50 ${toneSolid(reservation.tone)}`}
+                      style={{
+                        gridColumn: `${reservation.start} / span ${reservation.span}`,
+                      }}
+                    >
+                      <p className="truncate text-sm font-black">{reservation.guest}</p>
+                      <p className="truncate text-xs font-bold text-white/70">{reservation.detail}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </ShellCard>
   );
 }
 
@@ -678,12 +862,6 @@ function Timeline({
     return scopeMatch && event.horizon.includes(horizon);
   });
 
-  const grouped = visibleEvents.reduce<Record<string, Event[]>>((acc, event) => {
-    acc[event.day] = acc[event.day] || [];
-    acc[event.day].push(event);
-    return acc;
-  }, {});
-
   return (
     <ShellCard className="overflow-hidden p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -692,7 +870,7 @@ function Timeline({
             Timeline
           </p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">
-            Ce qui vient de se passer / ce qui arrive
+            Ordre des événements
           </h2>
         </div>
 
@@ -713,62 +891,82 @@ function Timeline({
         </div>
       </div>
 
-      <div className="mt-5 space-y-6">
-        {Object.entries(grouped).map(([day, items]) => (
-          <div key={day} className="grid gap-3 sm:grid-cols-[82px_1fr]">
-            <p className="pt-1 text-[10px] font-black uppercase tracking-wide text-slate-400">
-              {day}
-            </p>
+      <div className="relative mt-7">
+        <div className="absolute bottom-6 left-5 top-6 w-2 rounded-full bg-gradient-to-b from-sky-300 via-emerald-300 via-violet-300 to-amber-300 sm:left-1/2 sm:-ml-1" />
 
-            <div className="relative space-y-3 pl-6">
-              <div className="absolute bottom-4 left-[0.55rem] top-4 w-1 rounded-full bg-slate-100" />
+        <div className="space-y-5">
+          {visibleEvents.map((event, index) => {
+            const leftSide = index % 2 === 0;
 
-              {items.map((event) => (
-                <button
-                  key={event.id}
-                  className="group relative block w-full rounded-[1.5rem] bg-slate-50 p-4 text-left ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
-                >
-                  <span
-                    className={`absolute -left-[1.37rem] top-5 flex h-9 w-9 items-center justify-center rounded-full text-sm font-black text-white shadow-lg ring-4 ring-white ${toneSolid(event.tone)}`}
-                  >
+            return (
+              <div
+                key={event.id}
+                className="relative grid gap-3 pl-16 sm:grid-cols-[1fr_72px_1fr] sm:items-center sm:pl-0"
+              >
+                <div className={leftSide ? "hidden sm:block" : "hidden sm:block sm:col-start-3"}>
+                  {leftSide && <TimelineCard event={event} align="right" />}
+                </div>
+
+                <div className="absolute left-0 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-slate-200 sm:static sm:col-start-2 sm:mx-auto">
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black text-white ${toneSolid(event.tone)}`}>
                     {iconFor(event.type)}
                   </span>
+                </div>
 
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-lg font-black text-slate-950">{event.title}</p>
-                        {event.chip && (
-                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${toneCard(event.tone)}`}>
-                            {event.chip}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm font-bold leading-5 text-slate-500">
-                        {event.summary}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 sm:block sm:text-right">
-                      <p className="text-xs font-black text-slate-400">{event.when}</p>
-                      {event.amount && (
-                        <p className="mt-1 text-base font-black text-slate-950">
-                          {event.amount}
-                        </p>
-                      )}
-                    </div>
+                <div className={leftSide ? "sm:col-start-3" : "sm:col-start-1 sm:row-start-1"}>
+                  {!leftSide && <TimelineCard event={event} align="left" />}
+                  <div className="sm:hidden">
+                    {leftSide && <TimelineCard event={event} align="left" />}
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </ShellCard>
   );
 }
 
-function Sparkline({ data, tone }: { data: number[]; tone: Tone }) {
+function TimelineCard({
+  event,
+  align,
+}: {
+  event: Event;
+  align: "left" | "right";
+}) {
+  return (
+    <button className={`w-full rounded-[1.5rem] bg-slate-50 p-4 text-left ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md ${
+      align === "right" ? "sm:text-right" : ""
+    }`}>
+      <div className={`flex flex-wrap items-center gap-2 ${align === "right" ? "sm:justify-end" : ""}`}>
+        <p className="text-lg font-black text-slate-950">{event.title}</p>
+        {event.chip && (
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${toneCard(event.tone)}`}>
+            {event.chip}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-1 text-sm font-bold leading-5 text-slate-500">
+        {event.summary}
+      </p>
+
+      <div className={`mt-3 flex items-center justify-between gap-3 ${align === "right" ? "sm:flex-row-reverse" : ""}`}>
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          {event.when}
+        </p>
+        {event.amount && (
+          <p className="rounded-full bg-white px-3 py-1 text-sm font-black text-slate-950 ring-1 ring-slate-200">
+            {event.amount}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function MiniSparkline({ data, tone }: { data: number[]; tone: Tone }) {
   const points = useMemo(() => {
     const min = Math.min(...data);
     const max = Math.max(...data);
@@ -776,8 +974,8 @@ function Sparkline({ data, tone }: { data: number[]; tone: Tone }) {
 
     return data
       .map((value, index) => {
-        const x = (index / Math.max(data.length - 1, 1)) * 100;
-        const y = 34 - ((value - min) / range) * 28;
+        const x = 4 + (index / Math.max(data.length - 1, 1)) * 82;
+        const y = 24 - ((value - min) / range) * 18;
         return `${x},${y}`;
       })
       .join(" ");
@@ -794,47 +992,112 @@ function Sparkline({ data, tone }: { data: number[]; tone: Tone }) {
   }[tone];
 
   return (
-    <svg viewBox="0 0 100 40" className="h-12 w-full overflow-visible">
+    <svg viewBox="0 0 90 30" className="h-8 w-24 overflow-visible">
       <polyline
         points={points}
         fill="none"
         stroke={color}
-        strokeWidth="5"
+        strokeWidth="4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="100" cy={points.split(" ").at(-1)?.split(",")[1] ?? 20} r="4" fill={color} />
     </svg>
+  );
+}
+
+function MarketMiniChart() {
+  const goyen = [160, 150, 170, 180, 220, 205, 185, 175];
+  const ours = [180, 180, 180, 190, 210, 230, 230, 230];
+
+  function points(data: number[]) {
+    const min = 140;
+    const max = 240;
+    return data.map((value, index) => {
+      const x = 4 + (index / (data.length - 1)) * 82;
+      const y = 26 - ((value - min) / (max - min)) * 22;
+      return `${x},${y}`;
+    }).join(" ");
+  }
+
+  return (
+    <svg viewBox="0 0 90 32" className="h-9 w-28 overflow-visible">
+      <polyline
+        points={points(goyen)}
+        fill="none"
+        stroke="#fb923c"
+        strokeWidth="3"
+        strokeDasharray="4 4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <polyline
+        points={points(ours)}
+        fill="none"
+        stroke="#2563eb"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="86" cy="5" r="4" fill="#2563eb" />
+    </svg>
+  );
+}
+
+function MiniBars({ data, tone }: { data: number[]; tone: Tone }) {
+  return (
+    <div className="flex h-9 w-24 items-end gap-1">
+      {data.map((value, index) => (
+        <span
+          key={index}
+          className={`w-2 rounded-full ${toneSolid(tone)}`}
+          style={{ height: `${Math.max(8, value)}%` }}
+        />
+      ))}
+    </div>
   );
 }
 
 function SignalCards() {
   return (
-    <section className="grid gap-3 lg:grid-cols-3">
-      {signals.map((signal) => (
-        <article
-          key={signal.id}
-          className={`overflow-hidden rounded-[1.75rem] p-4 shadow-sm ring-1 ${toneCard(signal.tone)}`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wide opacity-55">
-                {signal.title}
-              </p>
-              <h3 className="mt-1 text-2xl font-black">{signal.value}</h3>
-            </div>
-            <span className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black ring-1 ring-black/5">
-              signal
-            </span>
+    <section className="grid gap-3 lg:grid-cols-1">
+      <article className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wide text-violet-400">
+              Trafic direct
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">+34 vues</h3>
+            <p className="mt-1 text-xs font-bold text-slate-500">single digits / jour, tendance utile</p>
           </div>
+          <MiniSparkline data={[1, 1, 2, 1, 3, 4, 6]} tone="violet" />
+        </div>
+      </article>
 
-          <div className="mt-3">
-            <Sparkline data={signal.data} tone={signal.tone} />
+      <article className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wide text-amber-500">
+              Marché · Le Goyen
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">prix haut</h3>
+            <p className="mt-1 text-xs font-bold text-slate-500">notre prix vs tendance marché</p>
           </div>
+          <MarketMiniChart />
+        </div>
+      </article>
 
-          <p className="mt-2 text-sm font-bold leading-5 opacity-65">{signal.detail}</p>
-        </article>
-      ))}
+      <article className="rounded-[1.5rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wide text-sky-500">
+              Booking pace
+            </p>
+            <h3 className="mt-1 text-2xl font-black text-slate-950">lent</h3>
+            <p className="mt-1 text-xs font-bold text-slate-500">septembre sous le rythme attendu</p>
+          </div>
+          <MiniBars data={[80, 72, 64, 55, 47, 38, 33]} tone="sky" />
+        </div>
+      </article>
     </section>
   );
 }
@@ -848,28 +1111,30 @@ function Occupancy({
     ? occupancy
     : occupancy.filter((row) => row.listingId === scope);
 
-  if (rows.length === 1) {
-    const row = rows[0];
-
-    return (
-      <ShellCard className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-              Occupation
-            </p>
-            <h2 className="mt-1 text-xl font-black text-slate-950">{row.label}</h2>
-          </div>
-          <Link
-            href="/owner/app/reservations"
-            className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
-          >
-            Réservations
-          </Link>
+  return (
+    <ShellCard className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            Occupation
+          </p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">
+            {rows.length === 1 ? rows[0].label : "Table saison"}
+          </h2>
         </div>
+        <Link
+          href="/owner/app/reservations"
+          className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
+        >
+          Source
+        </Link>
+      </div>
 
+      <MarketTension scope={scope} />
+
+      {rows.length === 1 ? (
         <div className="mt-5 grid grid-cols-5 gap-2">
-          {row.values.map((value, index) => (
+          {rows[0].values.map((value, index) => (
             <div key={months[index]} className="text-center">
               <div className="mb-2 text-[10px] font-black uppercase text-slate-400">
                 {months[index]}
@@ -884,56 +1149,67 @@ function Occupancy({
             </div>
           ))}
         </div>
-      </ShellCard>
-    );
-  }
+      ) : (
+        <div className="mt-5 overflow-x-auto">
+          <div className="min-w-[520px]">
+            <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 text-xs font-black text-slate-400">
+              <div />
+              {months.map((month) => (
+                <div key={month} className="text-center">{month}</div>
+              ))}
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {rows.map((row) => (
+                <div key={row.listingId} className="grid grid-cols-[120px_repeat(5,1fr)] gap-2">
+                  <div className="truncate rounded-2xl bg-slate-50 px-3 py-2 text-sm font-black text-slate-700">
+                    {row.label}
+                  </div>
+                  {row.values.map((value, index) => (
+                    <div
+                      key={`${row.listingId}-${months[index]}`}
+                      className={`rounded-2xl px-2 py-2 text-center text-sm font-black ${occupancyColor(value)}`}
+                    >
+                      {value}%
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </ShellCard>
+  );
+}
+
+function MarketTension({ scope }: { scope: Scope }) {
+  const value = scope === "apt5" ? 28 : scope === "apt2" ? 42 : 72;
+  const label = value >= 65 ? "forte" : value >= 40 ? "normale" : "faible";
 
   return (
-    <ShellCard className="p-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="mt-4 rounded-[1.5rem] bg-slate-50 p-4 ring-1 ring-slate-100">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-            Occupation
+          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            Tension marché
           </p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">Table saison</h2>
+          <p className="mt-1 text-lg font-black text-slate-950">{label}</p>
         </div>
-        <Link
-          href="/owner/app/reservations"
-          className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
-        >
-          Source
-        </Link>
-      </div>
-
-      <div className="mt-5 overflow-x-auto">
-        <div className="min-w-[520px]">
-          <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 text-xs font-black text-slate-400">
-            <div />
-            {months.map((month) => (
-              <div key={month} className="text-center">{month}</div>
-            ))}
+        <div className="w-40">
+          <div className="relative h-3 rounded-full bg-gradient-to-r from-slate-200 via-amber-200 to-emerald-500">
+            <span
+              className="absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-slate-950 shadow-sm ring-4 ring-white"
+              style={{ left: `calc(${value}% - 0.625rem)` }}
+            />
           </div>
-
-          <div className="mt-2 space-y-2">
-            {rows.map((row) => (
-              <div key={row.listingId} className="grid grid-cols-[120px_repeat(5,1fr)] gap-2">
-                <div className="truncate rounded-2xl bg-slate-50 px-3 py-2 text-sm font-black text-slate-700">
-                  {row.label}
-                </div>
-                {row.values.map((value, index) => (
-                  <div
-                    key={`${row.listingId}-${months[index]}`}
-                    className={`rounded-2xl px-2 py-2 text-center text-sm font-black ${occupancyColor(value)}`}
-                  >
-                    {value}%
-                  </div>
-                ))}
-              </div>
-            ))}
+          <div className="mt-2 flex justify-between text-[10px] font-black text-slate-400">
+            <span>faible</span>
+            <span>fort</span>
           </div>
         </div>
       </div>
-    </ShellCard>
+    </div>
   );
 }
 
