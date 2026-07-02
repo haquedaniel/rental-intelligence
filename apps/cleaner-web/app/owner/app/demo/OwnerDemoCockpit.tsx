@@ -251,6 +251,67 @@ const occupancy = [
 
 const months = ["Juin", "Juil", "Août", "Sept", "Oct"];
 
+const planningDays = [
+  "VEN 10",
+  "SAM 11",
+  "DIM 12",
+  "LUN 13",
+  "MAR 14",
+  "MER 15",
+  "JEU 16",
+  "VEN 17",
+  "SAM 18",
+  "DIM 19",
+  "LUN 20",
+  "MAR 21",
+  "MER 22",
+  "JEU 23",
+  "VEN 24",
+  "SAM 25",
+  "DIM 26",
+  "LUN 27",
+];
+
+const planningReservations = [
+  {
+    id: "stay-pesk-1",
+    listingId: "peskerezh",
+    guest: "Nathalie Sarrazy",
+    detail: "7 nuits · Airbnb · 1 260 €",
+    start: 2,
+    span: 7,
+    tone: "emerald" as Tone,
+  },
+  {
+    id: "stay-apt4-1",
+    listingId: "apt4",
+    guest: "Claire M.",
+    detail: "4 nuits · Airbnb · 684 €",
+    start: 7,
+    span: 4,
+    tone: "sky" as Tone,
+  },
+  {
+    id: "stay-apt5-1",
+    listingId: "apt5",
+    guest: "Période à remplir",
+    detail: "15–20 juillet · prix à tester",
+    start: 6,
+    span: 5,
+    tone: "amber" as Tone,
+  },
+  {
+    id: "stay-apt2-1",
+    listingId: "apt2",
+    guest: "Séjour jardin",
+    detail: "3 nuits · direct · 412 €",
+    start: 10,
+    span: 3,
+    tone: "violet" as Tone,
+  },
+];
+
+
 function formatMoney(value: number, digits = 0) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
