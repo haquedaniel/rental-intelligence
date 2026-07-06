@@ -163,15 +163,14 @@ const events: CompactEvent[] = [
     horizon: ["72h", "7j", "saison"],
   },
   {
-    id: "stay-now-peskerezh",
-    listingId: "peskerezh",
-    category: "stay",
-    when: "Maintenant",
-    icon: "●",
-    title: "Séjour en cours",
-    line: "La Peskerezh · réalisé en progression · ménage suivant couvert",
-    amount: "live",
-    status: "occupé",
+    id: "report-apt2",
+    listingId: "apt2",
+    category: "intervention",
+    when: "Hier 16:08",
+    icon: "◎",
+    title: "Rapport ménage",
+    line: "Apt 2 · 6 photos · aucun problème",
+    status: "photos",
     tone: "emerald",
     horizon: ["72h", "7j", "saison"],
   },
@@ -182,23 +181,10 @@ const events: CompactEvent[] = [
     when: "Aujourd’hui 15:00",
     icon: "◆",
     title: "Intervention jardin",
-    line: "Apt 2 · Sandrine · terminée · 4 photos disponibles",
+    line: "Apt 2 · Sandrine · terminée · 4 photos",
     amount: "98 €",
     status: "terminée",
     tone: "violet",
-    horizon: ["72h", "7j", "saison"],
-  },
-  {
-    id: "pay-sandrine",
-    listingId: "all",
-    category: "alert",
-    when: "Aujourd’hui",
-    icon: "€",
-    title: "Paiement à valider",
-    line: "Sandrine · missions de juin · demande en attente",
-    amount: "420 €",
-    status: "action",
-    tone: "amber",
     horizon: ["72h", "7j", "saison"],
   },
   {
@@ -207,9 +193,34 @@ const events: CompactEvent[] = [
     category: "stay",
     when: "Demain 10:00",
     icon: "↗",
-    title: "Départ voyageur",
-    line: "Apt 4 · ménage confirmé 11h · arrivée suivante 17h",
+    title: "Départ",
+    line: "Apt 4 · ménage confirmé 11h · arrivée 17h",
     status: "rotation",
+    tone: "sky",
+    horizon: ["72h", "7j", "saison"],
+  },
+  {
+    id: "clean-apt4",
+    listingId: "apt4",
+    category: "intervention",
+    when: "Demain 11:00",
+    icon: "🧹",
+    title: "Ménage",
+    line: "Apt 4 · Sandrine · accepté",
+    amount: "54 €",
+    status: "accepté",
+    tone: "emerald",
+    horizon: ["72h", "7j", "saison"],
+  },
+  {
+    id: "arrival-apt4",
+    listingId: "apt4",
+    category: "stay",
+    when: "Demain 17:00",
+    icon: "→",
+    title: "Arrivée",
+    line: "Apt 4 · voyageurs attendus",
+    status: "prévu",
     tone: "sky",
     horizon: ["72h", "7j", "saison"],
   },
@@ -220,7 +231,7 @@ const events: CompactEvent[] = [
     when: "Vendredi",
     icon: "!",
     title: "Intervention peinture",
-    line: "Apt 5 · première proposition refusée · backup proposé",
+    line: "Apt 5 · refusée · backup proposé",
     status: "backup",
     tone: "amber",
     horizon: ["7j", "saison"],
@@ -232,7 +243,7 @@ const events: CompactEvent[] = [
     when: "Semaine prochaine",
     icon: "↔",
     title: "Réservation modifiée",
-    line: "La Peskerezh · départ avancé d’un jour · ménage recalé",
+    line: "La Peskerezh · départ avancé · ménage recalé",
     amount: "-180 €",
     status: "modifiée",
     tone: "amber",
@@ -582,87 +593,89 @@ function ListingCarousel({
   const selected = scope === "all" ? null : listings.find((listing) => listing.id === scope);
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 space-y-3">
       <div className="flex items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-wide text-slate-400">
             Logements
           </p>
-          <h2 className="text-2xl font-black text-slate-950">
+          <h2 className="truncate text-2xl font-black text-slate-950">
             {selected ? selected.name : "Vue combinée"}
           </h2>
         </div>
-        <p className="text-xs font-bold text-slate-400">swipe · filtrer</p>
+        <p className="shrink-0 text-xs font-bold text-slate-400">swipe · filtrer</p>
       </div>
 
-      <div className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5 lg:-mx-8 lg:px-8">
-        <button
-          onClick={() => setScope("all")}
-          className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] p-3 text-left shadow-sm ring-1 transition sm:min-w-[340px] ${
-            scope === "all"
-              ? "bg-slate-950 text-white ring-slate-950"
-              : "bg-white text-slate-950 ring-slate-200"
-          }`}
-        >
-          <div className="flex h-44 flex-col justify-between rounded-[1.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 p-4 text-white">
-            <div className="flex justify-between">
-              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black">
-                combiné
-              </span>
-              <span className="text-3xl font-black">4</span>
-            </div>
-            <div>
-              <p className="text-2xl font-black">Tous les biens</p>
-              <p className="mt-1 text-sm font-bold text-white/60">
-                argent · opérations · signaux
-              </p>
-            </div>
-          </div>
-        </button>
-
-        {listings.map((listing) => (
+      <div className="w-full max-w-full overflow-x-auto pb-2">
+        <div className="flex snap-x gap-3">
           <button
-            key={listing.id}
-            onClick={() => setScope(listing.id)}
-            className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] bg-white p-3 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 sm:min-w-[340px] ${
-              scope === listing.id ? "ring-4 ring-slate-950" : "ring-slate-200"
+            onClick={() => setScope("all")}
+            className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] p-3 text-left shadow-sm ring-1 transition sm:min-w-[340px] ${
+              scope === "all"
+                ? "bg-slate-950 text-white ring-slate-950"
+                : "bg-white text-slate-950 ring-slate-200"
             }`}
           >
-            <div
-              className="relative flex h-44 flex-col justify-between overflow-hidden rounded-[1.5rem] p-4 text-white"
-              style={{ backgroundImage: listing.gradient }}
-            >
-              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
-              <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
-
-              <div className="relative flex justify-between">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-black text-slate-950 shadow-sm">
-                  {listing.short}
+            <div className="flex h-40 flex-col justify-between rounded-[1.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 p-4 text-white">
+              <div className="flex justify-between">
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black">
+                  combiné
                 </span>
-                <span className="rounded-full bg-white/18 px-3 py-1 text-xs font-black backdrop-blur">
-                  {listing.occupancy}% août
-                </span>
+                <span className="text-3xl font-black">4</span>
               </div>
-
-              <div className="relative">
-                <p className="text-2xl font-black">{listing.name}</p>
-                <p className="mt-1 text-sm font-bold text-white/75">{listing.status}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-[1fr_auto] gap-3 p-2 pt-4">
               <div>
-                <p className="text-xs font-black uppercase text-slate-400">CA période</p>
-                <p className="mt-1 text-2xl font-black text-slate-950">
-                  {formatMoney(listing.revenue)}
+                <p className="text-2xl font-black">Tous les biens</p>
+                <p className="mt-1 text-sm font-bold text-white/60">
+                  argent · opérations · priorités
                 </p>
-              </div>
-              <div className="max-w-[135px] rounded-2xl bg-slate-50 px-3 py-2 text-right text-xs font-black text-slate-500">
-                {listing.next}
               </div>
             </div>
           </button>
-        ))}
+
+          {listings.map((listing) => (
+            <button
+              key={listing.id}
+              onClick={() => setScope(listing.id)}
+              className={`min-w-[78%] snap-start overflow-hidden rounded-[2rem] bg-white p-3 text-left shadow-sm ring-1 transition active:scale-[0.99] sm:min-w-[340px] ${
+                scope === listing.id ? "ring-4 ring-slate-950" : "ring-slate-200"
+              }`}
+            >
+              <div
+                className="relative flex h-40 flex-col justify-between overflow-hidden rounded-[1.5rem] p-4 text-white"
+                style={{ backgroundImage: listing.gradient }}
+              >
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/20 blur-2xl" />
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
+
+                <div className="relative flex justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl font-black text-slate-950 shadow-sm">
+                    {listing.short}
+                  </span>
+                  <span className="rounded-full bg-white/18 px-3 py-1 text-xs font-black backdrop-blur">
+                    {listing.occupancy}% août
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <p className="text-2xl font-black">{listing.name}</p>
+                  <p className="mt-1 text-sm font-bold text-white/75">{listing.status}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] gap-3 p-2 pt-4">
+                <div>
+                  <p className="text-xs font-black uppercase text-slate-400">CA période</p>
+                  <p className="mt-1 text-2xl font-black text-slate-950">
+                    {formatMoney(listing.revenue)}
+                  </p>
+                </div>
+                <div className="max-w-[135px] rounded-2xl bg-slate-50 px-3 py-2 text-right text-xs font-black text-slate-500">
+                  {listing.next}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <MiniPlanning scope={scope} setScope={setScope} />
@@ -681,22 +694,27 @@ function MiniPlanning({
     ? listings
     : listings.filter((listing) => listing.id === scope);
 
+  const dayWidth = "2.65rem";
+
   return (
-    <ShellCard className="overflow-hidden">
+    <ShellCard className="max-w-full overflow-hidden">
       <div className="border-b border-slate-100 p-4">
         <p className="text-xs font-black uppercase tracking-wide text-slate-400">
           Planning
         </p>
-        <h3 className="text-xl font-black text-slate-950">
+        <h3 className="text-xl font-black leading-6 text-slate-950">
           Réservations, ménages et interventions
         </h3>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[1180px]">
-          <div className="grid grid-cols-[150px_1fr] border-b border-slate-100">
-            <div />
-            <div className="grid gap-1 px-2 pt-3" style={{ gridTemplateColumns: `repeat(${planningDays.length}, 3.25rem)` }}>
+      <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+        <div className="min-w-[980px]">
+          <div className="grid grid-cols-[118px_1fr] border-b border-slate-100">
+            <div className="sticky left-0 z-30 bg-white" />
+            <div
+              className="grid gap-1 px-2 pt-2"
+              style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}
+            >
               <div className="col-span-18 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
                 Juillet
               </div>
@@ -706,11 +724,17 @@ function MiniPlanning({
             </div>
           </div>
 
-          <div className="grid grid-cols-[150px_1fr] border-b border-slate-100">
-            <div />
-            <div className="grid gap-1 px-2 py-3" style={{ gridTemplateColumns: `repeat(${planningDays.length}, 3.25rem)` }}>
+          <div className="grid grid-cols-[118px_1fr] border-b border-slate-100">
+            <div className="sticky left-0 z-30 bg-white" />
+            <div
+              className="grid gap-1 px-2 py-2"
+              style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}
+            >
               {planningDays.map((day, index) => (
-                <div key={`${day.label}-${index}`} className="whitespace-pre-line rounded-2xl bg-slate-50 px-2 py-2 text-center text-[11px] font-black text-slate-500 ring-1 ring-slate-100">
+                <div
+                  key={`${day.label}-${index}`}
+                  className="whitespace-pre-line rounded-2xl bg-slate-50 px-1.5 py-1.5 text-center text-[10px] font-black leading-4 text-slate-500 ring-1 ring-slate-100"
+                >
                   {day.label}
                 </div>
               ))}
@@ -722,42 +746,60 @@ function MiniPlanning({
             const rowMarkers = planningMarkers.filter((marker) => marker.listingId === listing.id);
 
             return (
-              <div key={listing.id} className="grid grid-cols-[150px_1fr] border-b border-slate-100 last:border-b-0">
-                <button onClick={() => setScope(listing.id)} className="flex items-center gap-2 bg-white px-3 py-4 text-left">
+              <div key={listing.id} className="grid grid-cols-[118px_1fr] border-b border-slate-100 last:border-b-0">
+                <button
+                  onClick={() => setScope(listing.id)}
+                  className="sticky left-0 z-30 flex min-h-[74px] items-center gap-2 bg-white px-3 py-3 text-left"
+                >
                   <span className={`h-3 w-3 shrink-0 rounded-full ${toneSolid(listing.tone)}`} />
-                  <span className="min-w-0 whitespace-normal text-sm font-black leading-4 text-slate-800">
+                  <span className="min-w-0 whitespace-normal text-xs font-black leading-4 text-slate-800">
                     {listing.name}
                   </span>
                 </button>
 
-                <div className="relative grid gap-1 px-2 py-4" style={{ gridTemplateColumns: `repeat(${planningDays.length}, 3.25rem)` }}>
-                  {planningDays.map((day, index) => (
-                    <div key={`${listing.id}-${day.label}-${index}`} className="h-20 rounded-2xl bg-slate-50/60" />
-                  ))}
+                <div className="relative h-[74px] px-2 py-2">
+                  <div
+                    className="absolute inset-x-2 inset-y-2 grid gap-1"
+                    style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}
+                  >
+                    {planningDays.map((day, index) => (
+                      <div key={`${listing.id}-${day.label}-${index}`} className="rounded-2xl bg-slate-50/75" />
+                    ))}
+                  </div>
 
-                  {rowReservations.map((reservation) => (
-                    <button
-                      key={reservation.id}
-                      onClick={() => setScope(reservation.listingId)}
-                      className={`relative z-10 -mt-20 h-12 rounded-2xl px-4 text-left text-white shadow-sm ring-1 ring-white/50 ${toneSolid(reservation.tone)}`}
-                      style={{ gridColumn: `${reservation.start} / span ${reservation.span}` }}
-                    >
-                      <p className="truncate text-sm font-black">{reservation.guest}</p>
-                      <p className="truncate text-xs font-bold text-white/70">{reservation.detail}</p>
-                    </button>
-                  ))}
+                  <div
+                    className="absolute inset-x-2 top-3 grid gap-1"
+                    style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}
+                  >
+                    {rowReservations.map((reservation) => (
+                      <button
+                        key={reservation.id}
+                        onClick={() => setScope(reservation.listingId)}
+                        className={`h-10 rounded-2xl px-3 text-left text-white shadow-sm ring-1 ring-white/50 ${toneSolid(reservation.tone)}`}
+                        style={{ gridColumn: `${reservation.start} / span ${reservation.span}` }}
+                      >
+                        <p className="truncate text-xs font-black">{reservation.guest}</p>
+                        <p className="truncate text-[10px] font-bold text-white/75">{reservation.detail}</p>
+                      </button>
+                    ))}
+                  </div>
 
-                  {rowMarkers.map((marker) => (
-                    <button
-                      key={marker.id}
-                      title={marker.label}
-                      onClick={() => setScope(marker.listingId)}
-                      className={`relative z-20 -mt-6 flex h-9 w-9 items-center justify-center rounded-full text-sm font-black text-white shadow-md ring-4 ring-white ${toneSolid(marker.tone)}`}
-                      style={{ gridColumn: `${marker.day} / span 1` }}
-                    >
-                      {marker.icon}
-                    </button>
-                  ))}
+                  <div
+                    className="absolute inset-x-2 bottom-2 grid gap-1"
+                    style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}
+                  >
+                    {rowMarkers.map((marker) => (
+                      <button
+                        key={marker.id}
+                        title={marker.label}
+                        onClick={() => setScope(marker.listingId)}
+                        className={`flex h-7 w-7 items-center justify-center justify-self-center rounded-full text-[11px] font-black text-white shadow-md ring-4 ring-white ${toneSolid(marker.tone)}`}
+                        style={{ gridColumn: `${marker.day} / span 1` }}
+                      >
+                        {marker.icon}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -788,26 +830,30 @@ function CompactEventFeed({
   const filters: { key: EventFilter; label: string }[] = [
     { key: "all", label: "Tous" },
     { key: "stay", label: "Séjours" },
-    { key: "intervention", label: "Interventions" },
+    { key: "intervention", label: "Missions" },
     { key: "reservation", label: "Réservations" },
     { key: "alert", label: "Alertes" },
   ];
 
   return (
-    <ShellCard className="overflow-hidden p-4">
+    <ShellCard className="max-w-full overflow-hidden p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-            Événements
+            Activité
           </p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">
-            Fil compact
+            Prochains points
           </h2>
         </div>
 
         <div className="flex gap-1 rounded-full bg-slate-100 p-1 text-xs font-black text-slate-500">
           {(["72h", "7j", "saison"] as Horizon[]).map((item) => (
-            <button key={item} onClick={() => setHorizon(item)} className={horizon === item ? "rounded-full bg-white px-3 py-1.5 text-slate-950 shadow-sm" : "px-3 py-1.5"}>
+            <button
+              key={item}
+              onClick={() => setHorizon(item)}
+              className={horizon === item ? "rounded-full bg-white px-3 py-1.5 text-slate-950 shadow-sm" : "px-3 py-1.5"}
+            >
               {item}
             </button>
           ))}
@@ -826,32 +872,39 @@ function CompactEventFeed({
         ))}
       </div>
 
-      <div className="mt-4 divide-y divide-slate-100">
-        {visibleEvents.map((event) => (
-          <button key={event.id} className="grid w-full grid-cols-[34px_1fr_auto] items-center gap-3 py-3 text-left">
-            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-white ${toneSolid(event.tone)}`}>
-              {event.icon}
-            </span>
+      <div className="relative mt-4">
+        <div className="absolute bottom-4 left-4 top-4 w-0.5 rounded-full bg-slate-100" />
 
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-slate-950">
-                {event.title} · {event.line}
+        <div className="space-y-1">
+          {visibleEvents.map((event) => (
+            <button
+              key={event.id}
+              className="relative grid w-full grid-cols-[34px_1fr_auto] items-center gap-3 rounded-2xl px-1 py-2 text-left transition hover:bg-slate-50"
+            >
+              <span className={`z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-white shadow-sm ring-4 ring-white ${toneSolid(event.tone)}`}>
+                {event.icon}
               </span>
-              <span className="mt-0.5 block text-xs font-bold text-slate-400">
-                {event.when}
-              </span>
-            </span>
 
-            <span className="flex flex-col items-end gap-1">
-              {event.amount && <span className="text-sm font-black text-slate-950">{event.amount}</span>}
-              {event.status && (
-                <span className={`rounded-full px-2 py-1 text-[10px] font-black ring-1 ${toneCard(event.tone)}`}>
-                  {event.status}
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-slate-950">
+                  {event.title} · {event.line}
                 </span>
-              )}
-            </span>
-          </button>
-        ))}
+                <span className="mt-0.5 block text-xs font-bold text-slate-400">
+                  {event.when}
+                </span>
+              </span>
+
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                {event.amount && <span className="text-sm font-black text-slate-950">{event.amount}</span>}
+                {event.status && (
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ring-1 ${toneCard(event.tone)}`}>
+                    {event.status}
+                  </span>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </ShellCard>
   );
@@ -1037,10 +1090,10 @@ export function OwnerDemoCockpit() {
   const [horizon, setHorizon] = useState<Horizon>("72h");
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-28 text-slate-950 md:pb-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-slate-50 pb-28 text-slate-950 md:pb-8">
       <OwnerAppNav active="cockpit" />
 
-      <div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-5 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl min-w-0 space-y-5 px-3 py-4 sm:px-5 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
@@ -1060,15 +1113,13 @@ export function OwnerDemoCockpit() {
         <SmartBrief />
         <ListingCarousel scope={scope} setScope={setScope} />
 
-        <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-5">
+        <section className="grid min-w-0 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="min-w-0 space-y-5">
             <CompactEventFeed scope={scope} horizon={horizon} setHorizon={setHorizon} />
-            <OccupancyPricing scope={scope} />
           </div>
 
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <Opportunities />
-            <SignalCards />
           </div>
         </section>
       </div>
