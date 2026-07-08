@@ -17,6 +17,11 @@ function safeFilename(name: string): string {
     .slice(0, 120) || "owner-photo.jpg";
 }
 
+
+function ownerPublicToken() {
+  return randomUUID().replaceAll("-", "");
+}
+
 async function uploadOwnerProfilePhoto({
   supabase,
   ownerId,
@@ -132,7 +137,10 @@ export async function saveOwner(formData: FormData) {
   } else {
     const { data, error } = await supabase
       .from("owners")
-      .insert(payload)
+      .insert({
+        ...payload,
+        public_token: ownerPublicToken(),
+      })
       .select("id")
       .single();
 

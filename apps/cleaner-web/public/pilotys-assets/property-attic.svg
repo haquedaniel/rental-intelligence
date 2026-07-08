@@ -1,4 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260">
-  <rect width="640" height="260" fill="#FAF8F3"/><path d="M0 0h640L442 260H0Z" fill="#F4B044" opacity=".18"/><path d="M212 42h156l-42 94H170Z" fill="#fff" stroke="#112532" stroke-width="8" opacity=".85"/><path d="M245 64h77l-22 48h-76Z" fill="#80A5B7" opacity=".45"/><path d="M0 188c92-10 150 5 230-12 95-20 194-33 410 1v83H0Z" fill="#80A5B7" opacity=".18"/>
-  <g transform="translate(438 98)" fill="none" stroke="#112532" stroke-width="7" opacity=".42"><path d="M0 76h128"/><path d="M18 76V28h74v48"/><path d="M34 76V44h18v32M68 76V44h18v32"/></g><circle cx="91" cy="92" r="30" fill="#E0680E" opacity=".13"/>
+<svg width="640" height="260" viewBox="0 0 640 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="260" rx="28" fill="#F4F8FA"/>
+  <rect x="0" y="166" width="640" height="94" fill="#F4B044" opacity=".18"/>
+  <path d="M0 164C90 132 147 193 238 153C329 113 397 174 510 132C568 111 609 116 640 128V260H0V164Z" fill="#80A5B7" opacity=".22"/>
+  <circle cx="520" cy="70" r="34" fill="#F4B044" opacity=".18"/>
+  <path d="M134 154V96L210 48L286 96V154" stroke="#112532" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/>
+  <path d="M158 154V104H262V154" fill="white" stroke="#112532" stroke-width="6" opacity=".82"/>
+  <path d="M190 154V122H228V154" stroke="#80A5B7" stroke-width="6"/>
+  <path d="M330 154H540" stroke="#112532" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+  <path d="M350 118H520" stroke="#112532" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+  <path d="M374 86H498" stroke="#112532" stroke-width="5" stroke-linecap="round" opacity=".22"/>
+  <text x="34" y="52" fill="#112532" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">Sous les toits</text>
+  <text x="34" y="88" fill="#477084" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">lumière · calme</text>
+  <circle cx="580" cy="48" r="10" fill="#F4B044"/>
 </svg>

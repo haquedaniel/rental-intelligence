@@ -1,6 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260">
-  <defs><linearGradient id="sky" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#EEF6F8"/><stop offset="1" stop-color="#80A5B7"/></linearGradient><linearGradient id="sea" x1="0" x2="1"><stop stop-color="#80A5B7"/><stop offset="1" stop-color="#315B6F"/></linearGradient></defs>
-  <rect width="640" height="260" fill="url(#sky)"/><path d="M0 175c96-28 166-18 260-24 114-7 204-42 380-10v119H0Z" fill="url(#sea)" opacity=".32"/><path d="M0 202h640v58H0z" fill="#112532" opacity=".12"/>
-  <g transform="translate(78 68)"><path d="M0 98h218V44L112 0 0 44Z" fill="#fff"/><path d="M0 44 112 0l106 44" fill="none" stroke="#112532" stroke-width="10" stroke-linejoin="round"/><path d="M24 98V54h48v44M96 98V60h42v38M160 98V58h34v40" fill="none" stroke="#80A5B7" stroke-width="8"/><path d="M-22 104h270" stroke="#112532" stroke-width="8" stroke-linecap="round" opacity=".32"/></g>
-  <circle cx="506" cy="92" r="34" fill="#F4B044" opacity=".22"/><path d="m500 56 8 28 28 8-28 8-8 28-8-28-28-8 28-8Z" fill="#E0680E" opacity=".72"/>
+<svg width="640" height="260" viewBox="0 0 640 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="260" rx="28" fill="#F4F8FA"/>
+  <rect x="0" y="166" width="640" height="94" fill="#112532" opacity=".18"/>
+  <path d="M0 164C90 132 147 193 238 153C329 113 397 174 510 132C568 111 609 116 640 128V260H0V164Z" fill="#80A5B7" opacity=".22"/>
+  <circle cx="520" cy="70" r="34" fill="#F4B044" opacity=".18"/>
+  <path d="M134 154V96L210 48L286 96V154" stroke="#112532" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/>
+  <path d="M158 154V104H262V154" fill="white" stroke="#112532" stroke-width="6" opacity=".82"/>
+  <path d="M190 154V122H228V154" stroke="#80A5B7" stroke-width="6"/>
+  <path d="M330 154H540" stroke="#112532" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+  <path d="M350 118H520" stroke="#112532" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+  <path d="M374 86H498" stroke="#112532" stroke-width="5" stroke-linecap="round" opacity=".22"/>
+  <text x="34" y="52" fill="#112532" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">La Peskerezh</text>
+  <text x="34" y="88" fill="#477084" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">maison · mer</text>
+  <circle cx="580" cy="48" r="10" fill="#112532"/>
 </svg>

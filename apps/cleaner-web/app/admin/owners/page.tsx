@@ -56,6 +56,21 @@ function OwnerForm({
         )}
       </div>
 
+      {!isNew && owner.public_token && (
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            Lien cockpit propriétaire
+          </p>
+
+          <Link
+            href={`/owner/${owner.public_token}/cockpit`}
+            className="mt-2 block break-all rounded-xl bg-white p-3 text-sm font-bold text-slate-950 ring-1 ring-slate-200"
+          >
+            /owner/{owner.public_token}/cockpit
+          </Link>
+        </div>
+      )}
+
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="block">
           <span className="text-sm font-semibold text-slate-800">Nom affiché</span>
