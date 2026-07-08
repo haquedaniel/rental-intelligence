@@ -1,15 +1,26 @@
+// Optional replacement for app/owner/cockpit/page.tsx
+// Keeps the old generic route away from the admin planning page.
+// For MVP, redirect manually to the first active owner, or remove this route.
+
+import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/adminAuth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Pylotis Owner",
-  manifest: "/owner/cockpit/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    title: "Pylotis",
-    statusBarStyle: "default",
-  },
-};
+export default async function LegacyOwnerCockpitRedirect() {
+  await requireAdmin();
 
-import Page from "../../admin/planning-v2/page";
+  const supabase = getSupabaseAdmin();
+  const { data: owner } = await supabase
+    .from("owners")
+    .select("public_token")
+    .eq("active", true)
+    .order("display_name", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-export default Page;
+  if (!owner?.public_token) redirect("/admin/owners");
+
+  redirect(`/owner/${owner.public_token}/cockpit`);
+}
