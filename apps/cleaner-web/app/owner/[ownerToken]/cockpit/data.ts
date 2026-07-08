@@ -367,13 +367,14 @@ function buildMarkers({
       const status = String(request.status ?? "");
       const isIntervention = String(request.type ?? request.category ?? "").includes("intervention");
       const issue = ["refused", "problem_reported", "manual_action_required"].includes(status);
+      const tone: Tone = issue ? "orange" : isIntervention ? "orange" : "mustard";
 
       return {
         id: String(request.id),
         listingId: String(request.property_id),
         day: daysBetween(planningStart, dateKey) + 1,
         icon: isIntervention ? "◆" : issue ? "!" : "✦",
-        tone: issue ? "orange" : isIntervention ? "orange" : "mustard",
+        tone,
         label: isIntervention ? "intervention" : "ménage",
       };
     })
@@ -536,28 +537,31 @@ function buildOpportunities({
     byProperty.set(key, [...(byProperty.get(key) ?? []), reservation]);
   }
 
-  const gapOpportunities = listings.slice(0, 2).map((listing, index) => ({
-    id: `gap-${listing.id}`,
-    title: index === 0 ? "Remplir un trou" : "Ajuster le prix",
-    listing: listing.name,
-    period: index === 0 ? "5 nuits disponibles" : "demande élevée",
-    potential: index === 0 ? 620 : 540,
-    action: index === 0 ? "Agir maintenant" : "Voir les tarifs",
-    tone: index === 0 ? "orange" as Tone : "mustard" as Tone,
-  }));
+  const gapOpportunities: Opportunity[] = listings.slice(0, 2).map((listing, index) => {
+    const tone: Tone = index === 0 ? "orange" : "mustard";
 
-  return [
-    ...gapOpportunities,
-    {
-      id: "direct-channel",
-      title: "Relancer le direct",
-      listing: "Tous les logements",
-      period: "trafic en hausse",
-      potential: 410,
-      action: "Préparer l’offre",
-      tone: "blue",
-    },
-  ].slice(0, 3);
+    return {
+      id: `gap-${listing.id}`,
+      title: index === 0 ? "Remplir un trou" : "Ajuster le prix",
+      listing: listing.name,
+      period: index === 0 ? "5 nuits disponibles" : "demande élevée",
+      potential: index === 0 ? 620 : 540,
+      action: index === 0 ? "Agir maintenant" : "Voir les tarifs",
+      tone,
+    };
+  });
+
+  const directOpportunity: Opportunity = {
+    id: "direct-channel",
+    title: "Relancer le direct",
+    listing: "Tous les logements",
+    period: "trafic en hausse",
+    potential: 410,
+    action: "Préparer l’offre",
+    tone: "blue",
+  };
+
+  return [...gapOpportunities, directOpportunity].slice(0, 3);
 }
 
 async function maybeSignedPropertyImages(supabase: ReturnType<typeof getSupabaseAdmin>, properties: Row[]) {
