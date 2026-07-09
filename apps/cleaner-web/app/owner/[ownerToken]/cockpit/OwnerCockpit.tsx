@@ -201,7 +201,7 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
           ))}
         </div>
 
-        <div className="mt-6 rounded-[1.35rem] bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
+        <div className="mt-5 rounded-[1.35rem] bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-black uppercase tracking-[0.12em] text-[#80A5B7]">Détail des coûts variables</p>
             <p className="text-sm font-black text-[#112532]">{formatMoney(variableCosts)}</p>
@@ -209,22 +209,24 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
 
           {expenseItems.length === 0 ? (
             <p className="mt-3 text-sm font-bold text-[#112532]/55">
-              Aucun détail de ligne détecté dans analytics_expense_lines pour cette période.
+              Aucun détail de ligne détecté. Si le total existe, il vient probablement de lignes mensuelles sans catégorie reconnue.
             </p>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
               {expenseItems.map((item) => {
                 const pct = variableCosts ? Math.round((item.amount / variableCosts) * 100) : 0;
                 return (
-                  <div key={item.label} className="grid grid-cols-[7.5rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]">
-                    <div className="min-w-0">
-                      <p className="truncate text-[#112532]">{item.label}</p>
-                      <p className="mt-0.5 text-[11px] font-bold text-[#112532]/45">{item.count} ligne{item.count > 1 ? "s" : ""}</p>
+                  <div key={item.label} className="rounded-2xl bg-white p-3 ring-1 ring-[#112532]/6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-[#112532]">{item.label}</p>
+                        <p className="mt-0.5 text-[11px] font-bold text-[#112532]/45">{item.count} ligne{item.count > 1 ? "s" : ""} · {pct}% des coûts</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-black text-[#112532]">{formatMoney(item.amount)}</p>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-white ring-1 ring-[#112532]/6">
+                    <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
                       <div className="h-full rounded-full bg-[#F4B044]" style={{ width: `${Math.max(4, pct)}%` }} />
                     </div>
-                    <span className="text-right text-[#112532]">{formatMoney(item.amount)}</span>
                   </div>
                 );
               })}
@@ -341,10 +343,22 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
 
 function Planning({ data, selected }: { data: OwnerCockpitData; selected: string[] }) {
   const selectedListings = data.listings.filter((listing) => selected.includes(listing.id));
-  const dayWidth = "3.15rem";
+  const dayWidth = "4.25rem";
   const gridTemplateColumns = `repeat(${data.planningDays.length}, ${dayWidth})`;
 
   const reservationsByListing = useMemo(() => {
+    const map = new Map<string, PlanningReservation[]>();
+    for (const listing of data.listings) map.set(listing.id, []);
+    for (const reservation of data.planningReservations) {
+      const list = map.get(reservation.listingId) ?? [];
+      list.push(reservation);
+      map.set(reservation.listingId, list);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.start - b.start);
+    return map;
+  }, [data.listings, data.planningReservations]);
+
+  const coveredDaysByListing = useMemo(() => {
     const covered = new Map<string, Set<number>>();
     for (const listing of data.listings) covered.set(listing.id, new Set<number>());
     for (const reservation of data.planningReservations) {
@@ -381,37 +395,37 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
             <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Réservations & missions</h2>
           </div>
           <p className="max-w-xl text-sm font-bold text-[#112532]/55">
-            Ligne par logement. Haut = séjour, bas = ménage/intervention, cellules libres = prix indicatif.
+            Une ligne par logement : séjour en haut, missions en bas, prix indicatifs dans les jours libres.
           </p>
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto p-4">
-        <div className="min-w-max">
-          <div className="grid grid-cols-[11.5rem_auto] gap-2">
-            <div className="sticky left-0 z-30 rounded-full bg-white px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#80A5B7] shadow-sm ring-1 ring-[#112532]/6">
+      <div className="w-full overflow-x-auto bg-white">
+        <div className="min-w-max p-3">
+          <div className="grid grid-cols-[13.5rem_auto] gap-3">
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#80A5B7] shadow-sm ring-1 ring-[#112532]/8">
               Logement
             </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.monthSpans.map((span) => (
-                <div key={`${span.month}-${span.start}`} className="rounded-full bg-[#F4F8FA] px-4 py-1.5 text-sm font-black text-[#477084]" style={{ gridColumn: `${span.start} / span ${span.span}` }}>
+                <div key={`${span.month}-${span.start}`} className="rounded-2xl bg-[#F4F8FA] px-4 py-2 text-sm font-black text-[#477084]" style={{ gridColumn: `${span.start} / span ${span.span}` }}>
                   {span.month}
                 </div>
               ))}
             </div>
 
-            <div className="sticky left-0 z-30 rounded-2xl bg-white px-3 py-2 text-xs font-black text-[#112532]/42 shadow-sm ring-1 ring-[#112532]/6">
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-3 text-xs font-black text-[#112532]/45 shadow-sm ring-1 ring-[#112532]/8">
               Date
             </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.planningDays.map((day) => (
-                <div key={day.key} className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-1.5 py-1.5 text-center text-[10px] font-black leading-4 text-[#112532]/58 ring-1 ring-[#112532]/5">
+                <div key={day.key} className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-2 py-2 text-center text-[11px] font-black leading-4 text-[#112532]/60 ring-1 ring-[#112532]/5">
                   {day.label}
                 </div>
               ))}
             </div>
 
-            <div className="sticky left-0 z-30 rounded-2xl bg-white px-3 py-1.5 text-xs font-black text-[#112532]/42 shadow-sm ring-1 ring-[#112532]/6">
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-2 text-xs font-black text-[#112532]/45 shadow-sm ring-1 ring-[#112532]/8">
               Marché
             </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
@@ -421,65 +435,69 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
             </div>
           </div>
 
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-3">
             {selectedListings.map((listing) => {
-              const rowReservations = data.planningReservations.filter((reservation) => reservation.listingId === listing.id);
-              const coveredDays = reservationsByListing.get(listing.id) ?? new Set<number>();
+              const rowReservations = reservationsByListing.get(listing.id) ?? [];
+              const coveredDays = coveredDaysByListing.get(listing.id) ?? new Set<number>();
 
               return (
-                <div key={listing.id} className="grid grid-cols-[11.5rem_auto] gap-2">
-                  <div className="sticky left-0 z-20 flex min-h-[7.25rem] items-center gap-3 rounded-[1.25rem] bg-white p-3 shadow-sm ring-1 ring-[#112532]/7">
-                    <span className="h-3 w-3 shrink-0 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
+                <div key={listing.id} className="grid grid-cols-[13.5rem_auto] gap-3">
+                  <div className="sticky left-0 z-30 flex h-[7.75rem] items-center gap-3 rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/8">
+                    <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-[#112532]">{listing.name}</p>
+                      <p className="truncate text-sm font-black text-[#112532]" title={listing.name}>{listing.name}</p>
                       <p className="mt-1 text-xs font-bold text-[#112532]/50">{listing.occupancy}% · {formatMoney(listing.revenue)}</p>
                     </div>
                   </div>
 
-                  <div className="relative h-[7.25rem] rounded-[1.25rem] bg-[#F4F8FA]/72 ring-1 ring-[#112532]/5">
-                    <div className="absolute inset-2 grid gap-1" style={{ gridTemplateColumns }}>
-                      {data.planningDays.map((_, index) => {
-                        const day = index + 1;
-                        const covered = coveredDays.has(day);
-                        const price = dailyPriceByKey.get(`${listing.id}:${day}`);
-                        return (
-                          <div key={`${listing.id}-price-${day}`} className="flex items-end justify-center rounded-xl bg-white/88 pb-1">
-                            {!covered && price ? <span className="text-[10px] font-black text-[#112532]/28">{Math.round(price.price)}€</span> : null}
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="h-[7.75rem] rounded-[1.35rem] bg-[#F4F8FA]/72 p-2 ring-1 ring-[#112532]/5">
+                    <div className="relative h-full overflow-hidden rounded-[1rem]">
+                      <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
+                        {data.planningDays.map((_, index) => {
+                          const day = index + 1;
+                          const covered = coveredDays.has(day);
+                          const price = dailyPriceByKey.get(`${listing.id}:${day}`);
+                          return (
+                            <div key={`${listing.id}-cell-${day}`} className="rounded-xl bg-white/88 ring-1 ring-white/70">
+                              {!covered && price ? <div className="flex h-full items-end justify-center pb-1 text-[10px] font-black text-[#112532]/30">{Math.round(price.price)}€</div> : null}
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                    <div className="absolute inset-x-2 top-3 grid gap-1" style={{ gridTemplateColumns }}>
-                      {rowReservations.map((reservation: PlanningReservation) => (
-                        <div
-                          key={reservation.id}
-                          className="h-12 rounded-2xl px-3 py-1 text-left text-white shadow-sm ring-1 ring-white/55"
-                          style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
-                        >
-                          <p className="truncate text-sm font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
-                          <p className="truncate text-[11px] font-bold text-white/72">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="absolute inset-x-2 bottom-3 grid gap-1" style={{ gridTemplateColumns }}>
-                      {data.planningDays.map((_, index) => {
-                        const day = index + 1;
-                        const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
-                        if (markers.length === 0) return <div key={`${listing.id}-marker-empty-${day}`} />;
-                        const marker = markers[0];
-                        const label = markers.length > 1 ? `${markers.length} missions` : marker.label;
-                        return (
+                      <div className="absolute left-0 right-0 top-0 grid h-[3.6rem] gap-1" style={{ gridTemplateColumns }}>
+                        {rowReservations.map((reservation) => (
                           <div
-                            key={`${listing.id}-marker-${day}`}
-                            title={label}
-                            className={`flex h-8 min-w-8 items-center justify-center justify-self-center rounded-full px-2 text-[11px] font-black text-white shadow-md ring-4 ring-white ${toneSolid(marker.tone)}`}
+                            key={reservation.id}
+                            className="relative z-10 mt-1 h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm ring-1 ring-white/70"
+                            style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
+                            title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits`}
                           >
-                            {markers.length > 1 ? markers.length : marker.icon}
+                            <p className="truncate text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
+                            <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      <div className="absolute bottom-1 left-0 right-0 grid h-[2.35rem] gap-1" style={{ gridTemplateColumns }}>
+                        {data.planningDays.map((_, index) => {
+                          const day = index + 1;
+                          const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
+                          if (markers.length === 0) return <div key={`${listing.id}-mission-empty-${day}`} />;
+                          const first = markers[0];
+                          const label = markers.length > 1 ? `${markers.length} missions` : first.label;
+                          return (
+                            <div key={`${listing.id}-mission-${day}`} className="flex items-center justify-center">
+                              <div
+                                title={label}
+                                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ring-white ${toneSolid(first.tone)}`}
+                              >
+                                {markers.length > 1 ? markers.length : first.icon}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
