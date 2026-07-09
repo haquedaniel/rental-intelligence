@@ -138,6 +138,76 @@ def request_payload_changed(existing_request: dict, payload: dict) -> bool:
     return False
 
 
+def request_sort_key(request: dict) -> datetime:
+    parsed = parse_dt(request.get("created_at")) or parse_dt(request.get("updated_at"))
+
+    if parsed:
+        return parsed.astimezone(timezone.utc)
+
+    return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def current_request_for_reservation(requests: list[dict]) -> dict | None:
+    """
+    Pick the current non-cancelled request for a reservation.
+
+    We intentionally ignore cancelled requests because a reservation may need to be
+    replanned after a new booking appears in the gap.
+    """
+    active_or_locked = [
+        request
+        for request in requests
+        if request.get("status") != "cancelled"
+    ]
+
+    if not active_or_locked:
+        return None
+
+    return max(active_or_locked, key=request_sort_key)
+
+
+def accepted_request_invalidated_by_new_checkin(
+    request: dict | None,
+    next_checkin_at: datetime | None,
+) -> bool:
+    """
+    An accepted mission becomes invalid if the cleaner's confirmed timing now
+    falls on or after the newly inserted next check-in.
+
+    This handles the case where a new reservation arrives in what used to be a
+    free gap, after the cleaner had already accepted a later ready day.
+    """
+    if not request:
+        return False
+
+    if request.get("status") != "accepted":
+        return False
+
+    if not next_checkin_at:
+        return False
+
+    next_checkin_utc = next_checkin_at.astimezone(timezone.utc)
+
+    candidate_fields = [
+        "ready_by_at",
+        "scheduled_start_at",
+        "scheduled_end_at",
+    ]
+
+    confirmed_times = []
+
+    for field in candidate_fields:
+        value = parse_dt(request.get(field))
+
+        if value:
+            confirmed_times.append(value.astimezone(timezone.utc))
+
+    if not confirmed_times:
+        return False
+
+    return any(value >= next_checkin_utc for value in confirmed_times)
+
+
 def start_run(supabase):
     try:
         result = (
@@ -698,6 +768,7 @@ def main() -> None:
         "skipped_no_candidate_cleaner": 0,
         "skipped_no_available_cleaner": 0,
         "skipped_existing_locked": 0,
+        "replanned_due_to_new_stay": 0,
         "skipped_property_filter": 0,
     }
 
@@ -724,7 +795,9 @@ def main() -> None:
 
         reservation_ids = [row["id"] for row in reservations if row.get("id")]
 
-        existing_requests: dict[str, dict] = {}
+        existing_requests_by_reservation: dict[str, list[dict]] = defaultdict(list)
+        existing_requests: dict[str, dict | None] = {}
+
         if reservation_ids:
             result = (
                 supabase.table("cleaning_requests")
@@ -735,7 +808,10 @@ def main() -> None:
 
             for request in result.data or []:
                 if request.get("reservation_id"):
-                    existing_requests[str(request["reservation_id"])] = request
+                    existing_requests_by_reservation[str(request["reservation_id"])].append(request)
+
+        for reservation_id, requests in existing_requests_by_reservation.items():
+            existing_requests[reservation_id] = current_request_for_reservation(requests)
 
         next_checkins = compute_next_checkins(reservations)
 
@@ -778,6 +854,27 @@ def main() -> None:
 
             if status != "confirmed":
                 continue
+
+            next_checkin_at = next_checkins.get(reservation_id)
+
+            if accepted_request_invalidated_by_new_checkin(existing_request, next_checkin_at):
+                supabase.table("cleaning_requests").update(
+                    {
+                        "status": "cancelled",
+                        "updated_at": now.isoformat(),
+                    }
+                ).eq("id", existing_request["id"]).execute()
+
+                summary["cancelled"] += 1
+                summary["replanned_due_to_new_stay"] += 1
+
+                log(
+                    f"Replanned accepted mission after new stay: "
+                    f"{source_booking_id} · old_request={existing_request['id']}"
+                )
+
+                # Force a fresh request to be created for this same reservation.
+                existing_request = None
 
             if existing_request and existing_request.get("status") in FINAL_OR_HUMAN_LOCKED_STATUSES:
                 summary["skipped_existing_locked"] += 1
@@ -843,8 +940,6 @@ def main() -> None:
                     log(f"  - {reason}")
 
                 continue
-
-            next_checkin_at = next_checkins.get(reservation_id)
 
             if next_checkin_at:
                 supabase.table("reservations").update(
@@ -926,7 +1021,8 @@ def main() -> None:
             f"missing_config={summary['skipped_missing_config']} "
             f"no_candidate={summary['skipped_no_candidate_cleaner']} "
             f"no_available={summary['skipped_no_available_cleaner']} "
-            f"locked={summary['skipped_existing_locked']}"
+            f"locked={summary['skipped_existing_locked']} "
+            f"replanned={summary['replanned_due_to_new_stay']}"
         )
 
         finish_run(supabase, run_id, "success", summary, log_lines)
