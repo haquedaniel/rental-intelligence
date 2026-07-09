@@ -16,7 +16,6 @@ import {
 } from "@/components/owner-planning/analyticsUtils";
 import type {
   DailyPrice,
-  ExpenseBreakdownItem,
   FinancialSummary,
   MonthlyRevenuePoint,
   Opportunity,
@@ -190,44 +189,18 @@ function dailyRowsForMonth(rows: Row[], yearMonth: string) {
   return preferGranularRows(rows.filter((row) => String(row.date ?? "").slice(0, 7) === yearMonth));
 }
 
-function labelForExpense(row: Row): string {
-  const category = String(row.category ?? "");
-  if (category === "cleaning_actual_cost") return "Ménage";
-  if (category === "energy_usage") return "Électricité";
-  if (category === "water_usage") return "Eau";
-  if (category === "concierge") return "Conciergerie";
-  if (category === "concierge_fee") return "Conciergerie";
-  if (category === "channel_commission") return "Commission";
-  if (category) return category.replaceAll("_", " ");
-
-  const family = String(row.cost_family ?? "");
-  return family ? family.replaceAll("_", " ") : "Autres frais";
-}
-
-function addBreakdown(map: Map<string, ExpenseBreakdownItem>, label: string, amount: number, count = 1) {
-  if (!amount) return;
-  const current = map.get(label) ?? { label, amount: 0, count: 0 };
-  current.amount += amount;
-  current.count += count;
-  map.set(label, current);
-}
-
 function exactVariableExpenseAmount({
   periodDaily,
   expenseRows,
 }: {
   periodDaily: Row[];
   expenseRows: Row[];
-}): { total: number; items: ExpenseBreakdownItem[] } {
-  const breakdown = new Map<string, ExpenseBreakdownItem>();
-
+}) {
   const bookingExpenses = expenseRows.filter((row) => row.expense_source === "booking_expenses");
-
-  for (const row of bookingExpenses) {
-    addBreakdown(breakdown, labelForExpense(row), numberValue(row, ["expense_amount"]));
-  }
+  const bookingTotal = bookingExpenses.reduce((total, row) => total + numberValue(row, ["expense_amount"]), 0);
 
   const variableRows = expenseRows.filter((row) => row.expense_source === "variable_period_costs");
+  let variableTotal = 0;
 
   for (const daily of periodDaily) {
     if (!daily.is_booked) continue;
@@ -239,14 +212,11 @@ function exactVariableExpenseAmount({
     );
 
     for (const expense of matches) {
-      addBreakdown(breakdown, labelForExpense(expense), numberValue(expense, ["amount_per_day"]));
+      variableTotal += numberValue(expense, ["amount_per_day"]);
     }
   }
 
-  const items = Array.from(breakdown.values()).sort((a, b) => b.amount - a.amount);
-  const total = items.reduce((acc, item) => acc + item.amount, 0);
-
-  return { total, items };
+  return bookingTotal + variableTotal;
 }
 
 function reservationAmountFromDaily(row: Row, dailyRows: Row[]) {
@@ -447,18 +417,15 @@ function buildFinancial({
   const yearDaily = preferGranularRows(dailyRows.filter((row) => rowDateInRange(row, yearStart, yearEnd)));
   const bookingExpenseRows = expenses.filter((row) => row.expense_source === "booking_expenses" && expenseDateInRange(row, yearStart, yearEnd));
   const variableRowsForSelectedMonths = expenses.filter((row) => row.expense_source === "variable_period_costs" && monthInRange(row, yearStart, yearEnd));
-  const exactExpenses = exactVariableExpenseAmount({
+  const variableCosts = exactVariableExpenseAmount({
     periodDaily: yearDaily,
     expenseRows: [...bookingExpenseRows, ...variableRowsForSelectedMonths],
   });
-  const variableCosts = exactExpenses.total;
 
   return {
     realisedRevenue,
     grossAnnualRevenue,
     afterVariables: Math.max(0, grossAnnualRevenue - variableCosts),
-    variableCosts,
-    expenseBreakdownItems: exactExpenses.items,
     grossDeltaPct: null,
     afterVariablesDeltaPct: null,
   };
@@ -543,36 +510,28 @@ function buildMarkers({
   planningStart: string;
   planningEnd: string;
 }): PlanningMarker[] {
-  const markers: PlanningMarker[] = [];
-  const maxDay = daysBetween(planningStart, planningEnd) + 1;
+  return requests
+    .filter((request) => request.property_id)
+    .map((request) => {
+      const dateKey = requestTimelineDateKey(request);
+      if (!dateKey) return null;
 
-  for (const request of requests) {
-    if (!request.property_id) continue;
+      const serviceType = String(request.service_type ?? "");
+      const isIntervention = ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
+      const issue = ["refused", "problem_reported"].includes(String(request.status ?? "")) ||
+        ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(String(request.schedule_status ?? ""));
+      const tone: Tone = issue ? "orange" : isIntervention ? "orange" : "mustard";
 
-    const dateKey = requestTimelineDateKey(request);
-    if (!dateKey) continue;
-
-    const day = daysBetween(planningStart, dateKey) + 1;
-    if (day < 1 || day > maxDay) continue;
-
-    const serviceType = String(request.service_type ?? "");
-    const isIntervention = ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
-    const issue =
-      ["refused", "problem_reported"].includes(String(request.status ?? "")) ||
-      ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(String(request.schedule_status ?? ""));
-    const tone: Tone = issue ? "orange" : isIntervention ? "orange" : "mustard";
-
-    markers.push({
-      id: String(request.id),
-      listingId: String(request.property_id),
-      day,
-      icon: isIntervention ? "◆" : issue ? "!" : "✦",
-      tone,
-      label: isIntervention ? "intervention" : "ménage",
-    });
-  }
-
-  return markers;
+      return {
+        id: String(request.id),
+        listingId: String(request.property_id),
+        day: daysBetween(planningStart, dateKey) + 1,
+        icon: isIntervention ? "◆" : issue ? "!" : "✦",
+        tone,
+        label: isIntervention ? "intervention" : "ménage",
+      };
+    })
+    .filter((marker): marker is PlanningMarker => Boolean(marker && marker.day >= 1 && marker.day <= daysBetween(planningStart, planningEnd) + 1));
 }
 
 function buildDailyPrices({
@@ -750,10 +709,7 @@ function buildOpportunities({ listings }: { listings: OwnerCockpitListing[] }): 
   return [...gapOpportunities, directOpportunity].slice(0, 3);
 }
 
-async function maybeSignedPropertyImages(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-  properties: Row[],
-): Promise<Row[]> {
+async function maybeSignedPropertyImages(supabase: ReturnType<typeof getSupabaseAdmin>, properties: Row[]) {
   return Promise.all(
     properties.map(async (property, index) => {
       const bucket = property.cover_photo_bucket || property.photo_bucket || property.image_bucket;
@@ -803,15 +759,15 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     throw new Error(`Impossible de charger les logements : ${propertiesError.message}`);
   }
 
-  const properties: Row[] = await maybeSignedPropertyImages(supabase, (rawProperties ?? []) as Row[]);
-  const propertyIds = properties.map((property) => String(property.id));
+  const properties = await maybeSignedPropertyImages(supabase, rawProperties ?? []);
+  const propertyIds = properties.map((property) => property.id);
 
   if (propertyIds.length === 0) {
     return {
       owner: { id: owner.id, token: ownerToken, displayName: owner.display_name ?? "Propriétaire" },
       listings: [],
       selectedListingIds: [],
-      financial: { realisedRevenue: 0, grossAnnualRevenue: 0, afterVariables: 0, variableCosts: 0, expenseBreakdownItems: [] },
+      financial: { realisedRevenue: 0, grossAnnualRevenue: 0, afterVariables: 0 },
       monthlyRevenue: MONTH_LABELS.map((month) => ({ month, realised: 0, future: 0, target: 0 })),
       planningDays: [],
       monthSpans: [],

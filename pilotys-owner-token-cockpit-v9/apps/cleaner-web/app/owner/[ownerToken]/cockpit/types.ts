@@ -29,18 +29,10 @@ export type MonthlyRevenuePoint = {
   live?: boolean;
 };
 
-export type ExpenseBreakdownItem = {
-  label: string;
-  amount: number;
-  count: number;
-};
-
 export type FinancialSummary = {
   realisedRevenue: number;
   grossAnnualRevenue: number;
   afterVariables: number;
-  variableCosts: number;
-  expenseBreakdownItems: ExpenseBreakdownItem[];
   grossDeltaPct?: number | null;
   afterVariablesDeltaPct?: number | null;
 };
