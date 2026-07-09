@@ -517,8 +517,6 @@ function buildFinancial({
 
   return {
     realisedRevenue,
-    realisedAtStartOfToday: realisedRevenue,
-    activeDailyRevenue: 0,
     grossAnnualRevenue,
     afterVariables: Math.max(0, grossAnnualRevenue - variableCosts),
     variableCosts,

@@ -37,8 +37,6 @@ export type ExpenseBreakdownItem = {
 
 export type FinancialSummary = {
   realisedRevenue: number;
-  realisedAtStartOfToday: number;
-  activeDailyRevenue: number;
   grossAnnualRevenue: number;
   afterVariables: number;
   variableCosts: number;

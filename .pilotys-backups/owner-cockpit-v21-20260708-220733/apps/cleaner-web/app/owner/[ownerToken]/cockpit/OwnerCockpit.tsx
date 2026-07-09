@@ -89,39 +89,17 @@ function TopNav({ notificationCount }: { notificationCount: number }) {
   );
 }
 
-
-function LiveRealisedTicker({ financial }: { financial: OwnerCockpitData["financial"] }) {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    if (!financial.activeDailyRevenue) return;
-
-    const interval = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(interval);
-  }, [financial.activeDailyRevenue]);
-
-  if (!financial.activeDailyRevenue) {
-    return <>{formatMoney(financial.realisedRevenue, 2)}</>;
-  }
-
-  const secondsElapsed =
-    now.getHours() * 3600 +
-    now.getMinutes() * 60 +
-    now.getSeconds() +
-    now.getMilliseconds() / 1000;
-
-  const liveValue = Math.min(
-    financial.realisedAtStartOfToday + financial.activeDailyRevenue,
-    financial.realisedAtStartOfToday + (financial.activeDailyRevenue * secondsElapsed) / 86_400,
-  );
-
-  return <>{formatMoney(liveValue, 2)}</>;
-}
-
 function MoneyHero({ data }: { data: OwnerCockpitData }) {
+  const [elapsed, setElapsed] = useState(0);
   const [metric, setMetric] = useState<MetricId>("realised");
 
-  const realised = data.financial.realisedRevenue;
+  useEffect(() => {
+    const started = Date.now();
+    const interval = window.setInterval(() => setElapsed((Date.now() - started) / 1000), 700);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const realised = data.financial.realisedRevenue + elapsed * 0.0074;
   const gross = data.financial.grossAnnualRevenue;
   const net = data.financial.afterVariables;
 
@@ -136,14 +114,7 @@ function MoneyHero({ data }: { data: OwnerCockpitData }) {
         <img src="/pilotys-assets/pattern-routes.svg" alt="" className="absolute right-0 top-0 hidden h-full w-72 opacity-70 sm:block" />
         <div className="relative">
           <p className="text-sm font-black uppercase tracking-[0.17em] text-[#E0680E]">CA réalisé</p>
-          <p className="mt-2 text-6xl font-black tracking-tight text-[#112532] sm:text-7xl">
-            <LiveRealisedTicker financial={data.financial} />
-          </p>
-          {data.financial.activeDailyRevenue > 0 && (
-            <p className="mt-2 text-xs font-bold text-[#112532]/55">
-              Live · {formatMoney(data.financial.activeDailyRevenue)} / jour en cours
-            </p>
-          )}
+          <p className="mt-2 text-6xl font-black tracking-tight text-[#112532] sm:text-7xl">{formatMoney(realised, 2)}</p>
         </div>
       </button>
 

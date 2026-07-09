@@ -32,29 +32,6 @@ import type {
 
 type Row = Record<string, any>;
 
-function isReservationActiveOnDate(reservation: Row, dateKey: string) {
-  if (!reservation.checkin_at || !reservation.checkout_at) return false;
-  const checkin = parisDateKey(reservation.checkin_at);
-  const checkout = parisDateKey(reservation.checkout_at);
-
-  // Check-in day counts; checkout day does not.
-  return checkin <= dateKey && dateKey < checkout;
-}
-
-function reservationDailyRevenue(reservation: Row) {
-  if (!reservation.checkin_at || !reservation.checkout_at) return 0;
-
-  const value = reservationRevenue(reservation);
-  if (!value) return 0;
-
-  const checkin = parisDateKey(reservation.checkin_at);
-  const checkout = parisDateKey(reservation.checkout_at);
-  const nights = Math.max(1, daysBetween(checkin, checkout));
-
-  return value / nights;
-}
-
-
 const PROPERTY_DOTS = ["#112532", "#E0680E", "#F4B044", "#80A5B7", "#7C8A92"];
 const PROPERTY_TONES: Tone[] = ["navy", "orange", "mustard", "blue", "green"];
 const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
@@ -517,8 +494,6 @@ function buildFinancial({
 
   return {
     realisedRevenue,
-    realisedAtStartOfToday: realisedRevenue,
-    activeDailyRevenue: 0,
     grossAnnualRevenue,
     afterVariables: Math.max(0, grossAnnualRevenue - variableCosts),
     variableCosts,
@@ -875,7 +850,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       owner: { id: owner.id, token: ownerToken, displayName: owner.display_name ?? "Propriétaire" },
       listings: [],
       selectedListingIds: [],
-      financial: { realisedRevenue: 0, realisedAtStartOfToday: 0, activeDailyRevenue: 0, grossAnnualRevenue: 0, afterVariables: 0, variableCosts: 0, expenseBreakdownItems: [] },
+      financial: { realisedRevenue: 0, grossAnnualRevenue: 0, afterVariables: 0, variableCosts: 0, expenseBreakdownItems: [] },
       monthlyRevenue: MONTH_LABELS.map((month) => ({ month, realised: 0, future: 0, target: 0 })),
       today: todayParisDateKey(),
       planningDays: [],
@@ -1000,25 +975,13 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     targets,
     year,
   });
-  const financialBase = buildFinancial({
+  const financial = buildFinancial({
     monthly: monthlyRevenue,
     dailyRows: analyticsDaily,
     expenses,
     yearStart,
     yearEnd,
   });
-
-  const activeDailyRevenue = yearReservations
-    .filter((reservation) => isReservationActiveOnDate(reservation, today))
-    .reduce((sum, reservation) => sum + reservationDailyRevenue(reservation), 0);
-
-  // Start from the value at 00:00 today. The client then adds today's active
-  // reservation revenue progressively, second by second.
-  const financial = {
-    ...financialBase,
-    realisedAtStartOfToday: Math.max(0, financialBase.realisedRevenue - activeDailyRevenue),
-    activeDailyRevenue,
-  };
   const planningDays = buildPlanningDays(planningStart, planningEnd);
   const monthSpans = buildMonthSpans(planningDays);
   const planningReservations = buildPlanningReservations({
