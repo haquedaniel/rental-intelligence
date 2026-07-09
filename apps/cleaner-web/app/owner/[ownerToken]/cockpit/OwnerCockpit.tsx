@@ -676,35 +676,39 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         })}
                       </div>
 
-                      <div className="absolute left-0 right-0 top-0 grid h-[3.6rem] gap-1" style={{ gridTemplateColumns }}>
-                        {rowReservations
-                          .filter((reservation) => reservation.cleaningDay)
-                          .map((reservation) => {
-                            const start = Math.min(reservation.start, reservation.cleaningDay ?? reservation.start);
-                            const end = Math.max(reservation.start + reservation.span - 1, reservation.cleaningDay ?? reservation.start);
-                            return (
-                              <div
-                                key={`${reservation.id}-cleaning-link`}
-                                className={`pointer-events-none z-10 mt-[3.25rem] h-0.5 rounded-full opacity-80 ${reservationCleaningLine(reservation.cleaningState)}`}
-                                style={{ gridColumn: `${start} / span ${Math.max(1, end - start + 1)}` }}
-                                title={reservationCleaningTitle(reservation.cleaningState)}
-                              />
-                            );
-                          })}
+                      <div className="absolute left-0 right-0 top-0 h-[3.85rem]">
+                        <div className="absolute inset-x-0 top-[3.15rem] grid gap-1" style={{ gridTemplateColumns }}>
+                          {rowReservations
+                            .filter((reservation) => reservation.cleaningDay)
+                            .map((reservation) => {
+                              const start = Math.min(reservation.start, reservation.cleaningDay ?? reservation.start);
+                              const end = Math.max(reservation.start + reservation.span - 1, reservation.cleaningDay ?? reservation.start);
+                              return (
+                                <div
+                                  key={`${reservation.id}-cleaning-link`}
+                                  className={`pointer-events-none h-0.5 rounded-full opacity-70 ${reservationCleaningLine(reservation.cleaningState)}`}
+                                  style={{ gridColumn: `${start} / span ${Math.max(1, end - start + 1)}` }}
+                                  title={reservationCleaningTitle(reservation.cleaningState)}
+                                />
+                              );
+                            })}
+                        </div>
 
-                        {rowReservations.map((reservation) => (
-                          <a
-                            key={reservation.id}
-                            href={reservation.href}
-                            className={`relative z-20 mt-1 block h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm transition hover:translate-y-[-1px] hover:shadow-md ${reservationCleaningBorder(reservation.cleaningState)}`}
-                            style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
-                            title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits · ${reservationCleaningTitle(reservation.cleaningState)}`}
-                          >
-                            <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
-                            <p className="truncate pr-5 text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
-                            <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
-                          </a>
-                        ))}
+                        <div className="absolute inset-x-0 top-0 grid gap-1" style={{ gridTemplateColumns }}>
+                          {rowReservations.map((reservation) => (
+                            <a
+                              key={reservation.id}
+                              href={reservation.href}
+                              className={`relative z-30 mt-1 block h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm transition hover:translate-y-[-1px] hover:shadow-md ${reservationCleaningBorder(reservation.cleaningState)}`}
+                              style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
+                              title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits · ${reservationCleaningTitle(reservation.cleaningState)}`}
+                            >
+                              <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
+                              <p className="truncate pr-5 text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
+                              <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
+                            </a>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="absolute bottom-1 left-0 right-0 grid h-[2.35rem] gap-1" style={{ gridTemplateColumns }}>
