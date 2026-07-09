@@ -366,16 +366,6 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
           })}
         </div>
       </div>
-
-      <div className="flex flex-wrap items-center gap-2 rounded-[1.25rem] bg-white/65 px-3 py-2 text-xs font-black text-[#112532]/55 ring-1 ring-[#112532]/6">
-        <span className="mr-1 uppercase tracking-[0.14em] text-[#80A5B7]">Légende planning</span>
-        {data.listings.map((listing) => (
-          <span key={`legend-${listing.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: listing.dot }} />
-            <span className="max-w-[10rem] truncate">{listing.name}</span>
-          </span>
-        ))}
-      </div>
     </section>
   );
 }
@@ -463,14 +453,17 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
             <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Réservations & missions</h2>
           </div>
           <p className="max-w-xl text-sm font-bold text-[#112532]/55">
-            Couleurs = logements sélectionnés · séjour en haut, missions en bas, prix indicatifs dans les jours libres.
+            Une ligne par logement : séjour en haut, missions en bas, prix indicatifs dans les jours libres.
           </p>
         </div>
       </div>
 
       <AutoScrollPlanningRail dayWidthPx={dayWidthPx} todayOffset={todayOffset}>
         <div className="min-w-max p-3">
-          <div className="space-y-2">
+          <div className="grid grid-cols-[13.5rem_auto] gap-3">
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#80A5B7] shadow-sm ring-1 ring-[#112532]/8">
+              Logement
+            </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.monthSpans.map((span) => (
                 <div key={`${span.month}-${span.start}`} className="rounded-2xl bg-[#F4F8FA] px-4 py-2 text-sm font-black text-[#477084]" style={{ gridColumn: `${span.start} / span ${span.span}` }}>
@@ -479,6 +472,9 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
               ))}
             </div>
 
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-3 text-xs font-black text-[#112532]/45 shadow-sm ring-1 ring-[#112532]/8">
+              Date
+            </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.planningDays.map((day) => (
                 <div key={day.key} className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-2 py-2 text-center text-[11px] font-black leading-4 text-[#112532]/60 ring-1 ring-[#112532]/5">
@@ -487,6 +483,9 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
               ))}
             </div>
 
+            <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-2 text-xs font-black text-[#112532]/45 shadow-sm ring-1 ring-[#112532]/8">
+              Marché
+            </div>
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.planningDays.map((day) => (
                 <div key={`tension-${day.key}`} className={`h-3 rounded-full ${tensionColor(day.tension)}`} style={{ opacity: 0.18 + day.tension * 0.38 }} />
@@ -500,10 +499,17 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
               const coveredDays = coveredDaysByListing.get(listing.id) ?? new Set<number>();
 
               return (
-                <div key={listing.id} className="relative">
+                <div key={listing.id} className="grid grid-cols-[13.5rem_auto] gap-3">
+                  <div className="sticky left-0 z-30 flex h-[7.75rem] items-center gap-3 rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/8">
+                    <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-[#112532]" title={listing.name}>{listing.name}</p>
+                      <p className="mt-1 text-xs font-bold text-[#112532]/50">{listing.occupancy}% · {formatMoney(listing.revenue)}</p>
+                    </div>
+                  </div>
+
                   <div className="h-[7.75rem] rounded-[1.35rem] bg-[#F4F8FA]/72 p-2 ring-1 ring-[#112532]/5">
                     <div className="relative h-full overflow-hidden rounded-[1rem]">
-                      <div className="absolute bottom-2 left-2 top-2 z-20 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
                       <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
