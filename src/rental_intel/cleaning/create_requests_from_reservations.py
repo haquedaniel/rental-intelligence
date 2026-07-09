@@ -168,14 +168,20 @@ def current_request_for_reservation(requests: list[dict]) -> dict | None:
 
 def accepted_request_invalidated_by_new_checkin(
     request: dict | None,
+    checkout_at: datetime | None,
     next_checkin_at: datetime | None,
 ) -> bool:
     """
-    An accepted mission becomes invalid if the cleaner's confirmed timing now
-    falls on or after the newly inserted next check-in.
+    An accepted mission is invalid only if the cleaner's confirmed ready time
+    is now strictly later than the new deadline created by the next check-in.
 
-    This handles the case where a new reservation arrives in what used to be a
-    free gap, after the cleaner had already accepted a later ready day.
+    Important:
+    - Same-day turnover where ready_by_at == next_checkin_at is allowed.
+    - We primarily trust ready_by_at, because that is the cleaner-confirmed
+      commitment. scheduled_start/end may be generic defaults and should not
+      invalidate normal missions by themselves.
+    - This prevents mass-cancelling valid accepted missions when many normal
+      turnovers have ready_by_at exactly at the next check-in boundary.
     """
     if not request:
         return False
@@ -183,29 +189,24 @@ def accepted_request_invalidated_by_new_checkin(
     if request.get("status") != "accepted":
         return False
 
-    if not next_checkin_at:
+    if not checkout_at or not next_checkin_at:
         return False
 
-    next_checkin_utc = next_checkin_at.astimezone(timezone.utc)
+    confirmed_ready_at = parse_dt(request.get("ready_by_at"))
 
-    candidate_fields = [
-        "ready_by_at",
-        "scheduled_start_at",
-        "scheduled_end_at",
-    ]
-
-    confirmed_times = []
-
-    for field in candidate_fields:
-        value = parse_dt(request.get(field))
-
-        if value:
-            confirmed_times.append(value.astimezone(timezone.utc))
-
-    if not confirmed_times:
+    if not confirmed_ready_at:
         return False
 
-    return any(value >= next_checkin_utc for value in confirmed_times)
+    new_deadline = ready_deadline_at(
+        checkout_at=checkout_at,
+        next_checkin_at=next_checkin_at,
+    ).astimezone(timezone.utc)
+
+    confirmed_ready_utc = confirmed_ready_at.astimezone(timezone.utc)
+
+    # Strictly greater than the new deadline. Equality is acceptable:
+    # "ready before / by 16:00" for a 16:00 arrival should not be replanned.
+    return confirmed_ready_utc > new_deadline
 
 
 def start_run(supabase):
@@ -857,7 +858,7 @@ def main() -> None:
 
             next_checkin_at = next_checkins.get(reservation_id)
 
-            if accepted_request_invalidated_by_new_checkin(existing_request, next_checkin_at):
+            if accepted_request_invalidated_by_new_checkin(existing_request, checkout_at, next_checkin_at):
                 supabase.table("cleaning_requests").update(
                     {
                         "status": "cancelled",
