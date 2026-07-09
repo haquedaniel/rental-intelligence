@@ -488,6 +488,21 @@ function AutoScrollPlanningRail({
 
 
 
+
+function dayCenterLeftPx(day: number, dayWidthPx: number) {
+  return (Math.max(1, day) - 0.5) * dayWidthPx;
+}
+
+function reservationLeftPx(reservation: PlanningReservation, dayWidthPx: number) {
+  // Check-in afternoon: start halfway through the check-in day.
+  return (reservation.start - 0.5) * dayWidthPx;
+}
+
+function reservationWidthPx(reservation: PlanningReservation, dayWidthPx: number) {
+  // Checkout morning: end halfway through the checkout day.
+  return Math.max(44, reservation.span * dayWidthPx);
+}
+
 function reservationCleaningBorder(state: PlanningReservation["cleaningState"]) {
   if (state === "accepted") return "ring-2 ring-emerald-500";
   if (state === "planned") return "ring-2 ring-[#F4B044]";
@@ -660,9 +675,10 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
 
               return (
                 <div key={listing.id} className="relative">
-                  <div className="h-[7.75rem] rounded-[1.35rem] bg-[#F4F8FA]/72 p-2 ring-1 ring-[#112532]/5">
+                  <div className="h-[5.6rem] rounded-[1.35rem] bg-[#F4F8FA]/72 p-2 ring-1 ring-[#112532]/5">
                     <div className="relative h-full overflow-hidden rounded-[1rem]">
-                      <div className="absolute bottom-2 left-2 top-2 z-20 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
+                      <div className="absolute bottom-2 left-2 top-2 z-40 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
+
                       <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
@@ -676,48 +692,56 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         })}
                       </div>
 
-                      <div className="absolute left-0 right-0 top-0 h-[3.85rem]">
-                        <div className="absolute inset-x-0 top-[3.15rem] grid gap-1" style={{ gridTemplateColumns }}>
-                          {rowReservations
-                            .filter((reservation) => reservation.cleaningDay)
-                            .map((reservation) => {
-                              const start = Math.min(reservation.start, reservation.cleaningDay ?? reservation.start);
-                              const end = Math.max(reservation.start + reservation.span - 1, reservation.cleaningDay ?? reservation.start);
-                              return (
-                                <div
-                                  key={`${reservation.id}-cleaning-link`}
-                                  className={`pointer-events-none h-0.5 rounded-full opacity-70 ${reservationCleaningLine(reservation.cleaningState)}`}
-                                  style={{ gridColumn: `${start} / span ${Math.max(1, end - start + 1)}` }}
-                                  title={reservationCleaningTitle(reservation.cleaningState)}
-                                />
-                              );
-                            })}
-                        </div>
-
-                        <div className="absolute inset-x-0 top-0 grid gap-1" style={{ gridTemplateColumns }}>
-                          {rowReservations.map((reservation) => (
-                            <a
-                              key={reservation.id}
-                              href={reservation.href}
-                              className={`relative z-30 mt-1 block h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm transition hover:translate-y-[-1px] hover:shadow-md ${reservationCleaningBorder(reservation.cleaningState)}`}
-                              style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
-                              title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits · ${reservationCleaningTitle(reservation.cleaningState)}`}
-                            >
-                              <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
-                              <p className="truncate pr-5 text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
-                              <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
-                            </a>
-                          ))}
-                        </div>
+                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
+                        {rowReservations
+                          .filter((reservation) => reservation.cleaningDay)
+                          .map((reservation) => {
+                            const startPx = reservationLeftPx(reservation, dayWidthPx);
+                            const endPx = dayCenterLeftPx(reservation.cleaningDay ?? reservation.start, dayWidthPx);
+                            const left = Math.min(startPx, endPx);
+                            const width = Math.max(12, Math.abs(endPx - startPx));
+                            return (
+                              <div
+                                key={`${reservation.id}-cleaning-link`}
+                                className={`absolute top-0 h-0.5 rounded-full opacity-65 ${reservationCleaningLine(reservation.cleaningState)}`}
+                                style={{ left, width }}
+                                title={reservationCleaningTitle(reservation.cleaningState)}
+                              />
+                            );
+                          })}
                       </div>
 
-                      <div className="absolute bottom-1 left-0 right-0 grid h-[2.35rem] gap-1" style={{ gridTemplateColumns }}>
+                      <div className="absolute inset-0 z-20">
+                        {rowReservations.map((reservation) => (
+                          <a
+                            key={reservation.id}
+                            href={reservation.href}
+                            className={`absolute top-1/2 block h-[2.9rem] -translate-y-1/2 overflow-hidden rounded-2xl px-3 py-1 text-center text-white shadow-sm transition hover:translate-y-[-55%] hover:shadow-md ${reservationCleaningBorder(reservation.cleaningState)}`}
+                            style={{
+                              left: reservationLeftPx(reservation, dayWidthPx),
+                              width: reservationWidthPx(reservation, dayWidthPx),
+                              backgroundColor: listing.dot,
+                            }}
+                            title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits · ${reservation.nightly}€/nuit · ${reservationCleaningTitle(reservation.cleaningState)}`}
+                          >
+                            <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
+                            <p className="truncate px-4 text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
+                            <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
+                          </a>
+                        ))}
+                      </div>
+
+                      <div className="absolute inset-0 z-30">
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
-                          if (markers.length === 0) return <div key={`${listing.id}-mission-empty-${day}`} />;
+                          if (markers.length === 0) return null;
                           return (
-                            <div key={`${listing.id}-mission-${day}`} className="flex items-center justify-center">
+                            <div
+                              key={`${listing.id}-mission-${day}`}
+                              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                              style={{ left: dayCenterLeftPx(day, dayWidthPx) }}
+                            >
                               <MissionGroupPopover markers={markers} />
                             </div>
                           );
