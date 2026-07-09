@@ -68,7 +68,6 @@ export type PlanningReservation = {
   span: number;
   price: number;
   nightly: number;
-  href: string;
 };
 
 export type PlanningMarker = {
@@ -78,10 +77,6 @@ export type PlanningMarker = {
   icon: string;
   tone: Tone;
   label: string;
-  href: string;
-  statusLabel: string;
-  avatarUrl?: string | null;
-  avatarInitials: string;
 };
 
 export type DailyPrice = {
@@ -104,8 +99,6 @@ export type TimelineEvent = {
   status?: string;
   tone: Tone;
   href?: string;
-  avatarUrl?: string | null;
-  avatarInitials?: string;
 };
 
 export type Opportunity = {

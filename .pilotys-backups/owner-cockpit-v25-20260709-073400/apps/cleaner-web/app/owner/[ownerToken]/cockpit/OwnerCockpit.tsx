@@ -55,41 +55,6 @@ function listingById(listings: OwnerCockpitListing[], id: string) {
   return listings.find((listing) => listing.id === id);
 }
 
-
-function InitialsAvatar({
-  image,
-  initials,
-  tone = "blue",
-  title,
-  size = "h-8 w-8",
-}: {
-  image?: string | null;
-  initials?: string;
-  tone?: Tone;
-  title?: string;
-  size?: string;
-}) {
-  return (
-    <span
-      title={title}
-      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-[10px] font-black text-[#112532] shadow-sm ring-3 ${statusRing(tone)} ${size}`}
-    >
-      {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : initials || "?"}
-    </span>
-  );
-}
-
-function statusRing(tone: Tone) {
-  const classes: Record<Tone, string> = {
-    navy: "ring-[#112532]",
-    blue: "ring-[#80A5B7]",
-    orange: "ring-[#E0680E]",
-    mustard: "ring-[#F4B044]",
-    green: "ring-emerald-500",
-  };
-  return classes[tone];
-}
-
 function ShellCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <section className={`rounded-[1.7rem] bg-white shadow-[0_10px_30px_rgba(17,37,50,0.06)] ring-1 ring-[#112532]/8 ${className}`}>{children}</section>;
 }
@@ -244,12 +209,10 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
     const variableCosts = data.financial.variableCosts ?? Math.max(0, gross - net);
     const expenseItems = data.financial.expenseBreakdownItems ?? [];
 
-    const netPct = gross ? Math.max(0, Math.min(100, (net / gross) * 100)) : 0;
-    const costPct = gross ? Math.max(0, Math.min(100, (variableCosts / gross) * 100)) : 0;
     const rows = [
-      { label: "CA brut", value: gross, left: 0, width: 100, tone: "blue" as Tone, sign: "" },
-      { label: "Coûts variables", value: variableCosts, left: netPct, width: costPct, tone: "mustard" as Tone, sign: "-" },
-      { label: "Après variables", value: net, left: 0, width: netPct, tone: "orange" as Tone, sign: "" },
+      { label: "CA brut", value: gross, width: 100, tone: "blue" as Tone, sign: "" },
+      { label: "Coûts variables", value: variableCosts, width: gross ? (variableCosts / gross) * 100 : 0, tone: "mustard" as Tone, sign: "-" },
+      { label: "Après variables", value: net, width: gross ? (net / gross) * 100 : 0, tone: "orange" as Tone, sign: "" },
     ];
 
     return (
@@ -259,11 +222,8 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
           {rows.map((row) => (
             <div key={row.label} className="grid grid-cols-[8rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]">
               <span className="truncate text-[#112532]/70">{row.label}</span>
-              <div className="relative h-4 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
-                <div
-                  className={`absolute top-0 h-full rounded-full ${toneSolid(row.tone)}`}
-                  style={{ left: `${row.left}%`, width: `${Math.max(4, row.width)}%` }}
-                />
+              <div className="h-4 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
+                <div className={`h-full rounded-full ${toneSolid(row.tone)}`} style={{ width: `${Math.max(4, row.width)}%` }} />
               </div>
               <span className="text-right text-[#112532]">{row.sign}{formatMoney(row.value)}</span>
             </div>
@@ -377,23 +337,23 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">Opérations</p>
-        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Réservations, ménages et interventions</h2>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Logements</p>
+        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Sélection</h2>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-        <div className="grid auto-cols-[minmax(17rem,1fr)] grid-flow-col gap-3 lg:grid-flow-row lg:grid-cols-4">
+        <div className="flex gap-3">
           {data.listings.map((listing) => {
             const active = selected.includes(listing.id);
             return (
               <button
                 key={listing.id}
                 onClick={() => toggle(listing.id)}
-                className={`flex h-24 w-full min-w-[17rem] items-center gap-3 rounded-[1.35rem] bg-white p-2 pr-4 text-left shadow-[0_8px_24px_rgba(17,37,50,0.05)] ring-1 transition ${
+                className={`flex min-w-[13rem] items-center gap-3 rounded-[1.35rem] bg-white p-2 pr-4 text-left shadow-[0_8px_24px_rgba(17,37,50,0.05)] ring-1 transition ${
                   active ? "ring-[#E0680E]/35" : "opacity-55 ring-[#112532]/8"
                 }`}
               >
-                <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#F4F8FA]">
+                <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-2xl bg-[#F4F8FA]">
                   {listing.image ? <img src={listing.image} alt="" className="h-full w-full object-cover" /> : null}
                   <span className="absolute left-2 top-2 h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
                 </div>
@@ -415,11 +375,6 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
             <span className="max-w-[10rem] truncate">{listing.name}</span>
           </span>
         ))}
-        <span className="mx-1 h-5 w-px bg-[#112532]/10" />
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Confirmé</span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#F4B044]" />Proposé</span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#E0680E]" />Action</span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#80A5B7]" />Terminé</span>
       </div>
     </section>
   );
@@ -501,6 +456,18 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
 
   return (
     <ShellCard className="overflow-hidden">
+      <div className="border-b border-[#112532]/8 p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Planning</p>
+            <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Réservations & missions</h2>
+          </div>
+          <p className="max-w-xl text-sm font-bold text-[#112532]/55">
+            Couleurs = logements sélectionnés · séjour en haut, missions en bas, prix indicatifs dans les jours libres.
+          </p>
+        </div>
+      </div>
+
       <AutoScrollPlanningRail dayWidthPx={dayWidthPx} todayOffset={todayOffset}>
         <div className="min-w-max p-3">
           <div className="space-y-2">
@@ -552,16 +519,15 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
 
                       <div className="absolute left-0 right-0 top-0 grid h-[3.6rem] gap-1" style={{ gridTemplateColumns }}>
                         {rowReservations.map((reservation) => (
-                          <a
+                          <div
                             key={reservation.id}
-                            href={reservation.href}
-                            className="relative z-10 mt-1 block h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm ring-1 ring-white/70 transition hover:translate-y-[-1px] hover:shadow-md"
+                            className="relative z-10 mt-1 h-[2.8rem] overflow-hidden rounded-2xl px-3 py-1 text-white shadow-sm ring-1 ring-white/70"
                             style={{ gridColumn: `${reservation.start} / span ${reservation.span}`, backgroundColor: listing.dot }}
                             title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits`}
                           >
                             <p className="truncate text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
                             <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
-                          </a>
+                          </div>
                         ))}
                       </div>
 
@@ -571,24 +537,15 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
                           if (markers.length === 0) return <div key={`${listing.id}-mission-empty-${day}`} />;
                           const first = markers[0];
-                          const label = markers.length > 1 ? `${markers.length} missions` : `${first.label} · ${first.statusLabel}`;
+                          const label = markers.length > 1 ? `${markers.length} missions` : first.label;
                           return (
                             <div key={`${listing.id}-mission-${day}`} className="flex items-center justify-center">
-                              <a href={first.href} title={label} className="relative transition hover:scale-105">
-                                {markers.length > 1 ? (
-                                  <span className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)}`}>
-                                    {markers.length}
-                                  </span>
-                                ) : (
-                                  <InitialsAvatar
-                                    image={first.avatarUrl}
-                                    initials={first.avatarInitials}
-                                    tone={first.tone}
-                                    title={label}
-                                    size="h-8 w-8"
-                                  />
-                                )}
-                              </a>
+                              <div
+                                title={label}
+                                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ring-white ${toneSolid(first.tone)}`}
+                              >
+                                {markers.length > 1 ? markers.length : first.icon}
+                              </div>
                             </div>
                           );
                         })}
@@ -639,21 +596,10 @@ function TimelineBrowser({ data }: { data: OwnerCockpitData }) {
 
 function TimelineRow({ event, listings, muted = false }: { event: TimelineEvent; listings: OwnerCockpitListing[]; muted?: boolean }) {
   const listing = listingById(listings, event.listingId);
-  const isMission = event.kind === "cleaning" || event.kind === "intervention";
-  const avatarImage = isMission ? event.avatarUrl : listing?.image;
-  const avatarInitials = isMission ? event.avatarInitials : listing?.short;
+  const icon = event.kind === "arrival" ? "→" : event.kind === "departure" ? "↗" : event.kind === "cleaning" ? "✦" : "◆";
   const row = (
-    <span className={`relative grid w-full grid-cols-[52px_1fr_auto] items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F4F8FA] ${muted ? "opacity-72" : ""}`}>
-      <span className="absolute bottom-0 left-[1.58rem] top-0 w-0.5 bg-[#D8E6EC]" />
-      <span className="relative z-10 flex items-center justify-center">
-        <InitialsAvatar
-          image={avatarImage}
-          initials={avatarInitials}
-          tone={event.tone}
-          title={isMission ? event.detail : listing?.name}
-          size="h-11 w-11"
-        />
-      </span>
+    <span className={`relative grid w-full grid-cols-[42px_1fr_auto] items-center gap-3 rounded-2xl px-0 py-2 text-left transition hover:bg-[#F4F8FA] ${muted ? "opacity-72" : ""}`}>
+      <span className={`z-10 flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-white shadow-sm ring-4 ring-white ${toneSolid(event.tone)}`}>{icon}</span>
       <span className="min-w-0">
         <span className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: listing?.dot ?? "#112532" }} />
@@ -668,7 +614,7 @@ function TimelineRow({ event, listings, muted = false }: { event: TimelineEvent;
     </span>
   );
 
-  return event.href ? <a href={event.href} className="block">{row}</a> : <div>{row}</div>;
+  return event.href ? <a href={event.href}>{row}</a> : <button>{row}</button>;
 }
 
 function Opportunities({ data }: { data: OwnerCockpitData }) {

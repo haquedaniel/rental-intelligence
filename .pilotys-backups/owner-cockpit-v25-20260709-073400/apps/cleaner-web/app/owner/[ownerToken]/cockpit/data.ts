@@ -32,66 +32,6 @@ import type {
 
 type Row = Record<string, any>;
 
-function reservationHref(reservation: Row) {
-  return `/owner/reservations/${reservation.id}`;
-}
-
-function requestHref(request: Row) {
-  const status = String(request.status ?? "");
-  if (["completed", "report_submitted", "problem_reported"].includes(status)) {
-    return `/owner/reports/${request.id}`;
-  }
-  return `/owner/issues/request/${request.id}`;
-}
-
-function initialsFromParts(first?: unknown, last?: unknown, fallback = "?") {
-  const a = String(first ?? "").trim();
-  const b = String(last ?? "").trim();
-  const out = `${a[0] ?? ""}${b[0] ?? ""}`.toUpperCase();
-  return out || fallback;
-}
-
-function cleanerDisplayName(cleaner?: Row | null) {
-  if (!cleaner) return "Intervenante";
-  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || cleaner.display_name || cleaner.name || "Intervenante";
-}
-
-function cleanerInitials(cleaner?: Row | null) {
-  if (!cleaner) return "?";
-  return initialsFromParts(cleaner.first_name, cleaner.last_name, "?");
-}
-
-function cleanerPhotoUrl(cleaner?: Row | null) {
-  if (!cleaner) return null;
-  return (
-    cleaner.profilePhotoSignedUrl ||
-    cleaner.profile_photo_signed_url ||
-    cleaner.profile_photo_url ||
-    cleaner.photo_url ||
-    cleaner.avatar_url ||
-    null
-  );
-}
-
-function requestTone(request: Row): Tone {
-  const status = String(request.status ?? "");
-  const schedule = String(request.schedule_status ?? "");
-  const issue =
-    ["refused", "problem_reported"].includes(status) ||
-    ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(schedule);
-
-  if (issue) return "orange";
-  if (["completed", "report_submitted"].includes(status)) return "blue";
-  if (status === "accepted") return "green";
-  return "mustard";
-}
-
-function requestIsIntervention(request: Row) {
-  const serviceType = String(request.service_type ?? "");
-  return ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
-}
-
-
 function isReservationActiveOnDate(reservation: Row, dateKey: string) {
   if (!reservation.checkin_at || !reservation.checkout_at) return false;
   const checkin = parisDateKey(reservation.checkin_at);
@@ -659,7 +599,6 @@ function buildPlanningReservations({
         span,
         price,
         nightly: price > 0 ? Math.round(price / nights) : 0,
-        href: reservationHref(reservation),
       };
     })
     .filter((reservation) => reservation.span > 0);
@@ -667,12 +606,10 @@ function buildPlanningReservations({
 
 function buildMarkers({
   requests,
-  cleanersById,
   planningStart,
   planningEnd,
 }: {
   requests: Row[];
-  cleanersById: Record<string, Row>;
   planningStart: string;
   planningEnd: string;
 }): PlanningMarker[] {
@@ -688,22 +625,20 @@ function buildMarkers({
     const day = daysBetween(planningStart, dateKey) + 1;
     if (day < 1 || day > maxDay) continue;
 
-    const isIntervention = requestIsIntervention(request);
-    const cleaner = cleanersById[String(request.assigned_cleaner_id ?? "")];
-    const statusLabel = requestStatusLabel(request);
-    const tone = requestTone(request);
+    const serviceType = String(request.service_type ?? "");
+    const isIntervention = ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
+    const issue =
+      ["refused", "problem_reported"].includes(String(request.status ?? "")) ||
+      ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(String(request.schedule_status ?? ""));
+    const tone: Tone = issue ? "orange" : isIntervention ? "orange" : "mustard";
 
     markers.push({
       id: String(request.id),
       listingId: String(request.property_id),
       day,
-      icon: isIntervention ? "◆" : "✦",
+      icon: isIntervention ? "◆" : issue ? "!" : "✦",
       tone,
       label: isIntervention ? "intervention" : "ménage",
-      href: requestHref(request),
-      statusLabel,
-      avatarUrl: cleanerPhotoUrl(cleaner),
-      avatarInitials: cleanerInitials(cleaner),
     });
   }
 
@@ -756,7 +691,7 @@ function timelineTitleForRequest(request: Row) {
 function timelineDetailForRequest(request: Row, cleanersById: Record<string, Row>) {
   const status = String(request.status ?? "");
   const cleaner = cleanersById[String(request.assigned_cleaner_id ?? "")];
-  const cleanerName = cleanerDisplayName(cleaner);
+  const cleanerName = cleaner ? [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") : "Intervenante";
 
   if (["completed", "report_submitted"].includes(status)) return "Photos et rapport disponibles";
   if (status === "problem_reported") return "Rapport à vérifier";
@@ -795,7 +730,6 @@ function buildTimeline({
         title: "Arrivée",
         detail: reservationGuest(reservation),
         tone: "orange",
-        href: reservationHref(reservation),
       });
     }
 
@@ -811,7 +745,6 @@ function buildTimeline({
         title: "Départ",
         detail: reservationGuest(reservation),
         tone: "navy",
-        href: reservationHref(reservation),
       });
     }
   }
@@ -822,9 +755,11 @@ function buildTimeline({
 
     const eventAt = request.ready_by_at || request.scheduled_start_at || `${dateKey}T16:00:00.000Z`;
     const status = String(request.status ?? "");
-    const cleaner = cleanersById[String(request.assigned_cleaner_id ?? "")];
-    const isIntervention = requestIsIntervention(request);
-    const tone: Tone = requestTone(request);
+    const issue = ["problem_reported", "refused"].includes(status) ||
+      ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(String(request.schedule_status ?? ""));
+    const serviceType = String(request.service_type ?? "");
+    const isIntervention = ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
+    const tone: Tone = issue ? "orange" : ["completed", "report_submitted"].includes(status) ? "blue" : "mustard";
 
     events.push({
       id: `mission-${request.id}`,
@@ -837,19 +772,22 @@ function buildTimeline({
       detail: timelineDetailForRequest(request, cleanersById),
       status: requestStatusLabel(request),
       tone,
-      href: requestHref(request),
-      avatarUrl: cleanerPhotoUrl(cleaner),
-      avatarInitials: cleanerInitials(cleaner),
+      href: ["completed", "report_submitted", "problem_reported"].includes(status)
+        ? `/owner/${ownerToken}/reports/${request.id}`
+        : undefined,
     });
   }
 
   const past = events
     .filter((event) => event.side === "past")
-    .sort((a, b) => a.eventAt.localeCompare(b.eventAt));
+    .sort((a, b) => b.eventAt.localeCompare(a.eventAt))
+    .slice(0, 4)
+    .reverse();
 
   const future = events
     .filter((event) => event.side === "future")
-    .sort((a, b) => a.eventAt.localeCompare(b.eventAt));
+    .sort((a, b) => a.eventAt.localeCompare(b.eventAt))
+    .slice(0, 4);
 
   return [...past, ...future];
 }
@@ -1110,7 +1048,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     monthlyRows: analyticsMonthly,
     targets,
   });
-  const planningMarkers = buildMarkers({ requests, cleanersById, planningStart, planningEnd });
+  const planningMarkers = buildMarkers({ requests, planningStart, planningEnd });
   const dailyPrices = buildDailyPrices({ listings, days: planningDays, monthlyRows: analyticsMonthly, targets });
   const timelineEvents = buildTimeline({ reservations, requests, cleanersById, ownerToken });
   const opportunities = buildOpportunities({ listings });

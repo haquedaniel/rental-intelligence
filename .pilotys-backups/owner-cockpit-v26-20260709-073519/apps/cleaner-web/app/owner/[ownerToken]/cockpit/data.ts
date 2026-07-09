@@ -32,66 +32,6 @@ import type {
 
 type Row = Record<string, any>;
 
-function reservationHref(reservation: Row) {
-  return `/owner/reservations/${reservation.id}`;
-}
-
-function requestHref(request: Row) {
-  const status = String(request.status ?? "");
-  if (["completed", "report_submitted", "problem_reported"].includes(status)) {
-    return `/owner/reports/${request.id}`;
-  }
-  return `/owner/issues/request/${request.id}`;
-}
-
-function initialsFromParts(first?: unknown, last?: unknown, fallback = "?") {
-  const a = String(first ?? "").trim();
-  const b = String(last ?? "").trim();
-  const out = `${a[0] ?? ""}${b[0] ?? ""}`.toUpperCase();
-  return out || fallback;
-}
-
-function cleanerDisplayName(cleaner?: Row | null) {
-  if (!cleaner) return "Intervenante";
-  return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || cleaner.display_name || cleaner.name || "Intervenante";
-}
-
-function cleanerInitials(cleaner?: Row | null) {
-  if (!cleaner) return "?";
-  return initialsFromParts(cleaner.first_name, cleaner.last_name, "?");
-}
-
-function cleanerPhotoUrl(cleaner?: Row | null) {
-  if (!cleaner) return null;
-  return (
-    cleaner.profilePhotoSignedUrl ||
-    cleaner.profile_photo_signed_url ||
-    cleaner.profile_photo_url ||
-    cleaner.photo_url ||
-    cleaner.avatar_url ||
-    null
-  );
-}
-
-function requestTone(request: Row): Tone {
-  const status = String(request.status ?? "");
-  const schedule = String(request.schedule_status ?? "");
-  const issue =
-    ["refused", "problem_reported"].includes(status) ||
-    ["needs_manual_reassignment", "planning_changed", "cleaning_overdue", "overdue"].includes(schedule);
-
-  if (issue) return "orange";
-  if (["completed", "report_submitted"].includes(status)) return "blue";
-  if (status === "accepted") return "green";
-  return "mustard";
-}
-
-function requestIsIntervention(request: Row) {
-  const serviceType = String(request.service_type ?? "");
-  return ["garden_lawn", "maintenance_check", "inventory_check"].includes(serviceType);
-}
-
-
 function isReservationActiveOnDate(reservation: Row, dateKey: string) {
   if (!reservation.checkin_at || !reservation.checkout_at) return false;
   const checkin = parisDateKey(reservation.checkin_at);
