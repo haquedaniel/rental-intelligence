@@ -299,7 +299,8 @@ function reservationGuest(row: Row) {
   const full = [first, last].filter(Boolean).join(" ").trim();
   if (full) return full;
 
-  return "Client";
+  const code = String(row.source_booking_id ?? row.booking_id ?? row.reference ?? "").trim();
+  return code ? `Réservation ${code}` : "Client";
 }
 
 function signedPhotoUrlOrNull(row: Row) {

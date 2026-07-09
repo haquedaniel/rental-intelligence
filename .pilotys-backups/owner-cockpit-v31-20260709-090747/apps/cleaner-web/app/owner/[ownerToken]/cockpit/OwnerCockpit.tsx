@@ -348,11 +348,7 @@ function MonthlyRevenueChart({ data }: { data: OwnerCockpitData }) {
 
 function ActionMessage({ data }: { data: OwnerCockpitData }) {
   const actionEvent =
-    data.timelineEvents.find(
-      (event) =>
-        event.tone === "orange" &&
-        (event.kind === "cleaning" || event.kind === "intervention"),
-    ) ||
+    data.timelineEvents.find((event) => event.tone === "orange") ||
     data.timelineEvents.find((event) => event.title.toLowerCase().includes("paiement"));
 
   if (!actionEvent) {
@@ -506,10 +502,10 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
   }
 
   return (
-    <>
+    <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((value) => !value)}
         title={`${markers.length} missions`}
         className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)} transition hover:scale-105`}
       >
@@ -517,45 +513,36 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#112532]/18 px-4 py-6" onClick={() => setOpen(false)}>
-          <div
-            className="w-full max-w-sm rounded-[1.5rem] bg-white p-3 text-left shadow-[0_24px_80px_rgba(17,37,50,0.28)] ring-1 ring-[#112532]/10"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-2 flex items-center justify-between px-2 py-1">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#80A5B7]">Choisir une mission</p>
-                <p className="mt-1 text-sm font-black text-[#112532]">{markers.length} missions ce jour</p>
-              </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-full px-3 py-2 text-sm font-black text-[#112532]/45 hover:bg-[#F4F8FA]">×</button>
-            </div>
-
-            <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
-              {markers.map((marker) => (
-                <a
-                  key={marker.id}
-                  href={marker.href}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-[#F4F8FA]"
-                >
-                  <InitialsAvatar
-                    image={marker.avatarUrl}
-                    initials={marker.avatarInitials}
-                    tone={marker.tone}
-                    title={`${marker.label} · ${marker.statusLabel}`}
-                    size="h-10 w-10"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black text-[#112532]">{marker.label}</span>
-                    <span className="mt-0.5 block truncate text-xs font-bold text-[#112532]/50">{marker.statusLabel}</span>
-                  </span>
-                  <span className="text-sm font-black text-[#E0680E]">→</span>
-                </a>
-              ))}
-            </div>
+        <div className="absolute bottom-10 left-1/2 z-50 w-72 -translate-x-1/2 rounded-2xl bg-white p-2 text-left shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10">
+          <div className="mb-1 flex items-center justify-between px-2 py-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#80A5B7]">{markers.length} missions</p>
+            <button type="button" onClick={() => setOpen(false)} className="rounded-full px-2 py-1 text-xs font-black text-[#112532]/45 hover:bg-[#F4F8FA]">×</button>
+          </div>
+          <div className="space-y-1">
+            {markers.map((marker) => (
+              <a
+                key={marker.id}
+                href={marker.href}
+                className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-[#F4F8FA]"
+              >
+                <InitialsAvatar
+                  image={marker.avatarUrl}
+                  initials={marker.avatarInitials}
+                  tone={marker.tone}
+                  title={`${marker.label} · ${marker.statusLabel}`}
+                  size="h-8 w-8"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-black text-[#112532]">{marker.label}</span>
+                  <span className="block truncate text-[11px] font-bold text-[#112532]/50">{marker.statusLabel}</span>
+                </span>
+                <span className="text-xs font-black text-[#E0680E]">→</span>
+              </a>
+            ))}
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
