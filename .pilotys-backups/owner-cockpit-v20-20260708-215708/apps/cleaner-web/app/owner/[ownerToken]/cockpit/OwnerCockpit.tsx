@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode, useRef } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DailyPrice,
   MetricId,

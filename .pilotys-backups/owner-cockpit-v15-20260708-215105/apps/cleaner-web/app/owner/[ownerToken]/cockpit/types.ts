@@ -115,7 +115,6 @@ export type OwnerCockpitData = {
   selectedListingIds: string[];
   financial: FinancialSummary;
   monthlyRevenue: MonthlyRevenuePoint[];
-  today: string;
   planningDays: PlanningDay[];
   monthSpans: PlanningMonthSpan[];
   planningReservations: PlanningReservation[];

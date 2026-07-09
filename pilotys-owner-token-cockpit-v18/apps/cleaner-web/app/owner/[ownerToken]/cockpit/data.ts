@@ -872,7 +872,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   // Do not start at today/month-start only: that clips older stays and creates
   // the visual illusion that lots of reservations start on the same day.
   const planningStart = addMonths(today, -6);
-  const planningEnd = addMonths(today, 6);
 
   const [
     reservationsResult,
@@ -961,6 +960,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const targets = scopedRows(analyticsTargetsResult.data ?? [], propertyIds.map(String));
   const expenses = scopedRows(analyticsExpensesResult.data ?? [], propertyIds.map(String));
 
+  const planningEnd = addMonths(today, 6);
 
   const listings = buildListings({
     properties,

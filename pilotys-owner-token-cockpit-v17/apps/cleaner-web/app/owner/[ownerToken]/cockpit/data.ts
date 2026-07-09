@@ -52,12 +52,7 @@ function dateAtNoon(dateKey: string) {
 function addMonths(dateKey: string, months: number) {
   const date = dateAtNoon(dateKey);
   date.setUTCMonth(date.getUTCMonth() + months);
-
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return dateKeyFromUtcDate(date);
 }
 
 function daysBetween(start: string, end: string) {
@@ -872,7 +867,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   // Do not start at today/month-start only: that clips older stays and creates
   // the visual illusion that lots of reservations start on the same day.
   const planningStart = addMonths(today, -6);
-  const planningEnd = addMonths(today, 6);
 
   const [
     reservationsResult,
@@ -961,6 +955,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const targets = scopedRows(analyticsTargetsResult.data ?? [], propertyIds.map(String));
   const expenses = scopedRows(analyticsExpensesResult.data ?? [], propertyIds.map(String));
 
+  const planningEnd = addMonths(today, 6);
 
   const listings = buildListings({
     properties,

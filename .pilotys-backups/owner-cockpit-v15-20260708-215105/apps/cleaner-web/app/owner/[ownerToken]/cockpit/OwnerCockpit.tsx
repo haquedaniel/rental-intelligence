@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode, useRef } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DailyPrice,
   MetricId,
@@ -341,38 +341,9 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
   );
 }
 
-
-function AutoScrollPlanningRail({
-  children,
-  dayWidthPx,
-  todayOffset,
-}: {
-  children: React.ReactNode;
-  dayWidthPx: number;
-  todayOffset: number;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const rail = ref.current;
-    if (!rail) return;
-
-    const targetLeft = Math.max(0, todayOffset * dayWidthPx - rail.clientWidth * 0.35);
-    rail.scrollTo({ left: targetLeft, behavior: "instant" as ScrollBehavior });
-  }, [dayWidthPx, todayOffset]);
-
-  return (
-    <div ref={ref} className="w-full overflow-x-auto bg-white">
-      {children}
-    </div>
-  );
-}
-
 function Planning({ data, selected }: { data: OwnerCockpitData; selected: string[] }) {
   const selectedListings = data.listings.filter((listing) => selected.includes(listing.id));
-  const dayWidthPx = 76;
-  const dayWidth = `${dayWidthPx}px`;
-  const todayOffset = Math.max(0, data.planningDays.findIndex((day) => day.key === data.today));
+  const dayWidth = "4.25rem";
   const gridTemplateColumns = `repeat(${data.planningDays.length}, ${dayWidth})`;
 
   const reservationsByListing = useMemo(() => {
@@ -429,7 +400,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
         </div>
       </div>
 
-      <AutoScrollPlanningRail dayWidthPx={dayWidthPx} todayOffset={todayOffset}>
+      <div className="w-full overflow-x-auto bg-white">
         <div className="min-w-max p-3">
           <div className="grid grid-cols-[13.5rem_auto] gap-3">
             <div className="sticky left-0 z-40 rounded-2xl bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#80A5B7] shadow-sm ring-1 ring-[#112532]/8">
@@ -534,7 +505,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
             })}
           </div>
         </div>
-      </AutoScrollPlanningRail>
+      </div>
     </ShellCard>
   );
 }

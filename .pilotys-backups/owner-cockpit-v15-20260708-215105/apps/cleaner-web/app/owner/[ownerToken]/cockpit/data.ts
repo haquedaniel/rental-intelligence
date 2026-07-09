@@ -48,18 +48,6 @@ function dateAtNoon(dateKey: string) {
   return new Date(`${dateKey}T12:00:00.000Z`);
 }
 
-
-function addMonths(dateKey: string, months: number) {
-  const date = dateAtNoon(dateKey);
-  date.setUTCMonth(date.getUTCMonth() + months);
-
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 function daysBetween(start: string, end: string) {
   const a = dateAtNoon(start).getTime();
   const b = dateAtNoon(end).getTime();
@@ -852,7 +840,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       selectedListingIds: [],
       financial: { realisedRevenue: 0, grossAnnualRevenue: 0, afterVariables: 0, variableCosts: 0, expenseBreakdownItems: [] },
       monthlyRevenue: MONTH_LABELS.map((month) => ({ month, realised: 0, future: 0, target: 0 })),
-      today: todayParisDateKey(),
       planningDays: [],
       monthSpans: [],
       planningReservations: [],
@@ -868,11 +855,11 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
 
-  // Owner planning: 6 months before and 6 months after today.
-  // Do not start at today/month-start only: that clips older stays and creates
-  // the visual illusion that lots of reservations start on the same day.
-  const planningStart = addMonths(today, -6);
-  const planningEnd = addMonths(today, 6);
+  // Owner planning should show the real start of current stays.
+  // If the window starts at "today", every stay already in progress is clipped
+  // and appears to start on the first visible day. Start at the first day of
+  // the current month instead.
+  const planningStart = `${today.slice(0, 7)}-01`;
 
   const [
     reservationsResult,
@@ -889,8 +876,8 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .select("*")
       .neq("status", "cancelled")
       .in("property_id", propertyIds)
-      .lte("checkin_at", toIsoEnd(addDays(planningEnd, 14)))
-      .gte("checkout_at", toIsoStart(addDays(planningStart, -14)))
+      .lte("checkin_at", toIsoEnd(yearEnd))
+      .gte("checkout_at", toIsoStart(addDays(planningStart, -31)))
       .order("checkin_at", { ascending: true }),
     supabase
       .from("reservations")
@@ -904,8 +891,8 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .from("cleaning_requests")
       .select("*")
       .in("property_id", propertyIds)
-      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -14)))
-      .lte("scheduled_start_at", toIsoEnd(addDays(planningEnd, 14)))
+      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -31)))
+      .lte("scheduled_start_at", toIsoEnd(yearEnd))
       .order("scheduled_start_at", { ascending: true }),
     supabase
       .from("cleaners")
@@ -914,8 +901,8 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     supabase
       .from("analytics_daily_calendar")
       .select("*")
-      .gte("date", planningStart)
-      .lte("date", planningEnd)
+      .gte("date", yearStart)
+      .lte("date", yearEnd)
       .order("date", { ascending: true }),
     supabase
       .from("analytics_listing_month_financials")
@@ -961,6 +948,13 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const targets = scopedRows(analyticsTargetsResult.data ?? [], propertyIds.map(String));
   const expenses = scopedRows(analyticsExpensesResult.data ?? [], propertyIds.map(String));
 
+  const latestCheckout = reservations
+    .map((reservation) => reservation.checkout_at ? parisDateKey(reservation.checkout_at) : "")
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  const planningEnd = latestCheckout && latestCheckout >= planningStart ? latestCheckout : addDays(planningStart, 60);
 
   const listings = buildListings({
     properties,
@@ -1008,7 +1002,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     selectedListingIds: listings.map((listing) => listing.id),
     financial,
     monthlyRevenue,
-    today,
     planningDays,
     monthSpans,
     planningReservations,
