@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 from rental_intel.cleaning.db import get_supabase_client
+from rental_intel.cleaning.event_log import log_operational_event
 
 load_dotenv()
 
@@ -136,6 +137,24 @@ def request_payload_changed(existing_request: dict, payload: dict) -> bool:
             return True
 
     return False
+
+def request_payload_diff(existing_request: dict, payload: dict) -> dict:
+    diff = {}
+
+    for key in IMPORTANT_CHANGE_FIELDS:
+        if key not in payload:
+            continue
+
+        before = comparable_value(key, existing_request.get(key))
+        after = comparable_value(key, payload.get(key))
+
+        if before != after:
+            diff[key] = {
+                "before": before,
+                "after": after,
+            }
+
+    return diff
 
 
 def request_sort_key(request: dict) -> datetime:
@@ -892,6 +911,25 @@ def main() -> None:
             if not property_:
                 summary["skipped_missing_config"] += 1
                 log(f"SKIP reservation {source_booking_id}: missing property")
+                log_operational_event(
+                    supabase,
+                    event_type="reservation_missing_property",
+                    severity="error",
+                    source="cleaning_generator",
+                    job_name=JOB_NAME,
+                    run_id=run_id,
+                    property_id=property_id,
+                    reservation_id=reservation_id,
+                    reason_code="missing_property",
+                    reason="Reservation references a property that was not loaded.",
+                    title="Réservation sans logement",
+                    summary=f"Reservation {source_booking_id} references missing property {property_id}",
+                    event_key=f"{JOB_NAME}:missing_property:{reservation_id}:{property_id}",
+                    context={
+                        "source_booking_id": source_booking_id,
+                        "reservation": reservation,
+                    },
+                )
                 continue
 
             profile = get_profile_for_property(profiles, property_id)
@@ -901,6 +939,25 @@ def main() -> None:
                 log(
                     f"SKIP {property_.get('name')} reservation {source_booking_id}: "
                     "missing cleaning profile"
+                )
+                log_operational_event(
+                    supabase,
+                    event_type="cleaning_profile_missing",
+                    severity="error",
+                    source="cleaning_generator",
+                    job_name=JOB_NAME,
+                    run_id=run_id,
+                    property_id=property_id,
+                    reservation_id=reservation_id,
+                    reason_code="missing_cleaning_profile",
+                    reason="No active cleaning profile was found for this property.",
+                    title="Profil ménage manquant",
+                    summary=f"{property_.get('name')} · {source_booking_id}",
+                    event_key=f"{JOB_NAME}:missing_profile:{reservation_id}:{property_id}",
+                    context={
+                        "source_booking_id": source_booking_id,
+                        "property_name": property_.get("name"),
+                    },
                 )
                 continue
 
@@ -915,6 +972,25 @@ def main() -> None:
                 log(
                     f"SKIP {property_.get('name')} reservation {source_booking_id}: "
                     "no primary or backup cleaner configured"
+                )
+                log_operational_event(
+                    supabase,
+                    event_type="cleaner_attribution_no_candidate",
+                    severity="critical",
+                    source="cleaning_generator",
+                    job_name=JOB_NAME,
+                    run_id=run_id,
+                    property_id=property_id,
+                    reservation_id=reservation_id,
+                    reason_code="no_candidate_cleaner",
+                    reason="No primary or backup cleaner configured for property.",
+                    title="Aucun intervenant configuré",
+                    summary=f"{property_.get('name')} · {source_booking_id}",
+                    event_key=f"{JOB_NAME}:no_candidate:{reservation_id}:{property_id}",
+                    context={
+                        "source_booking_id": source_booking_id,
+                        "property_name": property_.get("name"),
+                    },
                 )
                 continue
 
@@ -940,6 +1016,26 @@ def main() -> None:
                 for reason in rejection_reasons:
                     log(f"  - {reason}")
 
+                log_operational_event(
+                    supabase,
+                    event_type="cleaner_attribution_no_available_cleaner",
+                    severity="critical",
+                    source="cleaning_generator",
+                    job_name=JOB_NAME,
+                    run_id=run_id,
+                    property_id=property_id,
+                    reservation_id=reservation_id,
+                    reason_code="no_available_cleaner",
+                    reason="Candidates exist, but all were rejected by availability/status rules.",
+                    title="Aucun intervenant disponible",
+                    summary=f"{property_.get('name')} · {source_booking_id}",
+                    event_key=f"{JOB_NAME}:no_available:{reservation_id}:{property_id}:{checkout_at.date().isoformat()}",
+                    context={
+                        "source_booking_id": source_booking_id,
+                        "property_name": property_.get("name"),
+                        "rejection_reasons": rejection_reasons,
+                    },
+                )
                 continue
 
             if next_checkin_at:
@@ -960,11 +1056,12 @@ def main() -> None:
             )
 
             if existing_request:
-                if existing_request.get("status") == "accepted" and request_payload_changed(
-                    existing_request,
-                    payload,
-                ):
+                diff = request_payload_diff(existing_request, payload)
+                reconfirmation_needed = False
+
+                if existing_request.get("status") == "accepted" and diff:
                     payload["status"] = "sent"
+                    reconfirmation_needed = True
                     log(
                         f"Reconfirmation needed: {property_.get('name')} · "
                         f"{reservation.get('guest_name') or source_booking_id}"
@@ -974,6 +1071,49 @@ def main() -> None:
                     "id", existing_request["id"]
                 ).execute()
 
+                if diff:
+                    log_operational_event(
+                        supabase,
+                        event_type="cleaning_request_recomputed",
+                        severity="warning" if reconfirmation_needed else "info",
+                        source="cleaning_generator",
+                        job_name=JOB_NAME,
+                        run_id=run_id,
+                        property_id=property_id,
+                        reservation_id=reservation_id,
+                        cleaning_request_id=existing_request["id"],
+                        cleaner_id=cleaner["id"],
+                        cleaning_profile_id=profile["id"],
+                        status_before=existing_request.get("status"),
+                        status_after=payload.get("status", existing_request.get("status")),
+                        reason_code="reservation_or_assignment_recomputed",
+                        reason="Generator recomputed an existing mission from reservation/profile/cleaner data.",
+                        title="Mission recalculée",
+                        summary=f"{property_.get('name')} · {reservation.get('guest_name') or source_booking_id}",
+                        event_key=f"{JOB_NAME}:recomputed:{existing_request['id']}:{hash(str(diff))}",
+                        old_data=existing_request,
+                        new_data=payload,
+                        context={
+                            "diff": diff,
+                            "source_booking_id": source_booking_id,
+                            "selected_cleaner": {
+                                "id": cleaner["id"],
+                                "name": cleaner_name(cleaner),
+                            },
+                            "assignment": {
+                                "role": candidate["role"],
+                                "priority": candidate["priority"],
+                                "familiar": candidate["familiar"],
+                                "travel_distance_km": candidate.get("travel_distance_km"),
+                                "source": candidate.get("source"),
+                            },
+                            "ready_option_count": meta["ready_option_count"],
+                            "urgent": meta["urgent"],
+                            "total": money(meta["total"]),
+                            "reconfirmation_needed": reconfirmation_needed,
+                        },
+                    )
+
                 summary["updated"] += 1
                 request = existing_request
                 token = request.get("public_token")
@@ -982,6 +1122,46 @@ def main() -> None:
                 result = supabase.table("cleaning_requests").insert(payload).execute()
                 request = (result.data or [None])[0]
                 token = request.get("public_token") if request else None
+
+                if request:
+                    log_operational_event(
+                        supabase,
+                        event_type="cleaning_request_created_by_generator",
+                        severity="info",
+                        source="cleaning_generator",
+                        job_name=JOB_NAME,
+                        run_id=run_id,
+                        property_id=property_id,
+                        reservation_id=reservation_id,
+                        cleaning_request_id=request["id"],
+                        cleaner_id=cleaner["id"],
+                        cleaning_profile_id=profile["id"],
+                        status_after=payload.get("status"),
+                        reason_code="reservation_checkout_requires_cleaning",
+                        reason="Generator created a cleaning request for a confirmed reservation checkout.",
+                        title="Mission créée automatiquement",
+                        summary=f"{property_.get('name')} · {reservation.get('guest_name') or source_booking_id} · {cleaner_name(cleaner)}",
+                        event_key=f"{JOB_NAME}:created:{request['id']}",
+                        new_data=payload,
+                        context={
+                            "source_booking_id": source_booking_id,
+                            "selected_cleaner": {
+                                "id": cleaner["id"],
+                                "name": cleaner_name(cleaner),
+                            },
+                            "assignment": {
+                                "role": candidate["role"],
+                                "priority": candidate["priority"],
+                                "familiar": candidate["familiar"],
+                                "travel_distance_km": candidate.get("travel_distance_km"),
+                                "source": candidate.get("source"),
+                            },
+                            "scheduled_start_local": meta["scheduled_start_local"],
+                            "ready_option_count": meta["ready_option_count"],
+                            "urgent": meta["urgent"],
+                            "total": money(meta["total"]),
+                        },
+                    )
 
                 summary["created"] += 1
                 action = "Created"
