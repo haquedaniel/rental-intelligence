@@ -32,6 +32,13 @@ import type {
 
 type Row = Record<string, any>;
 
+async function signedUrl(supabase: ReturnType<typeof getSupabaseAdmin>, bucket?: string | null, path?: string | null): Promise<string | null> {
+  if (!bucket || !path) return null;
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
+}
+
+
 function firstImageUrl(row: Row | undefined | null, candidates: string[]) {
   if (!row) return null;
 
@@ -122,7 +129,8 @@ function cleanerInitials(cleaner?: Row | null) {
 }
 
 function cleanerPhotoUrl(cleaner?: Row | null) {
-  return cleanerImageUrl(cleaner);
+  if (!cleaner) return null;
+  return cleaner.profile_photo_signed_url || cleanerImageUrl(cleaner);
 }
 
 function requestTone(request: Row): Tone {
@@ -285,7 +293,7 @@ function reservationGuest(row: Row) {
 }
 
 function signedPhotoUrlOrNull(row: Row) {
-  return propertyImageUrl(row);
+  return row.cover_photo_signed_url || null;
 }
 
 function daysInMonth(month: string) {
@@ -533,7 +541,7 @@ function buildListings({
       id: String(property.id),
       name: property.name || `Logement ${index + 1}`,
       short: String(property.name || index + 1).slice(0, 1).toUpperCase(),
-      image: propertyImageUrl(property) ?? signedPhotoUrlOrNull(property),
+      image: signedPhotoUrlOrNull(property),
       tone: PROPERTY_TONES[index % PROPERTY_TONES.length],
       dot: PROPERTY_DOTS[index % PROPERTY_DOTS.length],
       status: property.status_label || "À jour",
@@ -937,62 +945,26 @@ function buildOpportunities({ listings }: { listings: OwnerCockpitListing[] }): 
 
 async function maybeSignedCleanerImages(supabase: ReturnType<typeof getSupabaseAdmin>, rows: Row[]): Promise<Row[]> {
   return Promise.all(
-    rows.map(async (row) => {
-      const existing = cleanerImageUrl(row);
-      if (existing && /^https?:\/\//.test(existing)) {
-        return { ...row, profile_photo_signed_url: existing };
-      }
-
-      const path =
-        row.profile_photo_path ||
-        row.photo_path ||
-        row.avatar_path ||
-        row.profile_photo_storage_path ||
-        row.storage_path;
-
-      if (!path || typeof path !== "string") {
-        return { ...row, profile_photo_signed_url: existing };
-      }
-
-      for (const bucket of ["cleaner-photos", "cleaners", "avatars", "public"]) {
-        const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-        if (signed?.signedUrl) return { ...row, profile_photo_signed_url: signed.signedUrl };
-      }
-
-      return { ...row, profile_photo_signed_url: existing };
-    }),
+    rows.map(async (row) => ({
+      ...row,
+      profile_photo_signed_url: await signedUrl(supabase, row.profile_photo_bucket, row.profile_photo_path),
+    })),
   );
 }
 
-async function maybeSignedPropertyImages(supabase: ReturnType<typeof getSupabaseAdmin>, rows: Row[]): Promise<Row[]> {
-  return Promise.all(
-    rows.map(async (row) => {
-      const existing = propertyImageUrl(row);
-      if (existing && /^https?:\/\//.test(existing)) {
-        return { ...row, cover_photo_signed_url: existing };
-      }
 
-      const path =
-        row.cover_photo_path ||
-        row.photo_path ||
-        row.image_path ||
-        row.thumbnail_path ||
-        row.cover_photo_storage_path ||
-        row.storage_path;
+async function buildPropertyCoverMap(supabase: ReturnType<typeof getSupabaseAdmin>, photos: Row[]) {
+  const coverByPropertyId: Record<string, string | null> = {};
 
-      if (!path || typeof path !== "string") {
-        return { ...row, cover_photo_signed_url: existing };
-      }
+  for (const photo of photos) {
+    const propertyId = String(photo.property_id ?? "");
+    if (!propertyId || coverByPropertyId[propertyId] !== undefined) continue;
+    coverByPropertyId[propertyId] = await signedUrl(supabase, photo.storage_bucket, photo.storage_path);
+  }
 
-      for (const bucket of ["property-photos", "properties", "listing-photos", "public"]) {
-        const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-        if (signed?.signedUrl) return { ...row, cover_photo_signed_url: signed.signedUrl };
-      }
-
-      return { ...row, cover_photo_signed_url: existing };
-    }),
-  );
+  return coverByPropertyId;
 }
+
 
 export async function getOwnerCockpitData(ownerTokenParam: string): Promise<OwnerCockpitData> {
   const ownerToken = normaliseToken(ownerTokenParam);
@@ -1023,7 +995,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     throw new Error(`Impossible de charger les logements : ${propertiesError.message}`);
   }
 
-  const properties: Row[] = await maybeSignedPropertyImages(supabase, (rawProperties ?? []) as Row[]);
+  const properties = (rawProperties ?? []) as Row[];
   const propertyIds = properties.map((property) => String(property.id));
 
   if (propertyIds.length === 0) {
@@ -1064,6 +1036,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     analyticsMonthlyResult,
     analyticsTargetsResult,
     analyticsExpensesResult,
+    propertyPhotosResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1114,6 +1087,15 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .select("*")
       .gte("year_month", yearStart.slice(0, 7))
       .lte("year_month", yearEnd.slice(0, 7)),
+    propertyIds.length
+      ? supabase
+          .from("property_reference_photos")
+          .select("*")
+          .in("property_id", propertyIds)
+          .eq("is_active", true)
+          .order("is_cover", { ascending: false })
+          .order("display_order", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   for (const [label, result] of [
@@ -1125,8 +1107,9 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     ["analytics mois", analyticsMonthlyResult],
     ["objectifs", analyticsTargetsResult],
     ["dépenses", analyticsExpensesResult],
+    ["photos logements", propertyPhotosResult],
   ] as const) {
-    if (result.error) {
+    if ("error" in result && result.error) {
       throw new Error(`Impossible de charger ${label} : ${result.error.message}`);
     }
   }
@@ -1138,6 +1121,12 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const signedCleaners = await maybeSignedCleanerImages(supabase, cleaners as Row[]);
   const cleanersById = Object.fromEntries(signedCleaners.map((cleaner) => [cleaner.id, cleaner]));
 
+  const coverByPropertyId = await buildPropertyCoverMap(supabase, (propertyPhotosResult.data ?? []) as Row[]);
+  const propertiesWithCovers = properties.map((property) => ({
+    ...property,
+    cover_photo_signed_url: coverByPropertyId[String(property.id)] ?? null,
+  }));
+
   const analyticsDaily = scopedRows(analyticsDailyResult.data ?? [], propertyIds.map(String));
   const analyticsMonthly = scopedRows(analyticsMonthlyResult.data ?? [], propertyIds.map(String));
   const targets = scopedRows(analyticsTargetsResult.data ?? [], propertyIds.map(String));
@@ -1145,7 +1134,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
 
 
   const listings = buildListings({
-    properties,
+    properties: propertiesWithCovers,
     monthlyRows: analyticsMonthly,
     yearReservations,
     dailyRows: analyticsDaily,
