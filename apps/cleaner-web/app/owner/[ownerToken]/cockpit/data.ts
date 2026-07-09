@@ -696,8 +696,14 @@ function buildMonthSpans(days: PlanningDay[]): PlanningMonthSpan[] {
 }
 
 
+
+function requestVisibleInPlanning(request: Row) {
+  const status = String(request.status ?? "");
+  return !["cancelled", "refused"].includes(status);
+}
+
 function cleaningCoverageForReservation(reservation: Row, requestsByReservationId: Map<string, Row[]>) {
-  const linkedRequests = requestsByReservationId.get(String(reservation.id)) ?? [];
+  const linkedRequests = (requestsByReservationId.get(String(reservation.id)) ?? []).filter(requestVisibleInPlanning);
 
   if (linkedRequests.length === 0) {
     return { cleaningState: "none" as const, cleaningRequest: null as Row | null };
@@ -735,6 +741,7 @@ function buildPlanningReservations({
   const requestsByReservationId = new Map<string, Row[]>();
 
   for (const request of requests) {
+    if (!requestVisibleInPlanning(request)) continue;
     if (!request.reservation_id) continue;
     const key = String(request.reservation_id);
     const list = requestsByReservationId.get(key) ?? [];
@@ -789,6 +796,7 @@ function buildMarkers({
   const maxDay = daysBetween(planningStart, planningEnd) + 1;
 
   for (const request of requests) {
+    if (!requestVisibleInPlanning(request)) continue;
     if (!request.property_id) continue;
 
     const dateKey = requestTimelineDateKey(request);

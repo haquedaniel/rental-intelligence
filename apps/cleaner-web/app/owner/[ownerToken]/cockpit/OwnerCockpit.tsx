@@ -551,9 +551,12 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#112532]/18 px-4 py-6" onClick={() => setOpen(false)}>
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#112532]/24 px-4 py-6"
+          onClick={() => setOpen(false)}
+        >
           <div
-            className="w-full max-w-sm rounded-[1.5rem] bg-white p-3 text-left shadow-[0_24px_80px_rgba(17,37,50,0.28)] ring-1 ring-[#112532]/10"
+            className="w-full max-w-sm rounded-[1.5rem] bg-white p-3 text-left shadow-[0_24px_80px_rgba(17,37,50,0.32)] ring-1 ring-[#112532]/10"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-2 py-1">
@@ -569,7 +572,7 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
                 <a
                   key={marker.id}
                   href={marker.href}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-[#F4F8FA]"
+                  className="flex items-center gap-3 rounded-2xl px-3 py-3 text-[#112532] hover:bg-[#F4F8FA]"
                 >
                   <InitialsAvatar
                     image={marker.avatarUrl}
@@ -686,7 +689,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           const price = dailyPriceByKey.get(`${listing.id}:${day}`);
                           return (
                             <div key={`${listing.id}-cell-${day}`} className="rounded-xl bg-white/88 ring-1 ring-white/70">
-                              {!covered && price ? <div className="flex h-full items-end justify-center pb-1 text-[10px] font-black text-[#112532]/30">{Math.round(price.price)}€</div> : null}
+                              {!covered && price ? <div className="sr-only">{Math.round(price.price)}€</div> : null}
                             </div>
                           );
                         })}
@@ -722,11 +725,10 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                               width: reservationWidthPx(reservation, dayWidthPx),
                               backgroundColor: listing.dot,
                             }}
-                            title={`${reservation.guest} · ${formatMoney(reservation.price)} · ${reservation.span} nuits · ${reservation.nightly}€/nuit · ${reservationCleaningTitle(reservation.cleaningState)}`}
+                            title={`${reservation.guest}\n${formatMoney(reservation.price)} · ${reservation.span} nuit${reservation.span > 1 ? "s" : ""} · ${reservation.nightly}€/nuit\n${reservationCleaningTitle(reservation.cleaningState)}`}
                           >
                             <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
-                            <p className="truncate px-4 text-xs font-black leading-5">{reservation.guest} · {formatMoney(reservation.price)}</p>
-                            <p className="truncate text-[10px] font-bold text-white/75">{reservation.span} nuits · {reservation.nightly}€/nuit</p>
+                            <p className="flex h-full items-center justify-center truncate px-5 text-xs font-black leading-5">{reservation.guest}</p>
                           </a>
                         ))}
                       </div>
