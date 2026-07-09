@@ -482,6 +482,12 @@ function buildMonthlyRevenue({
   });
 }
 
+
+function dailyAllocatedRevenueForDate(rows: Row[], dateKey: string) {
+  return preferGranularRows(rows.filter((row) => String(row.date ?? "") === dateKey))
+    .reduce((sum, row) => sum + hostPayoutAllocated(row), 0);
+}
+
 function buildFinancial({
   monthly,
   dailyRows,
@@ -1008,9 +1014,22 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     yearEnd,
   });
 
-  const activeDailyRevenue = yearReservations
-    .filter((reservation) => isReservationActiveOnDate(reservation, today))
+  const activeReservations = reservations.filter((reservation) =>
+    isReservationActiveOnDate(reservation, today),
+  );
+
+  const activeDailyRevenueFromReservations = activeReservations
     .reduce((sum, reservation) => sum + reservationDailyRevenue(reservation), 0);
+
+  // Primary rule: active reservations daily rate = reservation value / stay duration.
+  // Fallback: if reservation rows do not carry revenue, use today's allocated daily
+  // analytics value, which is the same basis as CA réalisé.
+  const activeDailyRevenue =
+    activeDailyRevenueFromReservations > 0
+      ? activeDailyRevenueFromReservations
+      : activeReservations.length > 0
+        ? dailyAllocatedRevenueForDate(analyticsDaily, today)
+        : 0;
 
   // Start from the value at 00:00 today. The client then adds today's active
   // reservation revenue progressively, second by second.
