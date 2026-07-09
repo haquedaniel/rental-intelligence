@@ -163,6 +163,32 @@ function targetValue(row: Row) {
   return numberValue(row, ["target_gross_booking_value", "target_host_payout"]);
 }
 
+function hasPropertyDimension(row: Row) {
+  return Boolean(row.property_id || row.listing_id || row.listing_name);
+}
+
+function preferGranularRows(rows: Row[]) {
+  const granular = rows.filter(hasPropertyDimension);
+  return granular.length > 0 ? granular : rows;
+}
+
+function scopedRows(rows: Row[], propertyIds: string[]) {
+  const scoped = rows.filter((row) => {
+    if (row.property_id) return propertyIds.includes(String(row.property_id));
+    return true;
+  });
+
+  return preferGranularRows(scoped);
+}
+
+function monthlyRowsForMonth(rows: Row[], yearMonth: string) {
+  return preferGranularRows(rows.filter((row) => String(row.year_month ?? "") === yearMonth));
+}
+
+function dailyRowsForMonth(rows: Row[], yearMonth: string) {
+  return preferGranularRows(rows.filter((row) => String(row.date ?? "").slice(0, 7) === yearMonth));
+}
+
 function exactVariableExpenseAmount({
   periodDaily,
   expenseRows,
@@ -329,9 +355,9 @@ function buildMonthlyRevenue({
 
   return Array.from({ length: 12 }, (_, monthIndex) => {
     const key = monthKey(year, monthIndex);
-    const rows = analyticsMonthly.filter((row) => String(row.year_month ?? "") === key);
-    const dailyRows = analyticsDaily.filter((row) => String(row.date ?? "").slice(0, 7) === key);
-    const targetRows = targets.filter((row) => String(row.year_month ?? "") === key);
+    const rows = monthlyRowsForMonth(analyticsMonthly, key);
+    const dailyRows = dailyRowsForMonth(analyticsDaily, key);
+    const targetRows = monthlyRowsForMonth(targets, key);
 
     const totalOnBooks = rows.reduce((total, row) => total + hostPayout(row), 0);
     const dailyRealised = dailyRows
@@ -342,11 +368,15 @@ function buildMonthlyRevenue({
     let future = 0;
 
     if (key < todayMonth) {
-      realised = dailyRealised || totalOnBooks;
+      // Historical months are closed: there should never be "à venir" revenue in the past.
+      realised = totalOnBooks || dailyRealised;
+      future = 0;
     } else if (key === todayMonth) {
-      realised = dailyRealised;
-      future = Math.max(0, totalOnBooks - dailyRealised);
+      // Current month can be split between realised nights and remaining on-the-books revenue.
+      realised = dailyRealised || 0;
+      future = Math.max(0, totalOnBooks - realised);
     } else {
+      realised = 0;
       future = totalOnBooks;
     }
 
@@ -374,26 +404,28 @@ function buildFinancial({
   yearEnd: string;
 }): FinancialSummary {
   const today = todayParisDateKey();
-  const realisedRevenue = dailyRows
-    .filter((row) => {
-      const date = String(row.date ?? "");
-      return date >= yearStart && date <= yearEnd && date <= today;
-    })
-    .reduce((total, row) => total + hostPayoutAllocated(row), 0);
+  const todayMonth = today.slice(0, 7);
+
+  // Card value should match the monthly chart: past months are realised, current month is split, future months are on the books.
+  const realisedRevenue = monthly.reduce((total, row, index) => {
+    const key = monthKey(Number(yearStart.slice(0, 4)), index);
+    return key <= todayMonth ? total + row.realised : total;
+  }, 0);
 
   const grossAnnualRevenue = monthly.reduce((total, row) => total + row.realised + row.future, 0);
-  const yearDaily = dailyRows.filter((row) => rowDateInRange(row, yearStart, yearEnd));
-  const yearExpenses = expenses.filter((row) => {
-    if (row.expense_source === "booking_expenses") return expenseDateInRange(row, yearStart, yearEnd);
-    if (row.expense_source === "variable_period_costs") return monthInRange(row, yearStart, yearEnd);
-    return false;
+
+  const yearDaily = preferGranularRows(dailyRows.filter((row) => rowDateInRange(row, yearStart, yearEnd)));
+  const bookingExpenseRows = expenses.filter((row) => row.expense_source === "booking_expenses" && expenseDateInRange(row, yearStart, yearEnd));
+  const variableRowsForSelectedMonths = expenses.filter((row) => row.expense_source === "variable_period_costs" && monthInRange(row, yearStart, yearEnd));
+  const variableCosts = exactVariableExpenseAmount({
+    periodDaily: yearDaily,
+    expenseRows: [...bookingExpenseRows, ...variableRowsForSelectedMonths],
   });
-  const variableCosts = exactVariableExpenseAmount({ periodDaily: yearDaily, expenseRows: yearExpenses });
 
   return {
     realisedRevenue,
     grossAnnualRevenue,
-    afterVariables: grossAnnualRevenue - variableCosts,
+    afterVariables: Math.max(0, grossAnnualRevenue - variableCosts),
     grossDeltaPct: null,
     afterVariablesDeltaPct: null,
   };
@@ -835,18 +867,10 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const cleaners = cleanersResult.data ?? [];
   const cleanersById = Object.fromEntries(cleaners.map((cleaner) => [cleaner.id, cleaner]));
 
-  const analyticsDaily = (analyticsDailyResult.data ?? []).filter((row) =>
-    !row.property_id || propertyIds.includes(row.property_id),
-  );
-  const analyticsMonthly = (analyticsMonthlyResult.data ?? []).filter((row) =>
-    !row.property_id || propertyIds.includes(row.property_id),
-  );
-  const targets = (analyticsTargetsResult.data ?? []).filter((row) =>
-    !row.property_id || propertyIds.includes(row.property_id),
-  );
-  const expenses = (analyticsExpensesResult.data ?? []).filter((row) =>
-    !row.property_id || propertyIds.includes(row.property_id),
-  );
+  const analyticsDaily = scopedRows(analyticsDailyResult.data ?? [], propertyIds.map(String));
+  const analyticsMonthly = scopedRows(analyticsMonthlyResult.data ?? [], propertyIds.map(String));
+  const targets = scopedRows(analyticsTargetsResult.data ?? [], propertyIds.map(String));
+  const expenses = scopedRows(analyticsExpensesResult.data ?? [], propertyIds.map(String));
 
   const latestCheckout = reservations
     .map((reservation) => reservation.checkout_at ? parisDateKey(reservation.checkout_at) : "")
