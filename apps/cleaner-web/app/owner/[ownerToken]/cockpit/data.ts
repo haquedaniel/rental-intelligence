@@ -32,6 +32,66 @@ import type {
 
 type Row = Record<string, any>;
 
+function firstImageUrl(row: Row | undefined | null, candidates: string[]) {
+  if (!row) return null;
+
+  for (const key of candidates) {
+    const value = row[key];
+
+    if (typeof value === "string" && value.trim()) return value.trim();
+
+    if (Array.isArray(value) && value.length > 0) {
+      const first = value[0];
+      if (typeof first === "string" && first.trim()) return first.trim();
+      if (first && typeof first === "object") {
+        const nested = first.url || first.publicUrl || first.public_url || first.signedUrl || first.signed_url || first.path;
+        if (typeof nested === "string" && nested.trim()) return nested.trim();
+      }
+    }
+
+    if (value && typeof value === "object") {
+      const nested = value.url || value.publicUrl || value.public_url || value.signedUrl || value.signed_url || value.path;
+      if (typeof nested === "string" && nested.trim()) return nested.trim();
+    }
+  }
+
+  return null;
+}
+
+function propertyImageUrl(row: Row | undefined | null) {
+  return firstImageUrl(row, [
+    "cover_photo_signed_url",
+    "cover_photo_url",
+    "photo_signed_url",
+    "photo_url",
+    "image_signed_url",
+    "image_url",
+    "thumbnail_signed_url",
+    "thumbnail_url",
+    "main_photo_url",
+    "main_image_url",
+    "hero_image_url",
+    "pictures",
+    "photos",
+    "images",
+  ]);
+}
+
+function cleanerImageUrl(row: Row | undefined | null) {
+  return firstImageUrl(row, [
+    "profilePhotoSignedUrl",
+    "profile_photo_signed_url",
+    "profile_photo_url",
+    "photo_signed_url",
+    "photo_url",
+    "avatar_signed_url",
+    "avatar_url",
+    "image_url",
+    "thumbnail_url",
+  ]);
+}
+
+
 function reservationHref(reservation: Row) {
   return `/owner/reservations/${reservation.id}`;
 }
@@ -62,15 +122,7 @@ function cleanerInitials(cleaner?: Row | null) {
 }
 
 function cleanerPhotoUrl(cleaner?: Row | null) {
-  if (!cleaner) return null;
-  return (
-    cleaner.profilePhotoSignedUrl ||
-    cleaner.profile_photo_signed_url ||
-    cleaner.profile_photo_url ||
-    cleaner.photo_url ||
-    cleaner.avatar_url ||
-    null
-  );
+  return cleanerImageUrl(cleaner);
 }
 
 function requestTone(request: Row): Tone {
@@ -233,7 +285,7 @@ function reservationGuest(row: Row) {
 }
 
 function signedPhotoUrlOrNull(row: Row) {
-  return row.cover_photo_signed_url || row.cover_photo_url || row.thumbnail_url || row.image_url || null;
+  return propertyImageUrl(row);
 }
 
 function daysInMonth(month: string) {
@@ -481,7 +533,7 @@ function buildListings({
       id: String(property.id),
       name: property.name || `Logement ${index + 1}`,
       short: String(property.name || index + 1).slice(0, 1).toUpperCase(),
-      image: signedPhotoUrlOrNull(property),
+      image: propertyImageUrl(property) ?? signedPhotoUrlOrNull(property),
       tone: PROPERTY_TONES[index % PROPERTY_TONES.length],
       dot: PROPERTY_DOTS[index % PROPERTY_DOTS.length],
       status: property.status_label || "À jour",
@@ -882,26 +934,62 @@ function buildOpportunities({ listings }: { listings: OwnerCockpitListing[] }): 
   return [...gapOpportunities, directOpportunity].slice(0, 3);
 }
 
-async function maybeSignedPropertyImages(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-  properties: Row[],
-): Promise<Row[]> {
+
+async function maybeSignedCleanerImages(supabase: ReturnType<typeof getSupabaseAdmin>, rows: Row[]): Promise<Row[]> {
   return Promise.all(
-    properties.map(async (property, index) => {
-      const bucket = property.cover_photo_bucket || property.photo_bucket || property.image_bucket;
-      const path = property.cover_photo_path || property.photo_path || property.image_path;
-      if (!bucket || !path) {
-        const fallback = [
-          "/pilotys-assets/property-peskerezh.svg",
-          "/pilotys-assets/property-balcon.svg",
-          "/pilotys-assets/property-attic.svg",
-          "/pilotys-assets/property-garden.svg",
-        ][index % 4];
-        return { ...property, cover_photo_signed_url: fallback };
+    rows.map(async (row) => {
+      const existing = cleanerImageUrl(row);
+      if (existing && /^https?:\/\//.test(existing)) {
+        return { ...row, profile_photo_signed_url: existing };
       }
 
-      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-      return { ...property, cover_photo_signed_url: data?.signedUrl ?? null };
+      const path =
+        row.profile_photo_path ||
+        row.photo_path ||
+        row.avatar_path ||
+        row.profile_photo_storage_path ||
+        row.storage_path;
+
+      if (!path || typeof path !== "string") {
+        return { ...row, profile_photo_signed_url: existing };
+      }
+
+      for (const bucket of ["cleaner-photos", "cleaners", "avatars", "public"]) {
+        const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+        if (signed?.signedUrl) return { ...row, profile_photo_signed_url: signed.signedUrl };
+      }
+
+      return { ...row, profile_photo_signed_url: existing };
+    }),
+  );
+}
+
+async function maybeSignedPropertyImages(supabase: ReturnType<typeof getSupabaseAdmin>, rows: Row[]): Promise<Row[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      const existing = propertyImageUrl(row);
+      if (existing && /^https?:\/\//.test(existing)) {
+        return { ...row, cover_photo_signed_url: existing };
+      }
+
+      const path =
+        row.cover_photo_path ||
+        row.photo_path ||
+        row.image_path ||
+        row.thumbnail_path ||
+        row.cover_photo_storage_path ||
+        row.storage_path;
+
+      if (!path || typeof path !== "string") {
+        return { ...row, cover_photo_signed_url: existing };
+      }
+
+      for (const bucket of ["property-photos", "properties", "listing-photos", "public"]) {
+        const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+        if (signed?.signedUrl) return { ...row, cover_photo_signed_url: signed.signedUrl };
+      }
+
+      return { ...row, cover_photo_signed_url: existing };
     }),
   );
 }
@@ -1047,7 +1135,8 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const yearReservations = yearReservationsResult.data ?? [];
   const requests = requestsResult.data ?? [];
   const cleaners = cleanersResult.data ?? [];
-  const cleanersById = Object.fromEntries(cleaners.map((cleaner) => [cleaner.id, cleaner]));
+  const signedCleaners = await maybeSignedCleanerImages(supabase, cleaners as Row[]);
+  const cleanersById = Object.fromEntries(signedCleaners.map((cleaner) => [cleaner.id, cleaner]));
 
   const analyticsDaily = scopedRows(analyticsDailyResult.data ?? [], propertyIds.map(String));
   const analyticsMonthly = scopedRows(analyticsMonthlyResult.data ?? [], propertyIds.map(String));

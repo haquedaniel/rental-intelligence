@@ -394,7 +394,11 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
                 }`}
               >
                 <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#F4F8FA]">
-                  {listing.image ? <img src={listing.image} alt="" className="h-full w-full object-cover" /> : null}
+                  {listing.image ? (
+                    <img src={listing.image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-xl font-black text-[#112532]/45">{listing.short}</span>
+                  )}
                   <span className="absolute left-2 top-2 h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
                 </div>
                 <div className="min-w-0">
