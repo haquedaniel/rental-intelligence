@@ -1,0 +1,117 @@
+export type Tone = "navy" | "blue" | "orange" | "mustard" | "green";
+export type MetricId = "realised" | "gross" | "net";
+export type OwnerScope = string;
+
+export type OwnerCockpitOwner = {
+  id: string;
+  token: string;
+  displayName: string;
+  profilePhotoUrl?: string | null;
+};
+
+export type OwnerCockpitListing = {
+  id: string;
+  name: string;
+  short: string;
+  image?: string | null;
+  tone: Tone;
+  dot: string;
+  status: string;
+  revenue: number;
+  occupancy: number;
+};
+
+export type MonthlyRevenuePoint = {
+  month: string;
+  realised: number;
+  future: number;
+  target?: number;
+  live?: boolean;
+};
+
+export type FinancialSummary = {
+  realisedRevenue: number;
+  grossAnnualRevenue: number;
+  afterVariables: number;
+  grossDeltaPct?: number | null;
+  afterVariablesDeltaPct?: number | null;
+};
+
+export type PlanningDay = {
+  key: string;
+  month: string;
+  label: string;
+  tension: number;
+};
+
+export type PlanningMonthSpan = {
+  month: string;
+  start: number;
+  span: number;
+};
+
+export type PlanningReservation = {
+  id: string;
+  listingId: string;
+  guest: string;
+  start: number;
+  span: number;
+  price: number;
+  nightly: number;
+};
+
+export type PlanningMarker = {
+  id: string;
+  listingId: string;
+  day: number;
+  icon: string;
+  tone: Tone;
+  label: string;
+};
+
+export type DailyPrice = {
+  listingId: string;
+  day: number;
+  price: number;
+};
+
+export type TimelineKind = "arrival" | "departure" | "cleaning" | "intervention";
+
+export type TimelineEvent = {
+  id: string;
+  kind: TimelineKind;
+  side: "past" | "future";
+  time: string;
+  eventAt: string;
+  listingId: string;
+  title: string;
+  detail: string;
+  status?: string;
+  tone: Tone;
+  href?: string;
+};
+
+export type Opportunity = {
+  id: string;
+  title: string;
+  listing: string;
+  period: string;
+  potential: number;
+  action: string;
+  tone: Tone;
+};
+
+export type OwnerCockpitData = {
+  owner: OwnerCockpitOwner;
+  listings: OwnerCockpitListing[];
+  selectedListingIds: string[];
+  financial: FinancialSummary;
+  monthlyRevenue: MonthlyRevenuePoint[];
+  planningDays: PlanningDay[];
+  monthSpans: PlanningMonthSpan[];
+  planningReservations: PlanningReservation[];
+  planningMarkers: PlanningMarker[];
+  dailyPrices: DailyPrice[];
+  timelineEvents: TimelineEvent[];
+  opportunities: Opportunity[];
+};
