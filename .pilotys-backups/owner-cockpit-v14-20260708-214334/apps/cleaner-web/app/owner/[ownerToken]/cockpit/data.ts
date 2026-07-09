@@ -551,7 +551,7 @@ function buildPlanningReservations({
       return {
         id: String(reservation.id),
         listingId: String(reservation.property_id),
-        guest: checkin < planningStart ? `← ${reservationGuest(reservation)}` : reservationGuest(reservation),
+        guest: reservationGuest(reservation),
         start: daysBetween(planningStart, displayStart) + 1,
         span,
         price,
@@ -854,12 +854,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const year = Number(today.slice(0, 4));
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
-
-  // Owner planning should show the real start of current stays.
-  // If the window starts at "today", every stay already in progress is clipped
-  // and appears to start on the first visible day. Start at the first day of
-  // the current month instead.
-  const planningStart = `${today.slice(0, 7)}-01`;
+  const planningStart = today;
 
   const [
     reservationsResult,
@@ -877,7 +872,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .neq("status", "cancelled")
       .in("property_id", propertyIds)
       .lte("checkin_at", toIsoEnd(yearEnd))
-      .gte("checkout_at", toIsoStart(addDays(planningStart, -31)))
+      .gte("checkout_at", toIsoStart(addDays(planningStart, -14)))
       .order("checkin_at", { ascending: true }),
     supabase
       .from("reservations")
@@ -891,7 +886,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .from("cleaning_requests")
       .select("*")
       .in("property_id", propertyIds)
-      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -31)))
+      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -45)))
       .lte("scheduled_start_at", toIsoEnd(yearEnd))
       .order("scheduled_start_at", { ascending: true }),
     supabase

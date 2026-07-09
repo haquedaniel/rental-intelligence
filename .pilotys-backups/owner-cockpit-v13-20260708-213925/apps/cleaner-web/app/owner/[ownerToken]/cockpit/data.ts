@@ -204,32 +204,6 @@ function labelForExpense(row: Row): string {
   return family ? family.replaceAll("_", " ") : "Autres frais";
 }
 
-function expenseSource(row: Row): string {
-  return String(row.expense_source ?? row.source ?? row.cost_source ?? row.kind ?? "");
-}
-
-function expenseAmount(row: Row): number {
-  return numberValue(row, [
-    "expense_amount",
-    "amount_eur",
-    "amount",
-    "cost_eur",
-    "expense_eur",
-    "total_cost_eur",
-    "total_eur",
-    "value_eur",
-  ]);
-}
-
-function expenseAmountPerDay(row: Row): number {
-  return numberValue(row, [
-    "amount_per_day",
-    "daily_amount_eur",
-    "cost_per_day_eur",
-    "amount_eur_per_day",
-  ]);
-}
-
 function addBreakdown(map: Map<string, ExpenseBreakdownItem>, label: string, amount: number, count = 1) {
   if (!amount) return;
   const current = map.get(label) ?? { label, amount: 0, count: 0 };
@@ -247,26 +221,25 @@ function exactVariableExpenseAmount({
 }): { total: number; items: ExpenseBreakdownItem[] } {
   const breakdown = new Map<string, ExpenseBreakdownItem>();
 
-  const variableRows = expenseRows.filter((row) => expenseSource(row) === "variable_period_costs");
-  const directlyCountedRows = expenseRows.filter((row) => expenseSource(row) !== "variable_period_costs");
+  const bookingExpenses = expenseRows.filter((row) => row.expense_source === "booking_expenses");
 
-  // Booking-level and already-materialised expense lines, e.g. cleaning, concierge, commissions.
-  for (const row of directlyCountedRows) {
-    addBreakdown(breakdown, labelForExpense(row), expenseAmount(row));
+  for (const row of bookingExpenses) {
+    addBreakdown(breakdown, labelForExpense(row), numberValue(row, ["expense_amount"]));
   }
 
-  // Monthly variable costs are stored as amount_per_day; count them only for booked days.
+  const variableRows = expenseRows.filter((row) => row.expense_source === "variable_period_costs");
+
   for (const daily of periodDaily) {
     if (!daily.is_booked) continue;
 
     const matches = variableRows.filter(
       (expense) =>
         String(expense.property_id ?? "") === String(daily.property_id ?? "") &&
-        String(expense.year_month ?? "") === String(daily.year_month ?? String(daily.date ?? "").slice(0, 7)),
+        String(expense.year_month ?? "") === String(daily.year_month ?? ""),
     );
 
     for (const expense of matches) {
-      addBreakdown(breakdown, labelForExpense(expense), expenseAmountPerDay(expense));
+      addBreakdown(breakdown, labelForExpense(expense), numberValue(expense, ["amount_per_day"]));
     }
   }
 
@@ -551,7 +524,7 @@ function buildPlanningReservations({
       return {
         id: String(reservation.id),
         listingId: String(reservation.property_id),
-        guest: checkin < planningStart ? `← ${reservationGuest(reservation)}` : reservationGuest(reservation),
+        guest: reservationGuest(reservation),
         start: daysBetween(planningStart, displayStart) + 1,
         span,
         price,
@@ -854,12 +827,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const year = Number(today.slice(0, 4));
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
-
-  // Owner planning should show the real start of current stays.
-  // If the window starts at "today", every stay already in progress is clipped
-  // and appears to start on the first visible day. Start at the first day of
-  // the current month instead.
-  const planningStart = `${today.slice(0, 7)}-01`;
+  const planningStart = today;
 
   const [
     reservationsResult,
@@ -877,7 +845,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .neq("status", "cancelled")
       .in("property_id", propertyIds)
       .lte("checkin_at", toIsoEnd(yearEnd))
-      .gte("checkout_at", toIsoStart(addDays(planningStart, -31)))
+      .gte("checkout_at", toIsoStart(addDays(planningStart, -14)))
       .order("checkin_at", { ascending: true }),
     supabase
       .from("reservations")
@@ -891,7 +859,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .from("cleaning_requests")
       .select("*")
       .in("property_id", propertyIds)
-      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -31)))
+      .gte("scheduled_start_at", toIsoStart(addDays(planningStart, -45)))
       .lte("scheduled_start_at", toIsoEnd(yearEnd))
       .order("scheduled_start_at", { ascending: true }),
     supabase
