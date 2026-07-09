@@ -69,8 +69,6 @@ export type PlanningReservation = {
   price: number;
   nightly: number;
   href: string;
-  cleaningState: "none" | "planned" | "accepted";
-  cleaningDay?: number | null;
 };
 
 export type PlanningMarker = {

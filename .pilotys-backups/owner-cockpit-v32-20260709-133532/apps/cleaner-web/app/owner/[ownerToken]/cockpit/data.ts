@@ -695,28 +695,8 @@ function buildMonthSpans(days: PlanningDay[]): PlanningMonthSpan[] {
   return spans;
 }
 
-
-function cleaningCoverageForReservation(reservation: Row, requestsByReservationId: Map<string, Row[]>) {
-  const linkedRequests = requestsByReservationId.get(String(reservation.id)) ?? [];
-
-  if (linkedRequests.length === 0) {
-    return { cleaningState: "none" as const, cleaningRequest: null as Row | null };
-  }
-
-  const accepted =
-    linkedRequests.find((request) =>
-      ["accepted", "completed", "report_submitted"].includes(String(request.status ?? "")),
-    ) ?? null;
-
-  return {
-    cleaningState: accepted ? ("accepted" as const) : ("planned" as const),
-    cleaningRequest: accepted ?? linkedRequests[0],
-  };
-}
-
 function buildPlanningReservations({
   reservations,
-  requests,
   planningStart,
   planningEnd,
   dailyRows,
@@ -724,24 +704,12 @@ function buildPlanningReservations({
   targets,
 }: {
   reservations: Row[];
-  requests: Row[];
   planningStart: string;
   planningEnd: string;
   dailyRows: Row[];
   monthlyRows: Row[];
   targets: Row[];
 }): PlanningReservation[] {
-  const maxDay = daysBetween(planningStart, planningEnd) + 1;
-  const requestsByReservationId = new Map<string, Row[]>();
-
-  for (const request of requests) {
-    if (!request.reservation_id) continue;
-    const key = String(request.reservation_id);
-    const list = requestsByReservationId.get(key) ?? [];
-    list.push(request);
-    requestsByReservationId.set(key, list);
-  }
-
   return reservations
     .filter((reservation) => reservation.property_id && reservation.checkin_at && reservation.checkout_at)
     .map((reservation) => {
@@ -752,11 +720,6 @@ function buildPlanningReservations({
       const span = Math.max(1, daysBetween(displayStart, displayEnd));
       const price = reservationAmount({ reservation, dailyRows, monthlyRows, targets });
       const nights = Math.max(1, daysBetween(checkin, checkout));
-      const coverage = cleaningCoverageForReservation(reservation, requestsByReservationId);
-      const missionDate = coverage.cleaningRequest ? requestTimelineDateKey(coverage.cleaningRequest) : null;
-      const cleaningDay = missionDate
-        ? Math.max(1, Math.min(maxDay, daysBetween(planningStart, missionDate) + 1))
-        : null;
 
       return {
         id: String(reservation.id),
@@ -767,8 +730,6 @@ function buildPlanningReservations({
         price,
         nightly: price > 0 ? Math.round(price / nights) : 0,
         href: reservationHref(reservation),
-        cleaningState: coverage.cleaningState,
-        cleaningDay,
       };
     })
     .filter((reservation) => reservation.span > 0);
@@ -1231,7 +1192,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const monthSpans = buildMonthSpans(planningDays);
   const planningReservations = buildPlanningReservations({
     reservations,
-    requests,
     planningStart,
     planningEnd,
     dailyRows: analyticsDaily,
