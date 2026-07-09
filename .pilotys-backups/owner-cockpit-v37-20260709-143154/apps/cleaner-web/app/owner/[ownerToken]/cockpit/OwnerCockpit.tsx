@@ -504,9 +504,9 @@ function reservationWidthPx(reservation: PlanningReservation, dayWidthPx: number
 }
 
 function reservationCleaningBorder(state: PlanningReservation["cleaningState"]) {
-  if (state === "accepted") return "ring-2 ring-emerald-500/90";
-  if (state === "planned") return "ring-2 ring-[#F4B044]/90";
-  return "ring-2 ring-[#E05243]/90";
+  if (state === "accepted") return "ring-2 ring-emerald-500";
+  if (state === "planned") return "ring-2 ring-[#F4B044]";
+  return "ring-2 ring-[#E05243]";
 }
 
 function reservationCleaningLine(state: PlanningReservation["cleaningState"]) {
@@ -521,21 +521,6 @@ function reservationCleaningTitle(state: PlanningReservation["cleaningState"]) {
   return "Aucune mission de ménage planifiée";
 }
 
-
-function ReservationTooltip({ reservation }: { reservation: PlanningReservation }) {
-  return (
-    <span className="pointer-events-none absolute left-1/2 top-full z-[80] mt-2 hidden w-64 -translate-x-1/2 rounded-2xl bg-white p-3 text-left text-[#112532] shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10 group-hover:block">
-      <span className="block truncate text-sm font-black">{reservation.guest}</span>
-      <span className="mt-1 block text-xs font-bold text-[#112532]/58">
-        {formatMoney(reservation.price)} · {reservation.span} nuit{reservation.span > 1 ? "s" : ""} · {reservation.nightly}€/nuit
-      </span>
-      <span className="mt-2 inline-flex rounded-full bg-[#F4F8FA] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#112532]/55">
-        {reservationCleaningTitle(reservation.cleaningState)}
-      </span>
-    </span>
-  );
-}
-
 function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
   const [open, setOpen] = useState(false);
   const first = markers[0];
@@ -548,7 +533,7 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
           initials={first.avatarInitials}
           tone={first.tone}
           title={`${first.label} · ${first.statusLabel}`}
-          size="h-7 w-7"
+          size="h-8 w-8"
         />
       </a>
     );
@@ -560,7 +545,7 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
         type="button"
         onClick={() => setOpen(true)}
         title={`${markers.length} missions`}
-        className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)} transition hover:scale-105`}
+        className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)} transition hover:scale-105`}
       >
         {markers.length}
       </button>
@@ -594,7 +579,7 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
                     initials={marker.avatarInitials}
                     tone={marker.tone}
                     title={`${marker.label} · ${marker.statusLabel}`}
-                    size="h-9 w-9"
+                    size="h-10 w-10"
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black text-[#112532]">{marker.label}</span>
@@ -734,18 +719,16 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           <a
                             key={reservation.id}
                             href={reservation.href}
-                            className={`group absolute top-1/2 block h-[2.75rem] -translate-y-1/2 overflow-visible rounded-2xl px-3 py-1 text-center text-white shadow-[0_6px_18px_rgba(17,37,50,0.10)] transition hover:translate-y-[-55%] hover:shadow-[0_10px_28px_rgba(17,37,50,0.18)] ${reservationCleaningBorder(reservation.cleaningState)}`}
+                            className={`absolute top-1/2 block h-[2.9rem] -translate-y-1/2 overflow-hidden rounded-2xl px-3 py-1 text-center text-white shadow-sm transition hover:translate-y-[-55%] hover:shadow-md ${reservationCleaningBorder(reservation.cleaningState)}`}
                             style={{
                               left: reservationLeftPx(reservation, dayWidthPx),
                               width: reservationWidthPx(reservation, dayWidthPx),
                               backgroundColor: listing.dot,
                             }}
+                            title={`${reservation.guest}\n${formatMoney(reservation.price)} · ${reservation.span} nuit${reservation.span > 1 ? "s" : ""} · ${reservation.nightly}€/nuit\n${reservationCleaningTitle(reservation.cleaningState)}`}
                           >
-                            <span className="absolute inset-0 overflow-hidden rounded-2xl">
-                              <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8" />
-                            </span>
-                            <span className="relative flex h-full items-center justify-center truncate px-3 text-xs font-black leading-5">{reservation.guest}</span>
-                            <ReservationTooltip reservation={reservation} />
+                            <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white shadow-sm ${reservationCleaningBorder(reservation.cleaningState)}`} />
+                            <p className="flex h-full items-center justify-center truncate px-5 text-xs font-black leading-5">{reservation.guest}</p>
                           </a>
                         ))}
                       </div>
