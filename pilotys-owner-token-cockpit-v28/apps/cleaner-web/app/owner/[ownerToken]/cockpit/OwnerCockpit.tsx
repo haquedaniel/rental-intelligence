@@ -345,37 +345,10 @@ function MonthlyRevenueChart({ data }: { data: OwnerCockpitData }) {
   );
 }
 
-
-function ActionMessage({ data }: { data: OwnerCockpitData }) {
-  const actionEvent =
-    data.timelineEvents.find((event) => event.tone === "orange") ||
-    data.timelineEvents.find((event) => event.title.toLowerCase().includes("paiement"));
-
-  if (!actionEvent) {
-    return <>Tout est à jour.</>;
-  }
-
-  const label =
-    actionEvent.kind === "cleaning"
-      ? "Ménage"
-      : actionEvent.kind === "intervention"
-        ? "Intervention"
-        : actionEvent.kind === "arrival"
-          ? "Arrivée"
-          : actionEvent.kind === "departure"
-            ? "Départ"
-            : "Action";
-
-  return (
-    <>
-      {label}
-      {actionEvent.status ? <span className="text-[#E0680E]"> · {actionEvent.status}</span> : null}
-      <span className="text-[#112532]/70"> — {actionEvent.detail}</span>
-    </>
-  );
-}
-
 function SmartBrief({ data }: { data: OwnerCockpitData }) {
+  const payment = data.timelineEvents.find((event) => event.title.toLowerCase().includes("paiement"));
+  const firstUrgent = data.timelineEvents.find((event) => event.tone === "orange") ?? data.timelineEvents[0];
+
   return (
     <ShellCard className="overflow-hidden p-5 sm:p-6">
       <div className="flex items-start gap-4">
@@ -383,7 +356,8 @@ function SmartBrief({ data }: { data: OwnerCockpitData }) {
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">À retenir</p>
           <p className="mt-2 text-xl font-black leading-8 text-[#112532] sm:text-2xl">
-            <ActionMessage data={data} />
+            {payment ? "Paiement à traiter." : firstUrgent ? firstUrgent.title : "Tout est à jour."}
+            {firstUrgent ? <span className="text-[#E0680E]"> {firstUrgent.detail}</span> : null}
           </p>
         </div>
       </div>
@@ -478,70 +452,6 @@ function AutoScrollPlanningRail({
   return (
     <div ref={ref} className="w-full overflow-x-auto bg-white">
       {children}
-    </div>
-  );
-}
-
-
-function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
-  const [open, setOpen] = useState(false);
-  const first = markers[0];
-
-  if (markers.length === 1) {
-    return (
-      <a href={first.href} title={`${first.label} · ${first.statusLabel}`} className="relative transition hover:scale-105">
-        <InitialsAvatar
-          image={first.avatarUrl}
-          initials={first.avatarInitials}
-          tone={first.tone}
-          title={`${first.label} · ${first.statusLabel}`}
-          size="h-8 w-8"
-        />
-      </a>
-    );
-  }
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        title={`${markers.length} missions`}
-        className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)} transition hover:scale-105`}
-      >
-        {markers.length}
-      </button>
-
-      {open ? (
-        <div className="absolute bottom-10 left-1/2 z-50 w-72 -translate-x-1/2 rounded-2xl bg-white p-2 text-left shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10">
-          <div className="mb-1 flex items-center justify-between px-2 py-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#80A5B7]">{markers.length} missions</p>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-full px-2 py-1 text-xs font-black text-[#112532]/45 hover:bg-[#F4F8FA]">×</button>
-          </div>
-          <div className="space-y-1">
-            {markers.map((marker) => (
-              <a
-                key={marker.id}
-                href={marker.href}
-                className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-[#F4F8FA]"
-              >
-                <InitialsAvatar
-                  image={marker.avatarUrl}
-                  initials={marker.avatarInitials}
-                  tone={marker.tone}
-                  title={`${marker.label} · ${marker.statusLabel}`}
-                  size="h-8 w-8"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-black text-[#112532]">{marker.label}</span>
-                  <span className="block truncate text-[11px] font-bold text-[#112532]/50">{marker.statusLabel}</span>
-                </span>
-                <span className="text-xs font-black text-[#E0680E]">→</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -664,9 +574,25 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           const day = index + 1;
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
                           if (markers.length === 0) return <div key={`${listing.id}-mission-empty-${day}`} />;
+                          const first = markers[0];
+                          const label = markers.length > 1 ? `${markers.length} missions` : `${first.label} · ${first.statusLabel}`;
                           return (
                             <div key={`${listing.id}-mission-${day}`} className="flex items-center justify-center">
-                              <MissionGroupPopover markers={markers} />
+                              <a href={first.href} title={label} className="relative transition hover:scale-105">
+                                {markers.length > 1 ? (
+                                  <span className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[10px] font-black text-white shadow-sm ring-3 ${statusRing(first.tone)} ${toneSolid(first.tone)}`}>
+                                    {markers.length}
+                                  </span>
+                                ) : (
+                                  <InitialsAvatar
+                                    image={first.avatarUrl}
+                                    initials={first.avatarInitials}
+                                    tone={first.tone}
+                                    title={label}
+                                    size="h-8 w-8"
+                                  />
+                                )}
+                              </a>
                             </div>
                           );
                         })}

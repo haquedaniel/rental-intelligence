@@ -282,25 +282,14 @@ function requestTimelineDateKey(request: Row): string | null {
 }
 
 function reservationGuest(row: Row) {
-  const explicit =
+  return (
     row.guest_name ||
+    row.source_booking_id ||
     row.guest_full_name ||
-    row.primary_guest_name ||
-    row.source_guest_name ||
     row.customer_name ||
     row.booker_name ||
-    row.client_name ||
-    row.name;
-
-  if (explicit && String(explicit).trim()) return String(explicit).trim();
-
-  const first = String(row.guest_first_name ?? row.first_name ?? "").trim();
-  const last = String(row.guest_last_name ?? row.last_name ?? "").trim();
-  const full = [first, last].filter(Boolean).join(" ").trim();
-  if (full) return full;
-
-  const code = String(row.source_booking_id ?? row.booking_id ?? row.reference ?? "").trim();
-  return code ? `Réservation ${code}` : "Client";
+    "Séjour"
+  );
 }
 
 function signedPhotoUrlOrNull(row: Row) {

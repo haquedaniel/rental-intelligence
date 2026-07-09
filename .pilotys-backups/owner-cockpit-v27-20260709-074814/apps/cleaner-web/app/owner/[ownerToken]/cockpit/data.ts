@@ -32,73 +32,6 @@ import type {
 
 type Row = Record<string, any>;
 
-async function signedUrl(supabase: ReturnType<typeof getSupabaseAdmin>, bucket?: string | null, path?: string | null): Promise<string | null> {
-  if (!bucket || !path) return null;
-  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-  return data?.signedUrl ?? null;
-}
-
-
-function firstImageUrl(row: Row | undefined | null, candidates: string[]) {
-  if (!row) return null;
-
-  for (const key of candidates) {
-    const value = row[key];
-
-    if (typeof value === "string" && value.trim()) return value.trim();
-
-    if (Array.isArray(value) && value.length > 0) {
-      const first = value[0];
-      if (typeof first === "string" && first.trim()) return first.trim();
-      if (first && typeof first === "object") {
-        const nested = first.url || first.publicUrl || first.public_url || first.signedUrl || first.signed_url || first.path;
-        if (typeof nested === "string" && nested.trim()) return nested.trim();
-      }
-    }
-
-    if (value && typeof value === "object") {
-      const nested = value.url || value.publicUrl || value.public_url || value.signedUrl || value.signed_url || value.path;
-      if (typeof nested === "string" && nested.trim()) return nested.trim();
-    }
-  }
-
-  return null;
-}
-
-function propertyImageUrl(row: Row | undefined | null) {
-  return firstImageUrl(row, [
-    "cover_photo_signed_url",
-    "cover_photo_url",
-    "photo_signed_url",
-    "photo_url",
-    "image_signed_url",
-    "image_url",
-    "thumbnail_signed_url",
-    "thumbnail_url",
-    "main_photo_url",
-    "main_image_url",
-    "hero_image_url",
-    "pictures",
-    "photos",
-    "images",
-  ]);
-}
-
-function cleanerImageUrl(row: Row | undefined | null) {
-  return firstImageUrl(row, [
-    "profilePhotoSignedUrl",
-    "profile_photo_signed_url",
-    "profile_photo_url",
-    "photo_signed_url",
-    "photo_url",
-    "avatar_signed_url",
-    "avatar_url",
-    "image_url",
-    "thumbnail_url",
-  ]);
-}
-
-
 function reservationHref(reservation: Row) {
   return `/owner/reservations/${reservation.id}`;
 }
@@ -130,7 +63,14 @@ function cleanerInitials(cleaner?: Row | null) {
 
 function cleanerPhotoUrl(cleaner?: Row | null) {
   if (!cleaner) return null;
-  return cleaner.profile_photo_signed_url || cleanerImageUrl(cleaner);
+  return (
+    cleaner.profilePhotoSignedUrl ||
+    cleaner.profile_photo_signed_url ||
+    cleaner.profile_photo_url ||
+    cleaner.photo_url ||
+    cleaner.avatar_url ||
+    null
+  );
 }
 
 function requestTone(request: Row): Tone {
@@ -282,29 +222,18 @@ function requestTimelineDateKey(request: Row): string | null {
 }
 
 function reservationGuest(row: Row) {
-  const explicit =
+  return (
     row.guest_name ||
+    row.source_booking_id ||
     row.guest_full_name ||
-    row.primary_guest_name ||
-    row.source_guest_name ||
     row.customer_name ||
     row.booker_name ||
-    row.client_name ||
-    row.name;
-
-  if (explicit && String(explicit).trim()) return String(explicit).trim();
-
-  const first = String(row.guest_first_name ?? row.first_name ?? "").trim();
-  const last = String(row.guest_last_name ?? row.last_name ?? "").trim();
-  const full = [first, last].filter(Boolean).join(" ").trim();
-  if (full) return full;
-
-  const code = String(row.source_booking_id ?? row.booking_id ?? row.reference ?? "").trim();
-  return code ? `Réservation ${code}` : "Client";
+    "Séjour"
+  );
 }
 
 function signedPhotoUrlOrNull(row: Row) {
-  return row.cover_photo_signed_url || null;
+  return row.cover_photo_signed_url || row.cover_photo_url || row.thumbnail_url || row.image_url || null;
 }
 
 function daysInMonth(month: string) {
@@ -953,29 +882,29 @@ function buildOpportunities({ listings }: { listings: OwnerCockpitListing[] }): 
   return [...gapOpportunities, directOpportunity].slice(0, 3);
 }
 
-
-async function maybeSignedCleanerImages(supabase: ReturnType<typeof getSupabaseAdmin>, rows: Row[]): Promise<Row[]> {
+async function maybeSignedPropertyImages(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  properties: Row[],
+): Promise<Row[]> {
   return Promise.all(
-    rows.map(async (row) => ({
-      ...row,
-      profile_photo_signed_url: await signedUrl(supabase, row.profile_photo_bucket, row.profile_photo_path),
-    })),
+    properties.map(async (property, index) => {
+      const bucket = property.cover_photo_bucket || property.photo_bucket || property.image_bucket;
+      const path = property.cover_photo_path || property.photo_path || property.image_path;
+      if (!bucket || !path) {
+        const fallback = [
+          "/pilotys-assets/property-peskerezh.svg",
+          "/pilotys-assets/property-balcon.svg",
+          "/pilotys-assets/property-attic.svg",
+          "/pilotys-assets/property-garden.svg",
+        ][index % 4];
+        return { ...property, cover_photo_signed_url: fallback };
+      }
+
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+      return { ...property, cover_photo_signed_url: data?.signedUrl ?? null };
+    }),
   );
 }
-
-
-async function buildPropertyCoverMap(supabase: ReturnType<typeof getSupabaseAdmin>, photos: Row[]) {
-  const coverByPropertyId: Record<string, string | null> = {};
-
-  for (const photo of photos) {
-    const propertyId = String(photo.property_id ?? "");
-    if (!propertyId || coverByPropertyId[propertyId] !== undefined) continue;
-    coverByPropertyId[propertyId] = await signedUrl(supabase, photo.storage_bucket, photo.storage_path);
-  }
-
-  return coverByPropertyId;
-}
-
 
 export async function getOwnerCockpitData(ownerTokenParam: string): Promise<OwnerCockpitData> {
   const ownerToken = normaliseToken(ownerTokenParam);
@@ -1006,7 +935,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     throw new Error(`Impossible de charger les logements : ${propertiesError.message}`);
   }
 
-  const properties = (rawProperties ?? []) as Row[];
+  const properties: Row[] = await maybeSignedPropertyImages(supabase, (rawProperties ?? []) as Row[]);
   const propertyIds = properties.map((property) => String(property.id));
 
   if (propertyIds.length === 0) {
@@ -1047,7 +976,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     analyticsMonthlyResult,
     analyticsTargetsResult,
     analyticsExpensesResult,
-    propertyPhotosResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1098,15 +1026,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       .select("*")
       .gte("year_month", yearStart.slice(0, 7))
       .lte("year_month", yearEnd.slice(0, 7)),
-    propertyIds.length
-      ? supabase
-          .from("property_reference_photos")
-          .select("*")
-          .in("property_id", propertyIds)
-          .eq("is_active", true)
-          .order("is_cover", { ascending: false })
-          .order("display_order", { ascending: true })
-      : Promise.resolve({ data: [], error: null }),
   ]);
 
   for (const [label, result] of [
@@ -1118,9 +1037,8 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     ["analytics mois", analyticsMonthlyResult],
     ["objectifs", analyticsTargetsResult],
     ["dépenses", analyticsExpensesResult],
-    ["photos logements", propertyPhotosResult],
   ] as const) {
-    if ("error" in result && result.error) {
+    if (result.error) {
       throw new Error(`Impossible de charger ${label} : ${result.error.message}`);
     }
   }
@@ -1129,14 +1047,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const yearReservations = yearReservationsResult.data ?? [];
   const requests = requestsResult.data ?? [];
   const cleaners = cleanersResult.data ?? [];
-  const signedCleaners = await maybeSignedCleanerImages(supabase, cleaners as Row[]);
-  const cleanersById = Object.fromEntries(signedCleaners.map((cleaner) => [cleaner.id, cleaner]));
-
-  const coverByPropertyId = await buildPropertyCoverMap(supabase, (propertyPhotosResult.data ?? []) as Row[]);
-  const propertiesWithCovers = properties.map((property) => ({
-    ...property,
-    cover_photo_signed_url: coverByPropertyId[String(property.id)] ?? null,
-  }));
+  const cleanersById = Object.fromEntries(cleaners.map((cleaner) => [cleaner.id, cleaner]));
 
   const analyticsDaily = scopedRows(analyticsDailyResult.data ?? [], propertyIds.map(String));
   const analyticsMonthly = scopedRows(analyticsMonthlyResult.data ?? [], propertyIds.map(String));
@@ -1145,7 +1056,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
 
 
   const listings = buildListings({
-    properties: propertiesWithCovers,
+    properties,
     monthlyRows: analyticsMonthly,
     yearReservations,
     dailyRows: analyticsDaily,
