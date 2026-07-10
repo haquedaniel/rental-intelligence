@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/adminAuth";
@@ -432,34 +431,6 @@ function MissionCard({
   );
 }
 
-
-async function saveReservationPreparationNote(formData: FormData) {
-  "use server";
-
-  await requireAdmin();
-
-  const reservationId = String(formData.get("reservation_id") ?? "");
-  const note = String(formData.get("cleaner_preparation_note") ?? "").trim();
-
-  if (!reservationId) {
-    throw new Error("Réservation manquante.");
-  }
-
-  const supabase = getSupabaseAdmin();
-
-  await supabase
-    .from("reservations")
-    .update({
-      cleaner_preparation_note: note || null,
-      cleaner_preparation_note_updated_at: new Date().toISOString(),
-      cleaner_preparation_note_updated_by: "owner_page",
-    })
-    .eq("id", reservationId);
-
-  revalidatePath(`/owner/reservations/${reservationId}`);
-  revalidatePath("/owner/cockpit");
-}
-
 export default async function OwnerReservationPage({
   params,
 }: {
@@ -521,7 +492,7 @@ export default async function OwnerReservationPage({
     supabase
       .from("cleaning_requests")
       .select("*")
-      .or(`reservation_id.eq.${reservation.id},prepares_reservation_id.eq.${reservation.id}`)
+      .eq("reservation_id", reservation.id)
       .order("created_at", { ascending: true }),
     sourceBookingId
       ? supabase

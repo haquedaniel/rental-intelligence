@@ -220,12 +220,12 @@ export default async function CleanerReservationBriefingPage({ params }: { param
 
   const [propertyResult, reservationResult, messagesResult] = await Promise.all([
     request.property_id ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle() : Promise.resolve({ data: null }),
-    (request.prepares_reservation_id || request.reservation_id) ? supabase.from("reservations").select("*").eq("id", request.prepares_reservation_id || request.reservation_id).maybeSingle() : Promise.resolve({ data: null }),
-    (request.prepares_reservation_id || request.reservation_id)
+    request.reservation_id ? supabase.from("reservations").select("*").eq("id", request.reservation_id).maybeSingle() : Promise.resolve({ data: null }),
+    request.reservation_id
       ? supabase
           .from("reservation_messages")
           .select("*")
-          .eq("reservation_id", request.prepares_reservation_id || request.reservation_id)
+          .eq("reservation_id", request.reservation_id)
           .order("sent_at", { ascending: false })
           .limit(30)
       : Promise.resolve({ data: [] }),
@@ -250,7 +250,9 @@ export default async function CleanerReservationBriefingPage({ params }: { param
     sanitizeNote(textValue(reservation, ["pets_notes"], "")),
   ].filter(Boolean).join("\n\n");
 
-    const priorityNote = sanitizeNote(textValue(reservation, ["cleaner_preparation_note"], ""));
+  const priorityNote = sanitizeNote(
+    textValue(request, ["cleaner_priority_note", "owner_note"], ""),
+  );
 
   const propertyNotes = [
     sanitizeNote(textValue(request, ["cleaner_notes", "notes", "description"], "")),
@@ -317,7 +319,7 @@ export default async function CleanerReservationBriefingPage({ params }: { param
 
         {priorityNote ? (
           <section className="rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm ring-1 ring-[#112532]/20">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Important pour le séjour préparé</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Note propriétaire — important</p>
             <h2 className="mt-2 text-2xl font-black">À faire / vérifier en priorité</h2>
             <p className="mt-4 whitespace-pre-wrap text-base font-bold leading-7 text-white/82">{priorityNote}</p>
           </section>

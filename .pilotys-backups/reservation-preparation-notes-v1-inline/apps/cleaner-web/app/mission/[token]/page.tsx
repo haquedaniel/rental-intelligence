@@ -80,8 +80,6 @@ export default async function MissionPage({ params }: PageProps) {
       `
       id,
       property_id,
-      reservation_id,
-      prepares_reservation_id,
       status,
       schedule_status,
       ready_by_at,
@@ -190,16 +188,6 @@ export default async function MissionPage({ params }: PageProps) {
     ? await getCoverPhotoUrl(supabaseAdmin, mission.property_id)
     : null;
 
-  const { data: preparedReservation } = mission.prepares_reservation_id
-    ? await supabaseAdmin
-        .from("reservations")
-        .select("id,guest_name,checkin_at,number_of_guests,num_adult,num_child,pets_count,cleaner_preparation_note")
-        .eq("id", mission.prepares_reservation_id)
-        .maybeSingle()
-    : { data: null };
-
-  const preparationNote = preparedReservation?.cleaner_preparation_note || null;
-
   const isPending = mission.status === "sent";
   const isAccepted = mission.status === "accepted";
   const isRefused = mission.status === "refused";
@@ -217,23 +205,19 @@ export default async function MissionPage({ params }: PageProps) {
           )}
 
           <div className="p-6">
-            {preparationNote ? (
+
+            {(mission.cleaner_priority_note || mission.owner_note) ? (
               <section className="mb-5 rounded-2xl bg-[#112532] p-4 text-white shadow-sm">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-                  Important pour le prochain séjour
+                  Note propriétaire — important
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-base font-black leading-7 text-white/85">
-                  {preparationNote}
+                  {mission.cleaner_priority_note || mission.owner_note}
                 </p>
-                {preparedReservation ? (
-                  <p className="mt-3 text-xs font-bold text-white/55">
-                    {preparedReservation.guest_name || "Prochain séjour"} · arrivée {formatDate(preparedReservation.checkin_at)}
-                  </p>
-                ) : null}
               </section>
             ) : null}
 
-<Link
+            <Link
               href={`/mission/${token}/reservation`}
               className="mb-5 block rounded-2xl bg-[#EFF6F8] px-4 py-3 text-center text-sm font-black text-[#1E5365] ring-1 ring-[#80A5B7]/25"
             >

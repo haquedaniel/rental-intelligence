@@ -492,7 +492,6 @@ export default async function OwnerMissionPage({
     outboundResult,
     auditResult,
     siblingRequestsResult,
-    preparedReservationResult,
   ] = await Promise.all([
     request.property_id
       ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle()
@@ -510,9 +509,6 @@ export default async function OwnerMissionPage({
     request.reservation_id
       ? supabase.from("cleaning_requests").select("*").eq("reservation_id", request.reservation_id).order("created_at", { ascending: true })
       : Promise.resolve({ data: [] }),
-    request.prepares_reservation_id
-      ? supabase.from("reservations").select("*").eq("id", request.prepares_reservation_id).maybeSingle()
-      : Promise.resolve({ data: null }),
   ]);
 
   const property = propertyResult.data as Row | null;
@@ -523,8 +519,6 @@ export default async function OwnerMissionPage({
   const outboundMessages = (outboundResult.data ?? []) as Row[];
   const auditEvents = (auditResult.data ?? []) as Row[];
   const siblingRequests = ((siblingRequestsResult.data ?? []) as Row[]).filter((row) => row.id !== request.id);
-  const preparedReservation = preparedReservationResult.data as Row | null;
-  const preparationNote = preparedReservation?.cleaner_preparation_note || null;
 
   const [{ data: coverPhoto }, cleaningPhotoResult, interventionPhotoResult] = await Promise.all([
     request.property_id
@@ -656,7 +650,27 @@ export default async function OwnerMissionPage({
           <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Pilotage</p>
             <h2 className="mt-2 text-2xl font-black">Ce qu’il faut savoir</h2>
-<div className="mt-5 grid gap-3">
+
+            <form action={saveOwnerMissionNote} className="mt-5 rounded-3xl bg-[#112532] p-5 text-white ring-1 ring-[#112532]/20">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Note visible par l’intervenante</p>
+              <h3 className="mt-2 text-xl font-black">Instruction prioritaire</h3>
+              <p className="mt-1 text-sm font-bold text-white/62">
+                Exemple : lit bébé à installer, draps canapé-lit, attention animal, demande particulière du voyageur.
+              </p>
+              <input type="hidden" name="request_id" value={request.id} />
+              <textarea
+                name="owner_note"
+                defaultValue={request.cleaner_priority_note || request.owner_note || ""}
+                rows={4}
+                className="mt-4 w-full rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-bold text-[#112532] outline-none"
+                placeholder="Note importante pour l’intervenante…"
+              />
+              <button className="mt-3 rounded-full bg-[#E0680E] px-5 py-3 text-sm font-black text-white shadow-sm">
+                Enregistrer la note
+              </button>
+            </form>
+
+            <div className="mt-5 grid gap-3">
               {request.status === "accepted" ? (
                 <MessageBubble title="Sous contrôle" text="La mission est acceptée. Le point clé est de suivre la réalisation et le rapport." tone="green" />
               ) : ["created", "sent"].includes(String(request.status)) ? (
