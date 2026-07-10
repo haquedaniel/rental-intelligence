@@ -759,15 +759,8 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           const covered = coveredDays.has(day);
                           const price = dailyPriceByKey.get(`${listing.id}:${day}`);
                           return (
-                            <div key={`${listing.id}-cell-${day}`} className="relative rounded-xl bg-white/88 ring-1 ring-white/70">
-                              {!covered && price ? (
-                                <div
-                                  title="Prix jour libre"
-                                  className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
-                                >
-                                  {Math.round(price.price)}€
-                                </div>
-                              ) : null}
+                            <div key={`${listing.id}-cell-${day}`} className="rounded-xl bg-white/88 ring-1 ring-white/70">
+                              {!covered && price ? <div className="sr-only">{Math.round(price.price)}€</div> : null}
                             </div>
                           );
                         })}
@@ -792,7 +785,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           })}
                       </div>
 
-                      <div className="absolute inset-0 z-20 pointer-events-auto">
+                      <div className="absolute inset-0 z-20">
                         {rowReservations.map((reservation) => (
                           <a
                             key={reservation.id}
@@ -813,7 +806,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         ))}
                       </div>
 
-                      <div className="absolute inset-0 z-30 pointer-events-none">
+                      <div className="absolute inset-0 z-30">
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
@@ -821,7 +814,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           return (
                             <div
                               key={`${listing.id}-mission-${day}`}
-                              className="pointer-events-auto absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
                               style={{ left: dayCenterLeftPx(day, dayWidthPx) }}
                             >
                               <MissionGroupPopover markers={markers} />
