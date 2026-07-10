@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -283,7 +284,8 @@ export default async function OwnerReportPage({ params }: PageProps) {
           <h1 className="text-xl font-black text-slate-950">Rapport introuvable</h1>
           <p className="mt-2 text-slate-600">Impossible de trouver cette mission.</p>
         </div>
-      </main>
+            <OwnerBottomNav active="reports" />
+    </main>
     );
   }
 
@@ -392,7 +394,8 @@ export default async function OwnerReportPage({ params }: PageProps) {
               </div>
             </section>
           </div>
-        </main>
+              <OwnerBottomNav active="reports" />
+    </main>
       );
     }
 
@@ -669,7 +672,8 @@ export default async function OwnerReportPage({ params }: PageProps) {
             </aside>
           </section>
         </div>
-      </main>
+            <OwnerBottomNav active="reports" />
+    </main>
     );
   }
 
@@ -688,7 +692,8 @@ export default async function OwnerReportPage({ params }: PageProps) {
             </p>
           </section>
         </div>
-      </main>
+            <OwnerBottomNav active="reports" />
+    </main>
     );
   }
 
@@ -968,6 +973,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
           </aside>
         </section>
       </div>
+          <OwnerBottomNav active="reports" />
     </main>
   );
 }

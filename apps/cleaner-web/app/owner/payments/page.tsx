@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -336,6 +337,7 @@ export default async function OwnerPaymentsPage({
           </section>
         )}
       </div>
+          <OwnerBottomNav active="payments" />
     </main>
   );
 }

@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import OwnerBottomNav, { OwnerTopNav } from "@/components/owner/OwnerBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -396,7 +395,7 @@ function MissionCard({
   const requestHref =
     ["completed", "report_submitted", "problem_reported"].includes(String(request.status))
       ? `/owner/reports/${request.id}`
-      : `/owner/missions/${request.id}`;
+      : `/owner/issues/request/${request.id}`;
 
   return (
     <Link href={requestHref} className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/8 transition hover:-translate-y-0.5 hover:shadow-md">
@@ -718,8 +717,16 @@ export default async function OwnerReservationPage({
         <div className="absolute inset-0 bg-gradient-to-t from-[#112532] via-[#112532]/68 to-[#112532]/22" />
 
         <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-5 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-white/8 p-2 backdrop-blur-md ring-1 ring-white/12">
-            <OwnerTopNav active="reservations" />
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/owner/cockpit" className="text-xs font-black uppercase tracking-[0.18em] text-white/62">
+              ← Retour cockpit
+            </Link>
+
+            {property?.id ? (
+              <Link href={`/owner/properties/${property.id}`} className="rounded-full bg-white/12 px-4 py-2 text-xs font-black text-white ring-1 ring-white/18">
+                Voir le logement →
+              </Link>
+            ) : null}
           </div>
 
           <div className="mt-14 grid gap-5 lg:grid-cols-[1fr_22rem] lg:items-end">
@@ -930,7 +937,7 @@ export default async function OwnerReservationPage({
                 <p className="text-sm font-black">Toutes les missions associées</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {cleaningRequests.map((request) => (
-                    <Link key={request.id} href={`/owner/missions/${request.id}`} className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532] ring-1 ring-[#112532]/8">
+                    <Link key={request.id} href={`/owner/issues/request/${request.id}`} className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532] ring-1 ring-[#112532]/8">
                       {request.title || request.mission_type || "Mission"} · {statusLabel(request.status)}
                     </Link>
                   ))}
@@ -1002,7 +1009,6 @@ export default async function OwnerReservationPage({
           </div>
         </section>
       </div>
-      <OwnerBottomNav active="reservations" />
     </main>
   );
 }

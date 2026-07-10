@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import AdminRequestIssuePage from "../../../../admin/issues/request/[requestId]/page";
 
 export const dynamic = "force-dynamic";
