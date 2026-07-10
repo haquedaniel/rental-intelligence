@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 import { fullDateTimeLabel } from "@/lib/missionReadyDays";
 import { acceptMissionReadyDay, refuseMissionFromReadyDay } from "./actions";
 import { getCleanerLocale, t } from "@/lib/cleanerI18n";
@@ -39,11 +40,20 @@ export default async function MissionReadyDayPage({
   if (!request) {
     return (
       <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6">
+
+      <Link
+        href={`/mission/${token}/reservation`}
+        className="mb-4 inline-flex rounded-full bg-[#112532] px-4 py-3 text-sm font-black text-white shadow-sm"
+      >
+        Briefing séjour →
+      </Link>
+
         <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h1 className="text-2xl font-bold text-slate-950">{t("fr", "common.missionNotFound")}</h1>
           <p className="mt-2 text-slate-600">{t("fr", "common.missionNotFoundBody")}</p>
         </div>
-      </main>
+            <CleanerMissionNav missionToken={token} active="missions" />
+    </main>
     );
   }
 

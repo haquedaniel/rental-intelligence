@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 import { ReportForm } from "./ReportForm";
 import { getCleanerLocale, t, tr, type CleanerLocale } from "@/lib/cleanerI18n";
 import { loadTranslatedChecklistSections } from "@/lib/checklistSectionTranslations";
@@ -266,6 +267,14 @@ export default async function CleaningReportPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5">
+
+      <Link
+        href={`/mission/${token}/reservation`}
+        className="mb-4 inline-flex rounded-full bg-[#112532] px-4 py-3 text-sm font-black text-white shadow-sm"
+      >
+        Briefing séjour →
+      </Link>
+
       <div className="mx-auto max-w-xl space-y-5">
         <Link
           href={`/mission/${token}`}
@@ -325,6 +334,7 @@ export default async function CleaningReportPage({
         active="missions"
         locale={locale}
       />
+          <CleanerMissionNav missionToken={token} active="missions" />
     </main>
   );
 }

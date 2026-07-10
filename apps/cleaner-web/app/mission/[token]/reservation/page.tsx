@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 
 export const dynamic = "force-dynamic";
 
@@ -297,6 +298,7 @@ export default async function CleanerReservationBriefingPage({ params }: { param
           Retour à la mission
         </Link>
       </div>
+      <CleanerMissionNav missionToken={token} active="planning" />
     </main>
   );
 }

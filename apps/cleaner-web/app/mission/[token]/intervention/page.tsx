@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 import { acceptIntervention, changeInterventionSlot, refuseIntervention } from "./actions";
 import { InterventionSlotPicker } from "./InterventionSlotPicker";
 
@@ -243,6 +244,14 @@ export default async function InterventionMissionPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
+
+      <Link
+        href={`/mission/${token}/reservation`}
+        className="mb-4 inline-flex rounded-full bg-[#112532] px-4 py-3 text-sm font-black text-white shadow-sm"
+      >
+        Briefing séjour →
+      </Link>
+
       <div className="mx-auto max-w-2xl space-y-5 pb-24">
         <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/50">
@@ -442,6 +451,7 @@ export default async function InterventionMissionPage({
           </section>
         )}
       </div>
+          <CleanerMissionNav missionToken={token} active="missions" />
     </main>
   );
 }

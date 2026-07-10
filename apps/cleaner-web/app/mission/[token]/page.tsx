@@ -1,5 +1,6 @@
 import { acceptMission, refuseMission } from "./actions";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 import Link from "next/link";
 import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 import { redirect } from "next/navigation";
@@ -134,7 +135,8 @@ export default async function MissionPage({ params }: PageProps) {
             {t("fr", "common.missionNotFoundBody")}
           </p>
         </div>
-      </main>
+            <CleanerMissionNav missionToken={token} active="missions" />
+    </main>
     );
   }
 

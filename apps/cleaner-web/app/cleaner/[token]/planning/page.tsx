@@ -247,6 +247,18 @@ function missionHref(request: Row): string {
   return `/mission/${request.public_token}/report`;
 }
 
+
+function briefingHref(request: Row | null | undefined): string | null {
+  if (!request?.public_token) return null;
+  return `/mission/${request.public_token}/reservation`;
+}
+
+function briefingLabel(locale: CleanerLocale): string {
+  if (locale === "en") return "Stay briefing";
+  if (locale === "ru") return "Информация о проживании";
+  return "Briefing séjour";
+}
+
 function missionTitle(request: Row, locale: CleanerLocale): string {
   if (isIntervention(request)) {
     return request.title || "Intervention ponctuelle";
@@ -418,34 +430,41 @@ function MissionCompactCard({
       : "bg-white ring-slate-200",
   ].join(" ");
 
+  const briefing = briefingHref(request);
+
   return (
-    <Link
-      href={missionHref(request)}
-      className={cardClassName}
-    >
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusChipClass(request, overdue)}`}>
-            {statusLabel(request, overdue, locale)}
-          </span>
+    <div className={cardClassName}>
+      <Link href={missionHref(request)} className="block">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ring-1 ${statusChipClass(request, overdue)}`}>
+              {statusLabel(request, overdue, locale)}
+            </span>
 
-          <h3 className="mt-3 truncate text-base font-black text-slate-950">
-            {title}
-          </h3>
+            <h3 className="mt-3 truncate text-base font-black text-slate-950">
+              {title}
+            </h3>
 
-          <p className="mt-1 truncate text-sm font-semibold text-slate-500">
-            {subtitle}
-          </p>
+            <p className="mt-1 truncate text-sm font-semibold text-slate-500">
+              {subtitle}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
+            <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
+            <p className="mt-1 text-xs font-black text-slate-900">
+              {compactDateLabel(anchorAt(request), locale)}
+            </p>
+          </div>
         </div>
+      </Link>
 
-        <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-          <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
-          <p className="mt-1 text-xs font-black text-slate-900">
-            {compactDateLabel(anchorAt(request), locale)}
-          </p>
-        </div>
-      </div>
-    </Link>
+      {briefing ? (
+        <Link href={briefing} className="mt-3 inline-flex rounded-full bg-[#112532] px-3 py-2 text-xs font-black text-white">
+          {briefingLabel(locale)} →
+        </Link>
+      ) : null}
+    </div>
   );
 }
 
@@ -645,6 +664,25 @@ function PropertyCalendar({
                         const checkout = parisDateKey(new Date(reservation.checkout_at));
                         const pos = lanePosition(checkin, checkout);
                         if (!pos) return null;
+
+                        const linkedRequest = propertyRequests.find(
+                          (request) => String(request.reservation_id) === String(reservation.id) && request.public_token,
+                        );
+                        const briefing = briefingHref(linkedRequest);
+
+                        if (briefing) {
+                          return (
+                            <Link
+                              key={reservation.id}
+                              href={briefing}
+                              className={`absolute top-0 h-[28px] overflow-hidden rounded-full px-3 py-1 text-[10px] font-black shadow-sm ${palette.stay}`}
+                              style={{ left: pos.left, width: pos.width }}
+                              title={`${guestName(reservation, locale)} · ${briefingLabel(locale)}`}
+                            >
+                              <p className="truncate">{guestName(reservation, locale)}</p>
+                            </Link>
+                          );
+                        }
 
                         return (
                           <div
