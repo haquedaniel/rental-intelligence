@@ -94,6 +94,9 @@ export default async function MissionPage({ params }: PageProps) {
       urgency_bonus_eur,
       total_cost_eur,
       refusal_reason,
+      owner_note,
+      cleaner_priority_note,
+      owner_note_updated_at,
       public_token_expires_at,
       properties (
         name,
@@ -119,6 +122,7 @@ export default async function MissionPage({ params }: PageProps) {
   if (error || !mission) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
+
 
       <Link
         href={`/mission/${token}/reservation`}
@@ -201,6 +205,24 @@ export default async function MissionPage({ params }: PageProps) {
           )}
 
           <div className="p-6">
+
+            {(mission.cleaner_priority_note || mission.owner_note) ? (
+              <section className="mb-5 rounded-2xl bg-[#112532] p-4 text-white shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+                  Note propriétaire — important
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-base font-black leading-7 text-white/85">
+                  {mission.cleaner_priority_note || mission.owner_note}
+                </p>
+              </section>
+            ) : null}
+
+            <Link
+              href={`/mission/${token}/reservation`}
+              className="mb-5 block rounded-2xl bg-[#EFF6F8] px-4 py-3 text-center text-sm font-black text-[#1E5365] ring-1 ring-[#80A5B7]/25"
+            >
+              Briefing séjour →
+            </Link>
             <p className="text-sm font-medium text-slate-500">
               {t(locale, "mission.proposal")}
             </p>

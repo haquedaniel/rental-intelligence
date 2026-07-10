@@ -56,52 +56,6 @@ function sanitizeNote(value?: string | null): string {
     .trim();
 }
 
-function stripHtml(value?: string | null): string {
-  if (!value) return "";
-  return String(value)
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}
-
-function sanitizeCorrespondence(value?: string | null): string {
-  return sanitizeNote(stripHtml(value))
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
-function correspondenceSourceLabel(message: Row): string {
-  if (message.direction === "guest_to_host") return "Voyageur";
-  if (message.direction === "host_to_guest") return "Réponse hôte";
-  if (message.direction === "system") return "Système";
-  return "Message";
-}
-
-function messageLooksOperational(text: string): boolean {
-  const raw = text.toLowerCase();
-  const keywords = [
-    "lit bébé", "bébé", "cot", "crib", "chaise haute", "high chair",
-    "canapé", "sofa", "drap", "linge", "serviette", "towel", "sheet",
-    "chien", "dog", "chat", "cat", "animal", "pet",
-    "allerg", "vélo", "bike", "bicycle", "local", "terrasse", "jardin",
-    "départ", "arrivée", "late", "early", "tard", "avance",
-    "clé", "clef", "key", "boîte", "box", "code",
-    "cassé", "broken", "sale", "dirty", "propre", "clean",
-    "ventilateur", "fan", "chauffage", "heating", "wifi"
-  ];
-
-  return keywords.some((keyword) => raw.includes(keyword));
-}
-
 function guestLanguageLabel(value?: string | null): string {
   const lang = String(value || "").toLowerCase();
   if (lang.startsWith("fr")) return "Français";
@@ -218,22 +172,13 @@ export default async function CleanerReservationBriefingPage({ params }: { param
 
   if (!request) notFound();
 
-  const [propertyResult, reservationResult, messagesResult] = await Promise.all([
+  const [propertyResult, reservationResult] = await Promise.all([
     request.property_id ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle() : Promise.resolve({ data: null }),
     request.reservation_id ? supabase.from("reservations").select("*").eq("id", request.reservation_id).maybeSingle() : Promise.resolve({ data: null }),
-    request.reservation_id
-      ? supabase
-          .from("reservation_messages")
-          .select("*")
-          .eq("reservation_id", request.reservation_id)
-          .order("sent_at", { ascending: false })
-          .limit(30)
-      : Promise.resolve({ data: [] }),
   ]);
 
   const property = propertyResult.data as Row | null;
   const reservation = reservationResult.data as Row | null;
-  const messages = (messagesResult.data ?? []) as Row[];
   const coverUrl = await propertyCoverUrl(supabase, request.property_id);
   const { previousReservation, nextReservation } = await previousAndNextReservations(supabase, reservation, request.property_id);
 
@@ -250,23 +195,10 @@ export default async function CleanerReservationBriefingPage({ params }: { param
     sanitizeNote(textValue(reservation, ["pets_notes"], "")),
   ].filter(Boolean).join("\n\n");
 
-  const priorityNote = sanitizeNote(
-    textValue(request, ["cleaner_priority_note", "owner_note"], ""),
-  );
-
   const propertyNotes = [
     sanitizeNote(textValue(request, ["cleaner_notes", "notes", "description"], "")),
     sanitizeNote(textValue(property, ["cleaning_notes", "housekeeping_notes"], "")),
   ].filter(Boolean).join("\n\n");
-
-  const operationalMessages: (Row & { cleanedText: string })[] = messages
-    .map((message): Row & { cleanedText: string } => ({
-      ...message,
-      cleanedText: sanitizeCorrespondence(message.body_text || message.body || message.raw_payload?.message),
-    }))
-    .filter((message): message is Row & { cleanedText: string } => Boolean(message.cleanedText))
-    .filter((message) => message.direction === "guest_to_host" || messageLooksOperational(message.cleanedText))
-    .slice(0, 12);
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] text-[#112532]">
@@ -317,14 +249,6 @@ export default async function CleanerReservationBriefingPage({ params }: { param
           />
         </section>
 
-        {priorityNote ? (
-          <section className="rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm ring-1 ring-[#112532]/20">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Note propriétaire — important</p>
-            <h2 className="mt-2 text-2xl font-black">À faire / vérifier en priorité</h2>
-            <p className="mt-4 whitespace-pre-wrap text-base font-bold leading-7 text-white/82">{priorityNote}</p>
-          </section>
-        ) : null}
-
         <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Séjour concerné</p>
           <h2 className="mt-2 text-2xl font-black">{guestName(reservation)}</h2>
@@ -358,30 +282,6 @@ export default async function CleanerReservationBriefingPage({ params }: { param
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Notes mission / logement</p>
             <h2 className="mt-2 text-2xl font-black">Instructions utiles</h2>
             <p className="mt-4 whitespace-pre-wrap text-sm font-bold leading-6 text-[#112532]/68">{propertyNotes}</p>
-          </section>
-        ) : null}
-
-        {operationalMessages.length ? (
-          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Messages voyageurs</p>
-            <h2 className="mt-2 text-2xl font-black">Demandes à vérifier</h2>
-            <p className="mt-2 text-sm font-bold text-[#112532]/52">
-              Extraits utiles des messages du séjour. Vérifier surtout les demandes de linge, lit bébé, animaux, horaires ou équipements.
-            </p>
-
-            <div className="mt-5 space-y-3">
-              {operationalMessages.map((message) => (
-                <div key={message.id} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-black text-[#112532]">{correspondenceSourceLabel(message)}</p>
-                    <p className="text-xs font-bold text-[#112532]/45">{dateTime(message.sent_at || message.received_at || message.created_at)}</p>
-                  </div>
-                  <p className="mt-3 whitespace-pre-wrap text-sm font-bold leading-6 text-[#112532]/68">
-                    {message.cleanedText}
-                  </p>
-                </div>
-              ))}
-            </div>
           </section>
         ) : null}
 

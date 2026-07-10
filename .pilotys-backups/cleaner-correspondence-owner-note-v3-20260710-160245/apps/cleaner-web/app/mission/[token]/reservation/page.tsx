@@ -259,12 +259,12 @@ export default async function CleanerReservationBriefingPage({ params }: { param
     sanitizeNote(textValue(property, ["cleaning_notes", "housekeeping_notes"], "")),
   ].filter(Boolean).join("\n\n");
 
-  const operationalMessages: (Row & { cleanedText: string })[] = messages
-    .map((message): Row & { cleanedText: string } => ({
+  const operationalMessages = messages
+    .map((message) => ({
       ...message,
       cleanedText: sanitizeCorrespondence(message.body_text || message.body || message.raw_payload?.message),
     }))
-    .filter((message): message is Row & { cleanedText: string } => Boolean(message.cleanedText))
+    .filter((message) => message.cleanedText)
     .filter((message) => message.direction === "guest_to_host" || messageLooksOperational(message.cleanedText))
     .slice(0, 12);
 

@@ -235,57 +235,6 @@ async function signedPhotos(
 }
 
 
-
-async function saveOwnerMissionNote(formData: FormData) {
-  "use server";
-
-  await requireAdmin();
-
-  const requestId = String(formData.get("request_id") ?? "");
-  const note = String(formData.get("owner_note") ?? "").trim();
-
-  if (!requestId) {
-    throw new Error("Mission manquante.");
-  }
-
-  const supabase = getSupabaseAdmin();
-
-  const { data: previous } = await supabase
-    .from("cleaning_requests")
-    .select("id,owner_note,cleaner_priority_note")
-    .eq("id", requestId)
-    .maybeSingle();
-
-  await supabase
-    .from("cleaning_requests")
-    .update({
-      owner_note: note || null,
-      cleaner_priority_note: note || null,
-      owner_note_updated_at: new Date().toISOString(),
-      owner_note_updated_by: "owner_page",
-    })
-    .eq("id", requestId);
-
-  await supabase.from("cleaning_request_change_log").insert({
-    cleaning_request_id: requestId,
-    changed_by: "owner_page",
-    change_type: "owner_note_updated",
-    before_data: {
-      owner_note: previous?.owner_note ?? null,
-      cleaner_priority_note: previous?.cleaner_priority_note ?? null,
-    },
-    after_data: {
-      owner_note: note || null,
-      cleaner_priority_note: note || null,
-    },
-    note: note ? "Note propriétaire mise à jour pour l’intervenante." : "Note propriétaire supprimée.",
-  });
-
-  revalidatePath(`/owner/missions/${requestId}`);
-  revalidatePath("/owner/cockpit");
-}
-
-
 function missionLink(request: Row) {
   const base = process.env.CLEANER_WEB_BASE_URL || "";
   if (!request.public_token) return "";
@@ -383,7 +332,7 @@ async function enqueueManualMissionSms(formData: FormData) {
   });
 
   revalidatePath(`/owner/missions/${request.id}`);
-  revalidatePath(`/owner/issues/request/${request.id}`);
+  revalidatePath(`/owner/missions/${request.id}`);
   revalidatePath("/owner/cockpit");
 }
 
@@ -650,25 +599,6 @@ export default async function OwnerMissionPage({
           <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Pilotage</p>
             <h2 className="mt-2 text-2xl font-black">Ce qu’il faut savoir</h2>
-
-            <form action={saveOwnerMissionNote} className="mt-5 rounded-3xl bg-[#112532] p-5 text-white ring-1 ring-[#112532]/20">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Note visible par l’intervenante</p>
-              <h3 className="mt-2 text-xl font-black">Instruction prioritaire</h3>
-              <p className="mt-1 text-sm font-bold text-white/62">
-                Exemple : lit bébé à installer, draps canapé-lit, attention animal, demande particulière du voyageur.
-              </p>
-              <input type="hidden" name="request_id" value={request.id} />
-              <textarea
-                name="owner_note"
-                defaultValue={request.cleaner_priority_note || request.owner_note || ""}
-                rows={4}
-                className="mt-4 w-full rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-bold text-[#112532] outline-none"
-                placeholder="Note importante pour l’intervenante…"
-              />
-              <button className="mt-3 rounded-full bg-[#E0680E] px-5 py-3 text-sm font-black text-white shadow-sm">
-                Enregistrer la note
-              </button>
-            </form>
 
             <div className="mt-5 grid gap-3">
               {request.status === "accepted" ? (
