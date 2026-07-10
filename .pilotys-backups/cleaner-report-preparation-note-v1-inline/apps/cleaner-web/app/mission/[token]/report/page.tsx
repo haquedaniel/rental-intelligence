@@ -5,7 +5,6 @@ import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
 import { ReportForm } from "./ReportForm";
 import { getCleanerLocale, t, tr, type CleanerLocale } from "@/lib/cleanerI18n";
 import { loadTranslatedChecklistSections } from "@/lib/checklistSectionTranslations";
-import { CleanerPreparationNoteBanner } from "@/components/cleaner/CleanerPreparationNoteBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -276,9 +275,7 @@ export default async function CleaningReportPage({
         Briefing séjour →
       </Link>
 
-      <div className="mx-auto max-w-xl space-y-5">\
-        <CleanerPreparationNoteBanner missionToken={token} />
-
+      <div className="mx-auto max-w-xl space-y-5">
         <Link
           href={`/mission/${token}`}
           className="text-sm font-medium text-slate-600"

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { submitInterventionReport } from "./actions";
-import { CleanerPreparationNoteBanner } from "@/components/cleaner/CleanerPreparationNoteBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +47,7 @@ export default async function InterventionReportPage({
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-5 pb-24">\
-        <CleanerPreparationNoteBanner missionToken={token} />
-
+      <div className="mx-auto max-w-2xl space-y-5 pb-24">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
             Rapport d’intervention
