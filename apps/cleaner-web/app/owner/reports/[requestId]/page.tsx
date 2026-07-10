@@ -280,6 +280,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
   if (requestError || !request) {
     return (
       <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-10 text-[#112532]">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
         <div className="mx-auto max-w-2xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
           <h1 className="text-xl font-black text-[#112532]">Rapport introuvable</h1>
           <p className="mt-2 text-[#112532]/60">Impossible de trouver cette mission.</p>
@@ -502,7 +503,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                   Travail réalisé
                 </h2>
 
-                <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-emerald-950 ring-1 ring-emerald-100">
+                <div className="mt-4 rounded-2xl bg-[#ECFFF6] p-4 text-emerald-950 ring-1 ring-emerald-100">
                   <p className="whitespace-pre-wrap text-sm font-semibold leading-6">
                     {interventionReport.work_summary || "Aucun détail fourni."}
                   </p>
@@ -627,7 +628,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                 ) : (
                   <div className="mt-4 space-y-2">
                     {expenses.map((expense: Row) => (
-                      <div key={expense.id} className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-100">
+                      <div key={expense.id} className="rounded-2xl bg-[#FFF5DD] p-3 ring-1 ring-amber-100">
                         <div className="flex justify-between gap-3 text-sm font-bold">
                           <span className="text-amber-950">{expense.label}</span>
                           <span className="text-amber-950">{money(expense.amount_eur)}</span>
@@ -829,7 +830,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
               </div>
 
               {cleanerComments.length === 0 ? (
-                <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-emerald-900">
+                <div className="mt-4 rounded-2xl bg-[#ECFFF6] p-4 text-emerald-900">
                   <p className="font-black">Aucun commentaire particulier.</p>
                   <p className="mt-1 text-sm">
                     L’intervenante n’a pas signalé de problème sur ce rapport.
@@ -927,7 +928,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                     key={check.id}
                     className={`rounded-2xl p-3 ring-1 ${
                       check.checked
-                        ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
+                        ? "bg-[#ECFFF6] text-emerald-900 ring-emerald-100"
                         : "bg-[#F6F3EF] text-[#112532]/76 ring-slate-100"
                     }`}
                   >

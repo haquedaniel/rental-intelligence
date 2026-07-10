@@ -538,15 +538,15 @@ function ProfileOverrideCard({
   return (
     <Card title="Type de mission">
       {profiles.length === 0 ? (
-        <p className="text-sm font-semibold text-slate-500">
+        <p className="text-sm font-semibold text-[#112532]/48">
           Aucun type de mission actif pour ce logement.
         </p>
       ) : locked ? (
-        <div className="space-y-2 text-sm font-semibold text-slate-600">
+        <div className="space-y-2 text-sm font-semibold text-[#112532]/62">
           <p>La mission est verrouillée car elle est déjà acceptée, terminée ou refusée.</p>
           <p>
             Checklist utilisée :{" "}
-            <strong className="text-slate-950">
+            <strong className="text-[#112532]">
               {profiles.find((profile) => profile.id === request.cleaning_profile_id)?.label ??
                 request.cleaning_profile_id ??
                 "—"}
@@ -558,13 +558,13 @@ function ProfileOverrideCard({
           <input type="hidden" name="request_id" value={request.id} />
 
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
               Checklist / type de mission
             </span>
             <select
               name="cleaning_profile_id"
               defaultValue={request.cleaning_profile_id ?? ""}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-4 py-3 text-sm font-bold text-[#112532]"
             >
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
@@ -576,21 +576,21 @@ function ProfileOverrideCard({
           </label>
 
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
               Note interne optionnelle
             </span>
             <input
               name="note"
               placeholder="Ex : séjour court, ménage léger suffisant"
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-4 py-3 text-sm font-semibold text-[#112532]"
             />
           </label>
 
-          <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+          <button className="rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white">
             Appliquer à cette mission
           </button>
 
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-[#112532]/48">
             Cette modification met à jour uniquement cette mission et garde une trace dans l’historique.
           </p>
         </form>
@@ -607,11 +607,11 @@ function MissionAdminActions({ request }: { request: Row }) {
   return (
     <Card title="Actions mission">
       {request.status === "cancelled" ? (
-        <p className="text-sm font-semibold text-slate-500">
+        <p className="text-sm font-semibold text-[#112532]/48">
           Cette mission est annulée. Elle reste visible pour l’historique.
         </p>
       ) : !cancellable ? (
-        <p className="text-sm font-semibold text-slate-500">
+        <p className="text-sm font-semibold text-[#112532]/48">
           Cette mission est verrouillée car un rapport a déjà été reçu.
         </p>
       ) : (
@@ -619,13 +619,13 @@ function MissionAdminActions({ request }: { request: Row }) {
           <input type="hidden" name="request_id" value={request.id} />
 
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
               Motif optionnel
             </span>
             <input
               name="note"
               placeholder="Ex : mission créée par erreur, remplacée par une autre..."
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-4 py-3 text-sm font-semibold text-[#112532]"
             />
           </label>
 
@@ -636,7 +636,7 @@ function MissionAdminActions({ request }: { request: Row }) {
             Annuler cette mission
           </button>
 
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-[#112532]/48">
             L’annulation conserve l’historique, bloque les SMS en attente et retire les jours proposés.
           </p>
         </form>
@@ -651,7 +651,7 @@ function ContactButtons({ cleaner }: { cleaner?: Row | null }) {
 
   if (!tel && !whatsapp) {
     return (
-      <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-400">
+      <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-[#112532]/36">
         Pas de téléphone
       </span>
     );
@@ -662,7 +662,7 @@ function ContactButtons({ cleaner }: { cleaner?: Row | null }) {
       {tel && (
         <a
           href={tel}
-          className="rounded-full bg-slate-950 px-3 py-2 text-xs font-black text-white"
+          className="rounded-full bg-[#112532] px-3 py-2 text-xs font-black text-white"
         >
           Appeler
         </a>
@@ -691,11 +691,11 @@ function CleanerOption({
   status?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-3 text-slate-950 ring-1 ring-white/20">
+    <div className="rounded-2xl bg-white p-3 text-[#112532] ring-1 ring-white/20">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-black">{fullName(cleaner)}</p>
-          <p className="mt-1 text-xs font-semibold text-slate-500">{note}</p>
+          <p className="mt-1 text-xs font-semibold text-[#112532]/48">{note}</p>
         </div>
         {status && <Pill status={status} />}
       </div>
@@ -1113,11 +1113,11 @@ export default async function RequestIssuePage({
           <div className="space-y-1">
             <p>À : {recipient}</p>
             {body ? (
-              <p className="line-clamp-3 rounded-xl bg-white p-2 text-slate-600 ring-1 ring-slate-100">
+              <p className="line-clamp-3 rounded-xl bg-white p-2 text-[#112532]/62 ring-1 ring-slate-100">
                 {body}
               </p>
             ) : (
-              <p className="text-slate-400">Contenu du message non affiché par cette table.</p>
+              <p className="text-[#112532]/36">Contenu du message non affiché par cette table.</p>
             )}
           </div>
         ),
@@ -1182,7 +1182,7 @@ export default async function RequestIssuePage({
                 <Field label="Voyageurs" value={reservation.number_of_guests || "—"} />
               </FieldGrid>
             ) : (
-              <p className="text-sm font-semibold text-slate-500">
+              <p className="text-sm font-semibold text-[#112532]/48">
                 Aucune réservation liée à cette mission.
               </p>
             )}
@@ -1210,14 +1210,14 @@ export default async function RequestIssuePage({
           />
 
           <Card title="Diagnostic rapide">
-            <div className="space-y-2 text-sm font-semibold text-slate-600">
-              <p>Messages envoyés : <strong className="text-slate-950">{messages.length}</strong></p>
-              <p>Rapports reçus : <strong className="text-slate-950">{reports.length}</strong></p>
-              <p>Intervenantes logement : <strong className="text-slate-950">{assignments.length}</strong></p>
-              <p>Déjà sollicitées : <strong className="text-slate-950">{askedCleanerIds.size}</strong></p>
-              <p>Ont refusé : <strong className="text-slate-950">{refusedCleanerIds.size}</strong></p>
-              <p>Encore disponibles : <strong className="text-slate-950">{availableAssignments.length}</strong></p>
-              <p>Motif refus / note : <strong className="text-slate-950">{request.refusal_reason || request.notes || "—"}</strong></p>
+            <div className="space-y-2 text-sm font-semibold text-[#112532]/62">
+              <p>Messages envoyés : <strong className="text-[#112532]">{messages.length}</strong></p>
+              <p>Rapports reçus : <strong className="text-[#112532]">{reports.length}</strong></p>
+              <p>Intervenantes logement : <strong className="text-[#112532]">{assignments.length}</strong></p>
+              <p>Déjà sollicitées : <strong className="text-[#112532]">{askedCleanerIds.size}</strong></p>
+              <p>Ont refusé : <strong className="text-[#112532]">{refusedCleanerIds.size}</strong></p>
+              <p>Encore disponibles : <strong className="text-[#112532]">{availableAssignments.length}</strong></p>
+              <p>Motif refus / note : <strong className="text-[#112532]">{request.refusal_reason || request.notes || "—"}</strong></p>
             </div>
           </Card>
         </div>

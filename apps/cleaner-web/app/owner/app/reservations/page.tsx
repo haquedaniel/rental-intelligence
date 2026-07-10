@@ -332,7 +332,8 @@ export default async function OwnerReservationsPage({
     <main className="min-h-screen bg-[#F6F3EF] pb-28 text-[#112532] md:pb-8">
       <OwnerAppNav active="reservations" />
 
-      <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
         <header className="rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
             Source de vérité
@@ -359,7 +360,7 @@ export default async function OwnerReservationsPage({
             <p className="mt-2 text-2xl font-black">{visibleRows.length}</p>
           </div>
 
-          <div className="rounded-[1.35rem] bg-emerald-50 p-4 text-emerald-950 shadow-sm ring-1 ring-emerald-100">
+          <div className="rounded-[1.35rem] bg-[#ECFFF6] p-4 text-emerald-950 shadow-sm ring-1 ring-emerald-100">
             <p className="text-[10px] font-black uppercase tracking-wide opacity-60">Actives</p>
             <p className="mt-2 text-2xl font-black">{activeRows.length}</p>
           </div>

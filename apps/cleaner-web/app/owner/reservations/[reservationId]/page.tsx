@@ -153,7 +153,7 @@ function statusTone(value?: string | null): string {
     case "accepted":
     case "completed":
     case "report_submitted":
-      return "bg-emerald-50 text-emerald-800 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-800 ring-emerald-100";
     case "created":
     case "sent":
       return "bg-[#FFF5DD] text-[#A45C00] ring-[#F4B044]/25";
@@ -194,7 +194,7 @@ function riskTone(value?: string | null): string {
     case "info":
       return "bg-[#EFF6F8] text-[#1E5365] ring-[#80A5B7]/25";
     default:
-      return "bg-emerald-50 text-emerald-900 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-900 ring-emerald-100";
   }
 }
 
@@ -313,7 +313,7 @@ function priceAssessment(adr: number | null, benchmarkAdr: number | null) {
     return {
       label: "Très bon prix",
       detail: `ADR ${Math.round(delta)}% au-dessus de la médiane comparable.`,
-      tone: "bg-emerald-50 text-emerald-900 ring-emerald-100",
+      tone: "bg-[#ECFFF6] text-emerald-900 ring-emerald-100",
       delta,
     };
   }
@@ -424,7 +424,7 @@ function MissionCard({
       </div>
 
       {report ? (
-        <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-900 ring-1 ring-emerald-100">
+        <p className="mt-3 rounded-xl bg-[#ECFFF6] px-3 py-2 text-xs font-black text-emerald-900 ring-1 ring-emerald-100">
           Rapport reçu · ouvrir le détail →
         </p>
       ) : null}

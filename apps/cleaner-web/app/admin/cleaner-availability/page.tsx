@@ -97,26 +97,27 @@ export default async function CleanerAvailabilityPage({
   const today = todayIsoDate();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="text-sm font-semibold text-[#112532]/62">
             ← Back office
           </Link>
 
-          <h1 className="mt-3 text-3xl font-bold text-slate-950">
+          <h1 className="mt-3 text-3xl font-bold text-[#112532]">
             Disponibilités ménage
           </h1>
 
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-[#112532]/62">
             Gérez les disponibilités hebdomadaires et les périodes d’absence.
             Ces données serviront à choisir automatiquement l’intervenante
             disponible.
           </p>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-lg font-bold text-slate-950">
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-lg font-bold text-[#112532]">
             Filtrer par intervenante
           </h2>
 
@@ -125,7 +126,7 @@ export default async function CleanerAvailabilityPage({
               href="/admin/cleaner-availability"
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 selectedCleanerId
-                  ? "bg-slate-100 text-slate-700"
+                  ? "bg-slate-100 text-[#112532]/76"
                   : "bg-slate-900 text-white"
               }`}
             >
@@ -139,7 +140,7 @@ export default async function CleanerAvailabilityPage({
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   selectedCleanerId === cleaner.id
                     ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700"
+                    : "bg-slate-100 text-[#112532]/76"
                 }`}
               >
                 {fullName(cleaner)}
@@ -174,12 +175,12 @@ export default async function CleanerAvailabilityPage({
             return (
               <div
                 key={cleaner.id}
-                className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-xl font-bold text-slate-950">
+                      <h2 className="text-xl font-bold text-[#112532]">
                         {fullName(cleaner)}
                       </h2>
 
@@ -192,14 +193,14 @@ export default async function CleanerAvailabilityPage({
                       </span>
                     </div>
 
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-[#112532]/62">
                       {availableDayCount}/7 jour(s) disponibles par semaine ·{" "}
                       {futurePeriods.length} indisponibilité(s) à venir
                     </p>
                   </div>
 
                   {cleaner.phone && (
-                    <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <p className="rounded-2xl bg-[#F6F3EF] px-4 py-3 text-sm text-[#112532]/62">
                       {cleaner.phone}
                     </p>
                   )}
@@ -208,11 +209,11 @@ export default async function CleanerAvailabilityPage({
                 <form action={saveWeeklyAvailability} className="mt-6">
                   <input type="hidden" name="cleaner_id" value={cleaner.id} />
 
-                  <h3 className="text-base font-bold text-slate-950">
+                  <h3 className="text-base font-bold text-[#112532]">
                     Disponibilité récurrente
                   </h3>
 
-                  <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-[#112532]/10">
                     {WEEKDAYS.map(([weekday, label]) => {
                       const row = rowByWeekday[weekday];
                       const available = row ? row.available : true;
@@ -222,7 +223,7 @@ export default async function CleanerAvailabilityPage({
                           key={weekday}
                           className="grid gap-3 border-b border-slate-100 p-3 last:border-b-0 md:grid-cols-[150px_140px_140px_1fr]"
                         >
-                          <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-[#112532]/86">
                             <input
                               type="checkbox"
                               name={`available_${weekday}`}
@@ -232,7 +233,7 @@ export default async function CleanerAvailabilityPage({
                           </label>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-600">
+                            <label className="block text-xs font-semibold text-[#112532]/62">
                               Début
                             </label>
                             <input
@@ -244,7 +245,7 @@ export default async function CleanerAvailabilityPage({
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-600">
+                            <label className="block text-xs font-semibold text-[#112532]/62">
                               Fin
                             </label>
                             <input
@@ -256,7 +257,7 @@ export default async function CleanerAvailabilityPage({
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-600">
+                            <label className="block text-xs font-semibold text-[#112532]/62">
                               Note
                             </label>
                             <input
@@ -280,8 +281,8 @@ export default async function CleanerAvailabilityPage({
                 </form>
 
                 <div className="mt-8 grid gap-5 md:grid-cols-[1fr_1fr]">
-                  <section className="rounded-2xl border border-slate-200 p-4">
-                    <h3 className="text-base font-bold text-slate-950">
+                  <section className="rounded-2xl border border-[#112532]/10 p-4">
+                    <h3 className="text-base font-bold text-[#112532]">
                       Ajouter une indisponibilité
                     </h3>
 
@@ -290,7 +291,7 @@ export default async function CleanerAvailabilityPage({
 
                       <div className="grid gap-3 md:grid-cols-2">
                         <div>
-                          <label className="block text-sm font-semibold text-slate-800">
+                          <label className="block text-sm font-semibold text-[#112532]/86">
                             Début
                           </label>
                           <input
@@ -302,7 +303,7 @@ export default async function CleanerAvailabilityPage({
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-slate-800">
+                          <label className="block text-sm font-semibold text-[#112532]/86">
                             Fin
                           </label>
                           <input
@@ -314,7 +315,7 @@ export default async function CleanerAvailabilityPage({
                       </div>
 
                       <div>
-                        <label className="block text-sm font-semibold text-slate-800">
+                        <label className="block text-sm font-semibold text-[#112532]/86">
                           Raison
                         </label>
                         <input
@@ -333,13 +334,13 @@ export default async function CleanerAvailabilityPage({
                     </form>
                   </section>
 
-                  <section className="rounded-2xl border border-slate-200 p-4">
-                    <h3 className="text-base font-bold text-slate-950">
+                  <section className="rounded-2xl border border-[#112532]/10 p-4">
+                    <h3 className="text-base font-bold text-[#112532]">
                       Indisponibilités
                     </h3>
 
                     {cleanerPeriods.length === 0 ? (
-                      <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                      <p className="mt-4 rounded-xl bg-[#F6F3EF] p-3 text-sm text-[#112532]/62">
                         Aucune période renseignée.
                       </p>
                     ) : (
@@ -349,18 +350,18 @@ export default async function CleanerAvailabilityPage({
                             key={period.id}
                             className={`rounded-xl border p-3 ${
                               period.ends_on < today
-                                ? "border-slate-100 bg-slate-50 opacity-60"
-                                : "border-amber-200 bg-amber-50"
+                                ? "border-slate-100 bg-[#F6F3EF] opacity-60"
+                                : "border-amber-200 bg-[#FFF5DD]"
                             }`}
                           >
-                            <p className="font-semibold text-slate-950">
+                            <p className="font-semibold text-[#112532]">
                               {period.starts_on}
                               {period.ends_on !== period.starts_on &&
                                 ` → ${period.ends_on}`}
                             </p>
 
                             {period.reason && (
-                              <p className="mt-1 text-sm text-slate-600">
+                              <p className="mt-1 text-sm text-[#112532]/62">
                                 {period.reason}
                               </p>
                             )}

@@ -105,24 +105,25 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="text-sm font-semibold text-[#112532]/62">
             ← Back office
           </Link>
 
-          <h1 className="mt-3 text-3xl font-bold text-slate-950">
+          <h1 className="mt-3 text-3xl font-bold text-[#112532]">
             Photos modèles
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-[#112532]/62">
             Gérez la photo de couverture du logement et les photos modèles par
             rubrique de checklist.
           </p>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="font-bold text-slate-950">Logement</h2>
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="font-bold text-[#112532]">Logement</h2>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {(properties ?? []).map((property) => (
@@ -132,7 +133,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   property.id === propertyId
                     ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700"
+                    : "bg-slate-100 text-[#112532]/76"
                 }`}
               >
                 {property.name}
@@ -142,18 +143,18 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
         </section>
 
         {propertyId && (
-          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="font-bold text-slate-950">
+          <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <h2 className="font-bold text-[#112532]">
               Checklist d’affectation
             </h2>
 
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-[#112532]/62">
               Choisissez la checklist dont les sections seront proposées dans le menu d’affectation.
               Les photos restent liées au logement et à la clé stable de section.
             </p>
 
             {templates.length === 0 ? (
-              <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900 ring-1 ring-amber-100">
+              <div className="mt-4 rounded-2xl bg-[#FFF5DD] p-4 text-sm font-semibold text-amber-900 ring-1 ring-amber-100">
                 Aucune checklist active pour ce logement. Activez ou créez une checklist avant d’affecter les photos aux sections.
               </div>
             ) : (
@@ -165,7 +166,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                     className={`rounded-full px-4 py-2 text-sm font-semibold ${
                       template.id === selectedTemplate?.id
                         ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-700"
+                        : "bg-slate-100 text-[#112532]/76"
                     }`}
                   >
                     {template.name} · v{template.version ?? "—"}
@@ -177,8 +178,8 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
         )}
 
         {propertyId && (
-          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="font-bold text-slate-950">
+          <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <h2 className="font-bold text-[#112532]">
               Ajouter une photo
             </h2>
 
@@ -191,7 +192,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
               <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Photo
                 </label>
                 <input
@@ -204,7 +205,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Affectation
                 </label>
                 <select
@@ -226,7 +227,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Titre
                 </label>
                 <input
@@ -237,7 +238,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Ordre d’affichage
                 </label>
                 <input
@@ -261,11 +262,11 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
         )}
 
         {propertyId && (
-          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="font-bold text-slate-950">Photos existantes</h2>
+          <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <h2 className="font-bold text-[#112532]">Photos existantes</h2>
 
             {photos.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-[#112532]/62">
                 Aucune photo pour ce logement.
               </p>
             ) : (
@@ -275,7 +276,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                     key={photo.id}
                     className={`overflow-hidden rounded-3xl border bg-white ${
                       photo.is_active
-                        ? "border-slate-200"
+                        ? "border-[#112532]/10"
                         : "border-red-200 opacity-60"
                     }`}
                   >
@@ -286,7 +287,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                         className="h-44 w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-44 items-center justify-center bg-slate-100 text-sm text-slate-500">
+                      <div className="flex h-44 items-center justify-center bg-slate-100 text-sm text-[#112532]/48">
                         Photo non disponible
                       </div>
                     )}
@@ -304,7 +305,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                           </span>
                         )}
                         {photo.section_key && (
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-[#112532]/76">
                             {photo.section_key}
                           </span>
                         )}
@@ -320,7 +321,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                         <input type="hidden" name="photo_id" value={photo.id} />
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-500">
+                          <label className="block text-xs font-semibold text-[#112532]/48">
                             Titre
                           </label>
                           <input
@@ -331,7 +332,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-500">
+                          <label className="block text-xs font-semibold text-[#112532]/48">
                             Affectation
                           </label>
                           <select
@@ -362,7 +363,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-500">
+                          <label className="block text-xs font-semibold text-[#112532]/48">
                             Ordre
                           </label>
                           <input
@@ -373,7 +374,7 @@ export default async function AdminPhotosPage({ searchParams }: PageProps) {
                           />
                         </div>
 
-                        <label className="flex items-center gap-2 text-sm text-slate-700">
+                        <label className="flex items-center gap-2 text-sm text-[#112532]/76">
                           <input
                             type="checkbox"
                             name="is_active"

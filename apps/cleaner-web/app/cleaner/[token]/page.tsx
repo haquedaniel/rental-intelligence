@@ -242,11 +242,11 @@ function statusClass(request: Row, overdue: boolean): string {
       return "bg-emerald-100 text-emerald-800 ring-emerald-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-950 text-white ring-slate-950";
+      return "bg-[#112532] text-white ring-slate-950";
     case "problem_reported":
       return "bg-orange-100 text-orange-900 ring-orange-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
@@ -347,15 +347,15 @@ function MiniCleanerCalendar({
   });
 
   return (
-    <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <section className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-slate-950">{t(locale, "calendar.miniTitle")}</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+          <h2 className="text-lg font-black text-[#112532]">{t(locale, "calendar.miniTitle")}</h2>
+          <p className="mt-1 text-sm font-semibold text-[#112532]/48">
             {t(locale, "calendar.homeSubtitle")}
           </p>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-[#112532]/48">
           {t(locale, "calendar.twentyOneDays")}
         </span>
       </div>
@@ -364,18 +364,18 @@ function MiniCleanerCalendar({
         <div className="min-w-max space-y-2">
           <div className="grid gap-1" style={{ gridTemplateColumns }}>
             {units.map((dateKey) => (
-              <div key={dateKey} className="rounded-xl bg-slate-50 px-1 py-1 text-center">
-                <p className="text-[8px] font-black uppercase text-slate-400">
+              <div key={dateKey} className="rounded-xl bg-[#F6F3EF] px-1 py-1 text-center">
+                <p className="text-[8px] font-black uppercase text-[#112532]/36">
                   {shortDay(dateKey).slice(0, 3)}
                 </p>
-                <p className="mt-0.5 text-[10px] font-black text-slate-900">
+                <p className="mt-0.5 text-[10px] font-black text-[#112532]">
                   {dateKey.slice(8, 10)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="relative rounded-2xl bg-slate-50 p-1.5">
+          <div className="relative rounded-2xl bg-[#F6F3EF] p-1.5">
             <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
               {units.map((dateKey) => (
                 <div key={`${dateKey}-bg`} className="rounded-xl bg-white/65" />
@@ -406,7 +406,7 @@ function MiniCleanerCalendar({
             </div>
           </div>
 
-          <div className="grid gap-1 rounded-2xl bg-slate-50 p-1.5" style={{ gridTemplateColumns }}>
+          <div className="grid gap-1 rounded-2xl bg-[#F6F3EF] p-1.5" style={{ gridTemplateColumns }}>
             {units.map((dateKey) => {
               const dayRequests = visibleRequests.filter((request) => {
                 const anchor = parseDate(anchorAt(request));
@@ -446,8 +446,8 @@ function MiniCleanerCalendar({
 function sectionTitle(title: string, subtitle?: string) {
   return (
     <div>
-      <h2 className="text-lg font-black text-slate-950">{title}</h2>
-      {subtitle && <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>}
+      <h2 className="text-lg font-black text-[#112532]">{title}</h2>
+      {subtitle && <p className="mt-1 text-sm font-semibold text-[#112532]/48">{subtitle}</p>}
     </div>
   );
 }
@@ -541,11 +541,11 @@ function MissionCard({
     "block overflow-hidden rounded-[1.35rem] shadow-sm ring-1 transition active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-md",
     intervention
       ? "bg-violet-50/80 ring-violet-100"
-      : "bg-white ring-slate-200",
+      : "bg-white ring-[#112532]/10",
   ].join(" ");
 
   const footerClassName = [
-    "grid grid-cols-3 gap-px border-t text-[10px] font-black text-slate-500",
+    "grid grid-cols-3 gap-px border-t text-[10px] font-black text-[#112532]/48",
     intervention
       ? "border-violet-100 bg-violet-100"
       : "border-slate-100 bg-slate-100",
@@ -557,7 +557,7 @@ function MissionCard({
 
   const amountClassName = intervention
     ? "shrink-0 rounded-full bg-violet-700 px-2.5 py-1 text-xs font-black text-white"
-    : "shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-black text-white";
+    : "shrink-0 rounded-full bg-[#112532] px-2.5 py-1 text-xs font-black text-white";
 
   return (
     <Link
@@ -610,12 +610,12 @@ function MissionCard({
             )}
           </div>
 
-          <h3 className="mt-2 truncate text-base font-black text-slate-950">
+          <h3 className="mt-2 truncate text-base font-black text-[#112532]">
             {title}
           </h3>
 
           <div className="mt-1 flex min-w-0 items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-500">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[#112532]/48">
               {subtitle}
             </p>
             <span className={amountClassName}>
@@ -624,7 +624,7 @@ function MissionCard({
           </div>
 
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-100">
+            <span className="rounded-full bg-[#F6F3EF] px-2.5 py-1 text-[10px] font-black text-[#112532]/62 ring-1 ring-slate-100">
               {intervention ? "À faire avant" : "Prêt avant"} {dateLabel(anchorAt(request))}
             </span>
 
@@ -639,18 +639,18 @@ function MissionCard({
 
       <div className={footerClassName}>
         <div className={footerCellClassName}>
-          <p className="uppercase text-slate-400">Durée</p>
-          <p className="mt-0.5 text-slate-900">{request.estimated_hours ?? "—"} h</p>
+          <p className="uppercase text-[#112532]/36">Durée</p>
+          <p className="mt-0.5 text-[#112532]">{request.estimated_hours ?? "—"} h</p>
         </div>
 
         <div className={footerCellClassName}>
-          <p className="uppercase text-slate-400">Mission</p>
-          <p className="mt-0.5 text-slate-900">{intervention ? "Ponctuelle" : request.linen_required ? "Ménage + linge" : "Ménage"}</p>
+          <p className="uppercase text-[#112532]/36">Mission</p>
+          <p className="mt-0.5 text-[#112532]">{intervention ? "Ponctuelle" : request.linen_required ? "Ménage + linge" : "Ménage"}</p>
         </div>
 
         <div className={footerCellClassName}>
-          <p className="uppercase text-slate-400">Rapport</p>
-          <p className="mt-0.5 text-slate-900">{hasReport ? "Reçu" : "À faire"}</p>
+          <p className="uppercase text-[#112532]/36">Rapport</p>
+          <p className="mt-0.5 text-[#112532]">{hasReport ? "Reçu" : "À faire"}</p>
         </div>
       </div>
     </Link>
@@ -812,8 +812,8 @@ export default async function CleanerHomePage({
     .slice(0, 6);
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-28 text-slate-950">
-      <section className="relative overflow-hidden bg-slate-950 text-white">
+    <main className="min-h-screen bg-[#F6F3EF] pb-28 text-[#112532]">
+      <section className="relative overflow-hidden bg-[#112532] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.35),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.30),transparent_35%)]" />
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-4">
@@ -859,8 +859,8 @@ export default async function CleanerHomePage({
               <p className="text-xs font-black uppercase text-white/45">{t(locale, "home.overdue")}</p>
               <p className="mt-2 text-2xl font-black sm:text-3xl">{overdue.length}</p>
             </div>
-            <div className="rounded-[1.35rem] bg-white p-3 text-slate-950 sm:p-4">
-              <p className="text-xs font-black uppercase text-slate-400">{t(locale, "home.confirmedThisMonth")}</p>
+            <div className="rounded-[1.35rem] bg-white p-3 text-[#112532] sm:p-4">
+              <p className="text-xs font-black uppercase text-[#112532]/36">{t(locale, "home.confirmedThisMonth")}</p>
               <p className="mt-2 text-2xl font-black sm:text-3xl">{money(monthExpected)}</p>
             </div>
           </div>
@@ -899,7 +899,7 @@ export default async function CleanerHomePage({
         )}
 
         {toConfirm.length > 0 && (
-          <section className="rounded-[1.75rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
+          <section className="rounded-[1.75rem] bg-[#FFF5DD] p-5 shadow-sm ring-1 ring-amber-100">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-amber-950">{t(locale, "home.newToConfirmTitle")}</h2>
@@ -929,7 +929,7 @@ export default async function CleanerHomePage({
 
 
         {nextMission && (
-          <section className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
+          <section className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-[#112532]/10">
             <div className="grid gap-0 lg:grid-cols-[0.9fr_1.4fr]">
               <div className="relative min-h-44 bg-slate-900">
                 {coverByPropertyId[String(nextMission.request.property_id)] ? (
@@ -943,40 +943,40 @@ export default async function CleanerHomePage({
                   <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-700" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 to-transparent" />
-                <div className="absolute bottom-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-black text-slate-950">
+                <div className="absolute bottom-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-black text-[#112532]">
                   {t(locale, "home.nextMission")}
                 </div>
               </div>
 
               <div className="p-5">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   {dayLabel(anchorAt(nextMission.request))}
                 </p>
                 <h2 className="mt-2 text-2xl font-black">
                   {propertyName(nextMission.property, locale)}
                 </h2>
-                <p className="mt-2 text-sm font-semibold text-slate-500">
+                <p className="mt-2 text-sm font-semibold text-[#112532]/48">
                   {guestName(nextMission.reservation, locale)} · {money(missionAmount(nextMission.request))}
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.readyBefore")}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{t(locale, "card.readyBefore")}</p>
                     <p className="mt-1 text-sm font-black">{dateLabel(anchorAt(nextMission.request))}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.duration")}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{t(locale, "card.duration")}</p>
                     <p className="mt-1 text-sm font-black">{nextMission.request.estimated_hours ?? "—"} h</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{t(locale, "card.guests")}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{t(locale, "card.guests")}</p>
                     <p className="mt-1 text-sm font-black">{nextMission.request.number_of_guests ?? "—"}</p>
                   </div>
                 </div>
 
                 <Link
                   href={missionHref(nextMission.request)}
-                  className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white"
+                  className="mt-5 inline-flex rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white"
                 >
                   {t(locale, "home.openMission")}
                 </Link>
@@ -991,7 +991,7 @@ export default async function CleanerHomePage({
               {sectionTitle(t(locale, "home.upcomingTitle"), t(locale, "home.upcomingSubtitle"))}
               <div className="mt-3 space-y-3">
                 {upcoming.length === 0 ? (
-                  <div className="rounded-[1.35rem] bg-white p-4 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+                  <div className="rounded-[1.35rem] bg-white p-4 text-sm font-bold text-[#112532]/48 shadow-sm ring-1 ring-[#112532]/10">
                     {t(locale, "home.noUpcoming")}
                   </div>
                 ) : (
@@ -1012,11 +1012,11 @@ export default async function CleanerHomePage({
           </div>
 
           <aside className="space-y-5">
-            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               {sectionTitle(t(locale, "home.toValidateTitle"), t(locale, "home.toValidateSubtitle"))}
               <div className="mt-4 space-y-3">
                 {overdue.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.nothingOverdue")}</p>
+                  <p className="text-sm font-bold text-[#112532]/48">{t(locale, "home.nothingOverdue")}</p>
                 ) : (
                   overdue.slice(0, 4).map(({ request, property, reservation, hasReport }) => (
                     <MissionCard
@@ -1033,30 +1033,30 @@ export default async function CleanerHomePage({
               </div>
             </section>
 
-            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               {sectionTitle(t(locale, "home.payments"), t(locale, "home.paymentsSubtitle"))}
-              <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase text-slate-400">{t(locale, "home.monthMissions")}</p>
+              <div className="mt-4 rounded-2xl bg-[#F6F3EF] p-4">
+                <p className="text-xs font-black uppercase text-[#112532]/36">{t(locale, "home.monthMissions")}</p>
                 <p className="mt-1 text-3xl font-black">{money(monthExpected)}</p>
               </div>
 
               <div className="mt-4 space-y-2">
                 {payments.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">
+                  <p className="text-sm font-bold text-[#112532]/48">
                     {t(locale, "home.noRecentPaymentRequests")}
                   </p>
                 ) : (
                   payments.map((payment) => (
-                    <div key={payment.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                    <div key={payment.id} className="rounded-2xl bg-[#F6F3EF] p-3 text-sm">
                       <div className="flex justify-between gap-3">
-                        <span className="font-bold text-slate-500">
+                        <span className="font-bold text-[#112532]/48">
                           {textValue(payment, ["period_label", "month", "created_at"])}
                         </span>
                         <span className="font-black">
                           {money(numberValue(payment, ["amount_eur", "total_eur", "amount"]))}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs font-bold text-slate-400">
+                      <p className="mt-1 text-xs font-bold text-[#112532]/36">
                         {textValue(payment, ["status"], t(locale, "status.unknown"))}
                       </p>
                     </div>
@@ -1066,22 +1066,22 @@ export default async function CleanerHomePage({
 
               <Link
                 href={`/cleaner/${token}/payments`}
-                className="mt-4 inline-flex w-full justify-center rounded-full bg-slate-950 px-4 py-3 text-sm font-black text-white"
+                className="mt-4 inline-flex w-full justify-center rounded-full bg-[#112532] px-4 py-3 text-sm font-black text-white"
               >
                 {t(locale, "home.managePayments")}
               </Link>
             </section>
 
-            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               {sectionTitle(t(locale, "home.contactsTitle"), t(locale, "home.contactsSubtitle"))}
               <div className="mt-4 space-y-3">
                 {managedProperties.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.noLinkedProperty")}</p>
+                  <p className="text-sm font-bold text-[#112532]/48">{t(locale, "home.noLinkedProperty")}</p>
                 ) : (
                   managedProperties.map((property) => (
-                    <div key={property.id} className="rounded-2xl bg-slate-50 p-3">
-                      <p className="font-black text-slate-950">{property.name}</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                    <div key={property.id} className="rounded-2xl bg-[#F6F3EF] p-3">
+                      <p className="font-black text-[#112532]">{property.name}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                         {property.address || t(locale, "home.addressMissing")}
                       </p>
                     </div>
@@ -1090,20 +1090,20 @@ export default async function CleanerHomePage({
               </div>
             </section>
 
-            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[1.75rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               {sectionTitle(t(locale, "home.recentHistoryTitle"))}
               <div className="mt-4 space-y-2">
                 {history.length === 0 ? (
-                  <p className="text-sm font-bold text-slate-500">{t(locale, "home.noRecentCompletedMission")}</p>
+                  <p className="text-sm font-bold text-[#112532]/48">{t(locale, "home.noRecentCompletedMission")}</p>
                 ) : (
                   history.map(({ request, property, reservation }) => (
                     <Link
                       key={request.id}
                       href={missionHref(request)}
-                      className="block rounded-2xl bg-slate-50 p-3 text-sm"
+                      className="block rounded-2xl bg-[#F6F3EF] p-3 text-sm"
                     >
-                      <p className="font-black text-slate-950">{propertyName(property, locale)}</p>
-                      <p className="mt-1 font-semibold text-slate-500">
+                      <p className="font-black text-[#112532]">{propertyName(property, locale)}</p>
+                      <p className="mt-1 font-semibold text-[#112532]/48">
                         {guestName(reservation, locale)} · {dateLabel(anchorAt(request))}
                       </p>
                     </Link>

@@ -267,7 +267,7 @@ export default async function CleaningReportPage({
     mission.status === "problem_reported";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-5">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-5">
 
       <Link
         href={`/mission/${token}/reservation`}
@@ -281,7 +281,7 @@ export default async function CleaningReportPage({
 
         <Link
           href={`/mission/${token}`}
-          className="text-sm font-medium text-slate-600"
+          className="text-sm font-medium text-[#112532]/62"
         >
           {t(locale, "report.back")}
         </Link>
@@ -305,7 +305,7 @@ export default async function CleaningReportPage({
         </section>
 
         {submitted && (
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+          <section className="rounded-2xl border border-emerald-200 bg-[#ECFFF6] p-4 text-emerald-900">
             <h2 className="font-semibold">{t(locale, "report.submittedTitle")}</h2>
             <p className="mt-1 text-sm">
               {t(locale, "report.submittedBody")}
@@ -314,7 +314,7 @@ export default async function CleaningReportPage({
         )}
 
         {alreadySubmitted && !submitted && (
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+          <section className="rounded-2xl border border-emerald-200 bg-[#ECFFF6] p-4 text-emerald-900">
             <h2 className="font-semibold">{t(locale, "report.alreadySubmittedTitle")}</h2>
             <p className="mt-1 text-sm">
               {t(locale, "report.alreadySubmittedBody")}
@@ -344,10 +344,10 @@ export default async function CleaningReportPage({
 
 function Message({ title, body }: { title: string; body?: string }) {
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-10">
       <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-        {body && <p className="mt-2 text-slate-600">{body}</p>}
+        <h1 className="text-xl font-bold text-[#112532]">{title}</h1>
+        {body && <p className="mt-2 text-[#112532]/62">{body}</p>}
       </div>
     </main>
   );

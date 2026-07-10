@@ -47,45 +47,45 @@ export default async function InterventionReportPage({
   const hourlyRate = Number(request.hourly_rate_eur_snapshot ?? 0);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-5 pb-24">\
         <CleanerPreparationNoteBanner missionToken={token} />
 
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#112532]/36">
             Rapport d’intervention
           </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-950">
+          <h1 className="mt-2 text-3xl font-black text-[#112532]">
             {request.title}
           </h1>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-lg font-black text-slate-950">Mission demandée</h2>
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-lg font-black text-[#112532]">Mission demandée</h2>
 
           {referencePhotoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={referencePhotoUrl}
               alt=""
-              className="mt-4 max-h-80 w-full rounded-2xl object-cover ring-1 ring-slate-200"
+              className="mt-4 max-h-80 w-full rounded-2xl object-cover ring-1 ring-[#112532]/10"
             />
           )}
 
-          <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">
+          <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-[#112532]/76">
             {request.mission_description || "Aucune consigne détaillée."}
           </p>
 
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+          <div className="mt-4 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-bold text-[#112532]/76">
             Temps prévu : {estimatedHours} h · base {money(hourlyRate)}/h
           </div>
         </section>
 
-        <form action={submitInterventionReport} encType="multipart/form-data" className="space-y-5 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <form action={submitInterventionReport} encType="multipart/form-data" className="space-y-5 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
           <input type="hidden" name="token" value={token} />
 
           <label className="block">
-            <span className="text-sm font-bold text-slate-800">Résultat</span>
+            <span className="text-sm font-bold text-[#112532]/86">Résultat</span>
             <select name="status" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm">
               <option value="completed">Terminé</option>
               <option value="completed_with_notes">Terminé avec remarque</option>
@@ -94,7 +94,7 @@ export default async function InterventionReportPage({
           </label>
 
           <label className="block">
-            <span className="text-sm font-bold text-slate-800">Ce qui a été fait</span>
+            <span className="text-sm font-bold text-[#112532]/86">Ce qui a été fait</span>
             <textarea
               name="work_summary"
               required
@@ -105,7 +105,7 @@ export default async function InterventionReportPage({
           </label>
 
           <label className="block">
-            <span className="text-sm font-bold text-slate-800">Remarque / suite à prévoir</span>
+            <span className="text-sm font-bold text-[#112532]/86">Remarque / suite à prévoir</span>
             <textarea
               name="issue_notes"
               rows={3}
@@ -114,9 +114,9 @@ export default async function InterventionReportPage({
             />
           </label>
 
-          <label className="block rounded-2xl bg-slate-50 p-4">
-            <span className="text-sm font-bold text-slate-800">Temps réel passé</span>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+          <label className="block rounded-2xl bg-[#F6F3EF] p-4">
+            <span className="text-sm font-bold text-[#112532]/86">Temps réel passé</span>
+            <p className="mt-1 text-xs font-semibold text-[#112532]/48">
               Prérempli avec le temps prévu. À modifier seulement si l’écart est significatif.
             </p>
             <input
@@ -129,8 +129,8 @@ export default async function InterventionReportPage({
             />
           </label>
 
-          <label className="block rounded-2xl bg-slate-50 p-4">
-            <span className="text-sm font-bold text-slate-800">
+          <label className="block rounded-2xl bg-[#F6F3EF] p-4">
+            <span className="text-sm font-bold text-[#112532]/86">
               Photos {request.proof_photo_requirement === "required" ? "obligatoires" : "optionnelles"}
             </span>
             <input
@@ -144,7 +144,7 @@ export default async function InterventionReportPage({
           </label>
 
           {request.allow_material_expenses && (
-            <details className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+            <details className="rounded-2xl bg-[#FFF5DD] p-4 ring-1 ring-amber-100">
               <summary className="cursor-pointer font-black text-amber-950">
                 Ajouter des frais matériel
               </summary>
@@ -173,13 +173,13 @@ export default async function InterventionReportPage({
             </details>
           )}
 
-          <button className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-lg font-black text-white">
+          <button className="w-full rounded-2xl bg-[#112532] px-5 py-4 text-lg font-black text-white">
             Envoyer le rapport
           </button>
         </form>
 
         {cleanerToken && (
-          <Link href={`/cleaner/${cleanerToken}`} className="block text-center text-sm font-bold text-slate-500">
+          <Link href={`/cleaner/${cleanerToken}`} className="block text-center text-sm font-bold text-[#112532]/48">
             Retour aux missions
           </Link>
         )}

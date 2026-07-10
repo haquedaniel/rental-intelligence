@@ -71,11 +71,11 @@ export function InterventionSlotPicker({
       <input type="hidden" name={inputName} value={selectedSlot?.value ?? ""} />
 
       <label className="block">
-        <span className="text-sm font-bold text-slate-800">Date</span>
+        <span className="text-sm font-bold text-[#112532]/86">Date</span>
         <select
           value={dateKey}
           onChange={(event) => handleDateChange(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-slate-950"
+          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-[#112532]"
         >
           {dates.map((date) => (
             <option key={date.key} value={date.key}>
@@ -86,11 +86,11 @@ export function InterventionSlotPicker({
       </label>
 
       <label className="block">
-        <span className="text-sm font-bold text-slate-800">Heure</span>
+        <span className="text-sm font-bold text-[#112532]/86">Heure</span>
         <select
           value={selectedSlot?.value ?? ""}
           onChange={(event) => setSelectedValue(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-slate-950"
+          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-4 text-base font-bold text-[#112532]"
         >
           {slotsForDate.map((slot) => (
             <option key={slot.value} value={slot.value}>
@@ -102,7 +102,7 @@ export function InterventionSlotPicker({
       </label>
 
       {selectedSlot?.occupied && (
-        <p className="sm:col-span-2 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-950 ring-1 ring-amber-100">
+        <p className="sm:col-span-2 rounded-2xl bg-[#FFF5DD] p-3 text-sm font-bold text-amber-950 ring-1 ring-amber-100">
           ⚠ Ce créneau tombe pendant une occupation voyageur, mais le propriétaire l’a autorisé.
         </p>
       )}

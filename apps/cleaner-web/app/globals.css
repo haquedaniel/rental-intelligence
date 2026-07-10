@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F6F3EF;
+  --foreground: #112532;
 }
 
 @theme inline {
@@ -59,4 +59,34 @@ button:not(:disabled):active {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+
+/* Pilotys discreet surface polish */
+::selection {
+  background: rgba(224, 104, 14, 0.18);
+  color: #112532;
+}
+
+html {
+  background: #F6F3EF;
+}
+
+body {
+  min-height: 100vh;
+}
+
+input,
+textarea,
+select {
+  accent-color: #E0680E;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(224, 104, 14, 0.42);
+  outline-offset: 3px;
 }

@@ -106,6 +106,7 @@ import type {
   Tone,
   TimelineEvent,
 } from "./types";
+import { usePathname } from "next/navigation";
 
 const MONTH_TARGET_FALLBACK = 4000;
 const PLANNING_DAY_GAP_PX = 4; // Tailwind gap-1 between day cells.
@@ -986,24 +987,58 @@ function Opportunities({ data }: { data: OwnerCockpitData }) {
   );
 }
 
+
+function cockpitNavBase(pathname: string | null) {
+  const path = pathname || "";
+  const tokenMatch = path.match(/^\/owner\/([^/]+)\/cockpit/);
+  if (tokenMatch?.[1]) return `/owner/${tokenMatch[1]}/cockpit`;
+  return "/owner/cockpit";
+}
+
 function BottomNav() {
+  const pathname = usePathname();
+  const cockpit = cockpitNavBase(pathname);
+
   const items = [
-    { label: "Cockpit", icon: "⌖", active: true },
-    { label: "Réservations", icon: "▦" },
-    { label: "Paiements", icon: "€" },
-    { label: "Logements", icon: "⌂" },
-    { label: "Paramètres", icon: "⚙" },
+    { label: "Cockpit", short: "Cockpit", icon: "✦", href: cockpit, active: true },
+    { label: "Réservations", short: "Séjours", icon: "▦", href: `${cockpit}?view=planning` },
+    { label: "Missions", short: "Missions", icon: "✓", href: `${cockpit}?view=alerts` },
+    { label: "Paiements", short: "€", icon: "€", href: "/owner/payments" },
+    { label: "Réglages", short: "Réglages", icon: "⚙", href: "/admin/settings" },
   ];
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#112532]/10 bg-white/95 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 backdrop-blur xl:hidden">
-      <div className="grid grid-cols-5 gap-2">
-        {items.map((item) => (
-          <button key={item.label} className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-black ${item.active ? "text-[#E0680E]" : "text-[#112532]/65"}`}>
-            <span className="text-xl">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-3 xl:hidden">
+      <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-[1.7rem] bg-white/90 p-1.5 shadow-2xl shadow-[#112532]/18 ring-1 ring-[#112532]/10 backdrop-blur-xl">
+        <div className="absolute inset-x-8 top-0 h-0.5 rounded-full bg-gradient-to-r from-[#E0680E] via-[#F4B044] to-[#80A5B7]" />
+
+        <div className="grid grid-cols-5 gap-1">
+          {items.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className={[
+                "relative flex min-h-[3.55rem] flex-col items-center justify-center rounded-[1.25rem] px-1 text-center transition",
+                item.active
+                  ? "bg-[#112532] text-white shadow-lg shadow-[#112532]/18 ring-[#112532]/10"
+                  : "bg-white/78 text-[#112532]/62 ring-[#112532]/8 hover:bg-white hover:text-[#112532]",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "grid h-6 w-6 place-items-center rounded-full text-[11px] font-black",
+                  item.active ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50",
+                ].join(" ")}
+              >
+                {item.icon}
+              </span>
+              <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">
+                {item.short}
+              </span>
+            </a>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

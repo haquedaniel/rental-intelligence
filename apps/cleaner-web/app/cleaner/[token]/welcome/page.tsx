@@ -105,10 +105,10 @@ export default async function CleanerWelcomePage({
     .in("status", ["created", "sent", "accepted"]);
 
   return (
-    <main className="min-h-screen bg-amber-50 px-4 py-6 text-slate-950">
+    <main className="min-h-screen bg-[#FFF5DD] px-4 py-6 text-[#112532]">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-xl flex-col justify-center">
         <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-amber-100">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-slate-950 text-4xl text-white shadow-sm">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-[#112532] text-4xl text-white shadow-sm">
             🏠
           </div>
 
@@ -116,32 +116,32 @@ export default async function CleanerWelcomePage({
             {c.title(firstName(cleaner))}
           </h1>
 
-          <p className="mt-3 text-center text-sm font-semibold text-slate-500">
+          <p className="mt-3 text-center text-sm font-semibold text-[#112532]/48">
             {c.subtitle}
           </p>
 
           <div className="mt-6 space-y-3">
             {c.bullets.map((bullet) => (
-              <div key={bullet} className="flex gap-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-950">
+              <div key={bullet} className="flex gap-3 rounded-2xl bg-[#ECFFF6] p-3 text-sm font-bold text-emerald-950">
                 <span>✓</span>
                 <span>{bullet}</span>
               </div>
             ))}
           </div>
 
-          <section className="mt-6 rounded-3xl bg-slate-50 p-4">
-            <h2 className="text-sm font-black text-slate-950">{c.installTitle}</h2>
-            <p className="mt-2 text-xs font-semibold text-slate-600">{c.iphone}</p>
-            <p className="mt-2 text-xs font-semibold text-slate-600">{c.android}</p>
+          <section className="mt-6 rounded-3xl bg-[#F6F3EF] p-4">
+            <h2 className="text-sm font-black text-[#112532]">{c.installTitle}</h2>
+            <p className="mt-2 text-xs font-semibold text-[#112532]/62">{c.iphone}</p>
+            <p className="mt-2 text-xs font-semibold text-[#112532]/62">{c.android}</p>
           </section>
 
-          <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-950">
+          <p className="mt-5 rounded-2xl bg-[#FFF5DD] p-4 text-sm font-bold text-amber-950">
             {c.waiting(count ?? 0)}
           </p>
 
           <form action={completeCleanerOnboarding} className="mt-6">
             <input type="hidden" name="cleaner_token" value={token} />
-            <button className="w-full rounded-2xl bg-slate-950 px-4 py-4 text-base font-black text-white">
+            <button className="w-full rounded-2xl bg-[#112532] px-4 py-4 text-base font-black text-white">
               {c.button}
             </button>
           </form>

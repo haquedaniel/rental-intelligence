@@ -267,7 +267,7 @@ export default async function CleanerReservationBriefingPage({ params }: { param
     .slice(0, 12);
 
   return (
-    <main className="min-h-screen bg-[#F6F3EF] text-[#112532]">
+    <main className="min-h-screen bg-[#F6F3EF] pb-24 text-[#112532]">
       <section className="relative overflow-hidden bg-[#112532] text-white">
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

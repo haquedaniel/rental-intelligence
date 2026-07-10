@@ -89,7 +89,7 @@ function PayOrRefuseActions({ request }: { request: Row }) {
 
   if (request.status === "paid") {
     return (
-      <div className="rounded-3xl bg-emerald-50 p-5 text-emerald-900 ring-1 ring-emerald-100">
+      <div className="rounded-3xl bg-[#ECFFF6] p-5 text-emerald-900 ring-1 ring-emerald-100">
         <p className="text-lg font-black">Paiement confirmé</p>
         <p className="mt-1 text-sm font-semibold">
           Marqué comme payé le {compactDate(request.paid_at)}.
@@ -239,7 +239,7 @@ function PrintableDocument({
                 <td className="p-3">
                   <p className="font-bold text-[#112532]">{line.description}</p>
                   {line.line_type === "extra" && (
-                    <p className="mt-1 text-xs font-bold text-amber-700">Ligne exceptionnelle</p>
+                    <p className="mt-1 text-xs font-bold text-[#8A4D00]">Ligne exceptionnelle</p>
                   )}
                 </td>
                 <td className="p-3 text-right font-semibold text-[#112532]/76">
@@ -298,6 +298,7 @@ export default async function OwnerPaymentPage({
   if (error || !request) {
     return (
       <main className="min-h-screen bg-[#F6F3EF] px-4 py-8">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
         <div className="mx-auto max-w-xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
           <h1 className="text-2xl font-black text-[#112532]">Lien invalide</h1>
           <p className="mt-2 text-[#112532]/60">

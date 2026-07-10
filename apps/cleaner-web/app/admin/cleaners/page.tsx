@@ -539,7 +539,8 @@ export default async function AdminCleanersPage() {
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
@@ -628,7 +629,7 @@ export default async function AdminCleanersPage() {
 
               <div className="mt-6 border-t border-slate-100 pt-6">
                 {cleaner.public_token && (
-                  <section className="mb-6 rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                  <section className="mb-6 rounded-3xl bg-[#FFF5DD] p-4 ring-1 ring-amber-100">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="text-base font-bold text-amber-950">

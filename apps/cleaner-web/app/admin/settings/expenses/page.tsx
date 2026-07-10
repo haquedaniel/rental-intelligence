@@ -244,6 +244,7 @@ export default async function ExpensesSettingsPage() {
   if (!configPath) {
     return (
       <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
         <div className="mx-auto max-w-5xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
           <Link href="/admin/settings" className="text-sm font-bold text-[#112532]/48">
             ← Back office

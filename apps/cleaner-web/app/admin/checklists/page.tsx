@@ -22,8 +22,8 @@ function sectionTranslation(section: Row, language: ChecklistTranslationLanguage
 
 function selectedClass(isSelected: boolean): string {
   return isSelected
-    ? "bg-slate-950 text-white"
-    : "bg-slate-100 text-slate-700";
+    ? "bg-[#112532] text-white"
+    : "bg-slate-100 text-[#112532]/76";
 }
 
 function photoRequirementLabel(value?: string): string {
@@ -79,14 +79,14 @@ function ChecklistCard({
       href={checklistUrl(selectedPropertyId, profile.id)}
       className={`block rounded-[1.25rem] p-4 shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md ${
         isSelected
-          ? "bg-slate-950 text-white ring-slate-950"
-          : "bg-white text-slate-950 ring-slate-200"
+          ? "bg-[#112532] text-white ring-slate-950"
+          : "bg-white text-[#112532] ring-[#112532]/10"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-black">{profile.label ?? profile.code}</h3>
-          <p className={`mt-1 text-xs font-semibold ${isSelected ? "text-white/60" : "text-slate-500"}`}>
+          <p className={`mt-1 text-xs font-semibold ${isSelected ? "text-white/60" : "text-[#112532]/48"}`}>
             {serviceLabel(profile.service_type)} · {durationLabel(profile)}
           </p>
         </div>
@@ -106,21 +106,21 @@ function ChecklistCard({
 
       <div className="mt-4 flex flex-wrap gap-1.5">
         {profile.default_linen_required && (
-          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-slate-600"}`}>
+          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-[#112532]/62"}`}>
             Linge
           </span>
         )}
         {profile.default_laundry_required && (
-          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-slate-600"}`}>
+          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-[#112532]/62"}`}>
             Lessive
           </span>
         )}
-        <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-slate-600"}`}>
+        <span className={`rounded-full px-2 py-1 text-[10px] font-black ${isSelected ? "bg-white/10 text-white/80" : "bg-slate-100 text-[#112532]/62"}`}>
           Ordre {profile.sort_order ?? 100}
         </span>
       </div>
 
-      <p className={`mt-4 text-xs font-black ${isSelected ? "text-white/50" : "text-slate-400"}`}>
+      <p className={`mt-4 text-xs font-black ${isSelected ? "text-white/50" : "text-[#112532]/36"}`}>
         {isSelected ? "Sélectionnée" : "Modifier →"}
       </p>
     </Link>
@@ -134,20 +134,20 @@ function SectionForm({ section }: { section: Row }) {
       action={updateChecklistSection}
       className={`rounded-[1.25rem] p-4 shadow-sm ring-1 ${
         section.active === false
-          ? "bg-slate-50 opacity-70 ring-slate-200"
-          : "bg-white ring-slate-200"
+          ? "bg-[#F6F3EF] opacity-70 ring-[#112532]/10"
+          : "bg-white ring-[#112532]/10"
       }`}
     >
       <input type="hidden" name="id" value={section.id} />
 
       <div className="flex flex-wrap gap-2">
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-[#112532]/62">
           Clé stable : {section.section_key}
         </span>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-[#112532]/62">
           Ordre {section.sort_order ?? 100}
         </span>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-[#112532]/62">
           {photoRequirementLabel(section.photo_requirement)}
         </span>
         {section.required ? (
@@ -155,7 +155,7 @@ function SectionForm({ section }: { section: Row }) {
             Obligatoire
           </span>
         ) : (
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-[#112532]/62">
             Optionnelle
           </span>
         )}
@@ -168,47 +168,47 @@ function SectionForm({ section }: { section: Row }) {
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Section
           </span>
           <input
             name="title"
             defaultValue={section.title ?? ""}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Case principale à cocher
           </span>
           <input
             name="high_level_check_label"
             defaultValue={section.high_level_check_label ?? ""}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Ordre
           </span>
           <input
             name="sort_order"
             type="number"
             defaultValue={section.sort_order ?? 100}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Photos pour cette section
           </span>
           <select
             name="photo_requirement"
             defaultValue={section.photo_requirement ?? "none"}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
           >
             <option value="none">Pas de photo</option>
             <option value="optional">Photo optionnelle</option>
@@ -218,7 +218,7 @@ function SectionForm({ section }: { section: Row }) {
       </div>
 
       <label className="mt-3 block">
-        <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+        <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
           Tâches / points de contrôle
         </span>
         <textarea
@@ -226,16 +226,16 @@ function SectionForm({ section }: { section: Row }) {
           rows={5}
           defaultValue={(section.detail_items ?? []).join("\n")}
           placeholder="Un point par ligne"
-          className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-900"
+          className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-3 text-sm font-semibold text-[#112532]"
         />
       </label>
 
-      <details className="mt-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
-        <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">
+      <details className="mt-3 rounded-2xl bg-[#F6F3EF] p-3 ring-1 ring-slate-100">
+        <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-[#112532]/48">
           Traductions intervenantes EN / RU
         </summary>
 
-        <p className="mt-2 text-xs font-semibold text-slate-500">
+        <p className="mt-2 text-xs font-semibold text-[#112532]/48">
           Le français reste la version canonique. Si une traduction est vide, l’app utilisera le texte français.
         </p>
 
@@ -245,35 +245,35 @@ function SectionForm({ section }: { section: Row }) {
             const label = language === "en" ? "Anglais" : "Russe";
 
             return (
-              <div key={language} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-                <h4 className="text-sm font-black text-slate-950">{label}</h4>
+              <div key={language} className="rounded-2xl bg-white p-3 ring-1 ring-[#112532]/10">
+                <h4 className="text-sm font-black text-[#112532]">{label}</h4>
 
                 <label className="mt-3 block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Section
                   </span>
                   <input
                     name={`${language}_title`}
                     defaultValue={translation.title ?? ""}
                     placeholder={section.title ?? ""}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
                   />
                 </label>
 
                 <label className="mt-3 block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Case principale
                   </span>
                   <input
                     name={`${language}_high_level_check_label`}
                     defaultValue={translation.high_level_check_label ?? ""}
                     placeholder={section.high_level_check_label ?? ""}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold text-[#112532]"
                   />
                 </label>
 
                 <label className="mt-3 block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Tâches traduites
                   </span>
                   <textarea
@@ -281,7 +281,7 @@ function SectionForm({ section }: { section: Row }) {
                     rows={5}
                     defaultValue={(translation.detail_items ?? []).join("\n")}
                     placeholder={(section.detail_items ?? []).join("\n")}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-900"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-3 text-sm font-semibold text-[#112532]"
                   />
                 </label>
               </div>
@@ -291,12 +291,12 @@ function SectionForm({ section }: { section: Row }) {
       </details>
 
       <div className="mt-3 grid gap-2 md:grid-cols-3">
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
           <input type="checkbox" name="required" defaultChecked={section.required !== false} />
           Obligatoire
         </label>
 
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
           <input
             type="checkbox"
             name="visible_to_cleaner"
@@ -305,13 +305,13 @@ function SectionForm({ section }: { section: Row }) {
           Visible intervenante
         </label>
 
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
           <input type="checkbox" name="active" defaultChecked={section.active !== false} />
           Active
         </label>
       </div>
 
-      <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs font-semibold text-amber-950 ring-1 ring-amber-100">
+      <p className="mt-4 rounded-2xl bg-[#FFF5DD] p-3 text-xs font-semibold text-amber-950 ring-1 ring-amber-100">
         Ces champs modifient cette version. À utiliser pour une faute, une clarification ou une traduction.
         Pour ajouter du travail ou changer le niveau d’exigence, créez une nouvelle version.
       </p>
@@ -319,7 +319,7 @@ function SectionForm({ section }: { section: Row }) {
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="submit"
-          className="flex-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white"
+          className="flex-1 rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white"
         >
           Corriger cette version
         </button>
@@ -454,11 +454,12 @@ export default async function AdminChecklistsPage({
     : { count: 0 };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-5">
+    <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-6xl space-y-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Link href="/admin/settings" className="text-sm font-semibold text-slate-500">
+            <Link href="/admin/settings" className="text-sm font-semibold text-[#112532]/48">
               ← Back office
             </Link>
 
@@ -466,7 +467,7 @@ export default async function AdminChecklistsPage({
               Checklists par logement
             </h1>
 
-            <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+            <p className="mt-1 max-w-2xl text-sm font-semibold text-[#112532]/48">
               Chaque logement peut avoir plusieurs checklists : ménage léger, ménage standard,
               grand ménage, jardinage, petite maintenance ou mission ponctuelle.
             </p>
@@ -474,14 +475,14 @@ export default async function AdminChecklistsPage({
 
           <Link
             href="/admin/photos"
-            className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+            className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
           >
             Photos
           </Link>
         </header>
 
-        <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+        <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+          <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Logement
           </p>
 
@@ -501,19 +502,19 @@ export default async function AdminChecklistsPage({
         </section>
 
         {selectedPropertyId && (
-          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                   Checklists disponibles
                 </p>
-                <h2 className="text-xl font-black text-slate-950">
+                <h2 className="text-xl font-black text-[#112532]">
                   {selectedProperty?.name ?? "Logement"}
                 </h2>
               </div>
 
-              <details className="w-full rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100 md:w-auto md:min-w-[360px]">
-                <summary className="cursor-pointer text-sm font-black text-slate-950">
+              <details className="w-full rounded-2xl bg-[#F6F3EF] p-3 ring-1 ring-slate-100 md:w-auto md:min-w-[360px]">
+                <summary className="cursor-pointer text-sm font-black text-[#112532]">
                   + Créer une checklist
                 </summary>
 
@@ -521,48 +522,48 @@ export default async function AdminChecklistsPage({
                   <input type="hidden" name="property_id" value={selectedPropertyId} />
 
                   <label className="block">
-                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                       Nom
                     </span>
                     <input
                       name="label"
                       placeholder="Ex : Ménage léger, Jardinage, Réparer poignée"
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
                     />
                   </label>
 
                   <div className="grid gap-2 md:grid-cols-2">
                     <label className="block">
-                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                         Code interne
                       </span>
                       <input
                         name="code"
                         placeholder="menage_leger"
-                        className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                         Durée estimée
                       </span>
                       <input
                         name="estimated_hours"
                         defaultValue="2"
-                        className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                        className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
                       />
                     </label>
                   </div>
 
                   <label className="block">
-                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                       Catégorie
                     </span>
                     <select
                       name="service_type"
                       defaultValue="standard_cleaning"
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+                      className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
                     >
                       <option value="standard_cleaning">Ménage standard</option>
                       <option value="deep_cleaning">Grand ménage</option>
@@ -577,21 +578,21 @@ export default async function AdminChecklistsPage({
                   <input type="hidden" name="sort_order" value="100" />
 
                   <div className="grid gap-2 md:grid-cols-3">
-                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-slate-700">
+                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-[#112532]/76">
                       <input type="checkbox" name="default_linen_required" defaultChecked />
                       Linge
                     </label>
-                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-slate-700">
+                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-[#112532]/76">
                       <input type="checkbox" name="default_laundry_required" defaultChecked />
                       Lessive
                     </label>
-                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-slate-700">
+                    <label className="flex items-center gap-2 rounded-2xl bg-white p-3 text-xs font-bold text-[#112532]/76">
                       <input type="checkbox" name="use_master" defaultChecked />
                       Préremplir avec le master
                     </label>
                   </div>
 
-                  <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+                  <button className="rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white">
                     Créer
                   </button>
                 </form>
@@ -599,7 +600,7 @@ export default async function AdminChecklistsPage({
             </div>
 
             {profiles.length === 0 ? (
-              <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900 ring-1 ring-amber-100">
+              <div className="mt-4 rounded-2xl bg-[#FFF5DD] p-4 text-sm font-semibold text-amber-900 ring-1 ring-amber-100">
                 Aucune checklist pour ce logement. Créez la première, idéalement avec le master.
               </div>
             ) : (
@@ -618,24 +619,24 @@ export default async function AdminChecklistsPage({
         )}
 
         {selectedProfile && activeTemplate && (
-          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                   Checklist sélectionnée
                 </p>
-                <h2 className="text-xl font-black text-slate-950">
+                <h2 className="text-xl font-black text-[#112532]">
                   {selectedProfile.label}
                 </h2>
               </div>
 
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-[#112532]/62">
                 {sections.length} section(s)
               </span>
             </div>
 
             <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
-              <div className="rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
+              <div className="rounded-2xl bg-[#FFF5DD] p-4 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
                 <p className="font-black">
                   Version {activeTemplate.version ?? "—"} · utilisée par {activeTemplateUsageCount ?? 0} mission(s)
                 </p>
@@ -650,7 +651,7 @@ export default async function AdminChecklistsPage({
 
               <form action={createNewChecklistVersion} className="flex items-stretch">
                 <input type="hidden" name="source_template_id" value={activeTemplate.id} />
-                <button className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm lg:w-auto">
+                <button className="w-full rounded-2xl bg-[#112532] px-5 py-3 text-sm font-black text-white shadow-sm lg:w-auto">
                   Créer une nouvelle version
                 </button>
               </form>
@@ -662,35 +663,35 @@ export default async function AdminChecklistsPage({
 
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Nom
                   </span>
                   <input
                     name="label"
                     defaultValue={selectedProfile.label ?? ""}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Code interne
                   </span>
                   <input
                     name="code"
                     defaultValue={selectedProfile.code ?? ""}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Catégorie
                   </span>
                   <select
                     name="service_type"
                     defaultValue={selectedProfile.service_type ?? "standard_cleaning"}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   >
                     <option value="standard_cleaning">Ménage standard</option>
                     <option value="deep_cleaning">Grand ménage</option>
@@ -703,31 +704,31 @@ export default async function AdminChecklistsPage({
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Durée estimée
                   </span>
                   <input
                     name="estimated_hours"
                     defaultValue={selectedProfile.estimated_hours ?? 2}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Ordre
                   </span>
                   <input
                     name="sort_order"
                     type="number"
                     defaultValue={selectedProfile.sort_order ?? 100}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
               </div>
 
               <div className="grid gap-2 md:grid-cols-3">
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
                   <input
                     type="checkbox"
                     name="default_linen_required"
@@ -736,7 +737,7 @@ export default async function AdminChecklistsPage({
                   Linge par défaut
                 </label>
 
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
                   <input
                     type="checkbox"
                     name="default_laundry_required"
@@ -745,7 +746,7 @@ export default async function AdminChecklistsPage({
                   Lessive par défaut
                 </label>
 
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
                   <input
                     type="checkbox"
                     name="active"
@@ -756,7 +757,7 @@ export default async function AdminChecklistsPage({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button className="flex-1 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+                <button className="flex-1 rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white">
                   Corriger cette version
                 </button>
 
@@ -772,23 +773,23 @@ export default async function AdminChecklistsPage({
         )}
 
         {selectedProfile && !activeTemplate && (
-          <section className="rounded-[1.25rem] bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-black text-slate-950">
+          <section className="rounded-[1.25rem] bg-white p-5 text-center shadow-sm ring-1 ring-[#112532]/10">
+            <h2 className="text-xl font-black text-[#112532]">
               Checklist sans contenu
             </h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
+            <p className="mt-1 text-sm font-semibold text-[#112532]/48">
               Cette checklist existe, mais aucun contenu n’est attaché. Créez une nouvelle checklist avec le master ou ajoutez les sections manuellement.
             </p>
           </section>
         )}
 
         {activeTemplate && (
-          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-black text-slate-950">
+          <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+            <h2 className="text-xl font-black text-[#112532]">
               Ajouter une section
             </h2>
 
-            <p className="mt-2 rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
+            <p className="mt-2 rounded-2xl bg-[#FFF5DD] p-3 text-sm font-semibold text-amber-950 ring-1 ring-amber-100">
               Ajouter une section augmente le travail demandé. Si cela ne doit s’appliquer qu’aux nouvelles missions,
               créez d’abord une nouvelle version.
             </p>
@@ -798,47 +799,47 @@ export default async function AdminChecklistsPage({
 
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Section
                   </span>
                   <input
                     name="title"
                     placeholder="Ex : Terrasse"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Case principale à cocher
                   </span>
                   <input
                     name="high_level_check_label"
                     placeholder="Ex : Terrasse propre et rangée"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Ordre
                   </span>
                   <input
                     name="sort_order"
                     type="number"
                     defaultValue="100"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     Photos pour cette section
                   </span>
                   <select
                     name="photo_requirement"
                     defaultValue="none"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold"
+                    className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-bold"
                   >
                     <option value="none">Pas de photo</option>
                     <option value="optional">Photo optionnelle</option>
@@ -848,30 +849,30 @@ export default async function AdminChecklistsPage({
               </div>
 
               <label className="block">
-                <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                   Tâches / points de contrôle
                 </span>
                 <textarea
                   name="detail_items"
                   rows={5}
                   placeholder={"Un point par ligne\nEx : Table propre\nEx : Chaises rangées"}
-                  className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold"
+                  className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-3 text-sm font-semibold"
                 />
               </label>
 
               <div className="grid gap-2 md:grid-cols-2">
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
                   <input type="checkbox" name="required" defaultChecked />
                   Section obligatoire
                 </label>
 
-                <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-3 text-sm font-semibold text-[#112532]/76">
                   <input type="checkbox" name="visible_to_cleaner" defaultChecked />
                   Visible intervenante
                 </label>
               </div>
 
-              <button className="w-full rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+              <button className="w-full rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white">
                 Ajouter la section
               </button>
             </form>
@@ -881,16 +882,16 @@ export default async function AdminChecklistsPage({
         {activeTemplate && (
           <section className="space-y-3">
             <div>
-              <h2 className="text-2xl font-black text-slate-950">
+              <h2 className="text-2xl font-black text-[#112532]">
                 Sections de la checklist
               </h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
+              <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                 {sections.length} section(s). Les photos restent liées à la section via le réglage “photo obligatoire/optionnelle”.
               </p>
             </div>
 
             {sections.length === 0 ? (
-              <div className="rounded-[1.25rem] bg-white p-5 text-sm font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200">
+              <div className="rounded-[1.25rem] bg-white p-5 text-sm font-semibold text-[#112532]/48 shadow-sm ring-1 ring-[#112532]/10">
                 Aucune section pour l’instant.
               </div>
             ) : (

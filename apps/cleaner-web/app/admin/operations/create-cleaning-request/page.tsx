@@ -161,6 +161,7 @@ export default async function CreateCleaningRequestPage({
   if (!propertyId) {
     return (
       <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
         <div className="mx-auto max-w-2xl">
           <Link href="/admin/operations" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Planning opérations
@@ -314,7 +315,7 @@ export default async function CreateCleaningRequestPage({
           </div>
 
           {existingIsActive ? (
-            <div className="mt-6 rounded-2xl bg-amber-50 p-5 text-amber-900 ring-1 ring-amber-200">
+            <div className="mt-6 rounded-2xl bg-[#FFF5DD] p-5 text-amber-900 ring-1 ring-amber-200">
               <p className="font-bold">Une mission existe déjà.</p>
               <p className="mt-1 text-sm">
                 Statut actuel : {existingRequest.status}. La création manuelle

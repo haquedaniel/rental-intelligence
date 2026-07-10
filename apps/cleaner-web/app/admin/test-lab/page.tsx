@@ -17,11 +17,11 @@ function dateLabel(value?: string | null): string {
 function statusClass(status?: string): string {
   switch (status) {
     case "planning_changed":
-      return "bg-amber-50 text-amber-800 ring-amber-100";
+      return "bg-[#FFF5DD] text-amber-800 ring-amber-100";
     case "scheduled":
-      return "bg-emerald-50 text-emerald-800 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-800 ring-emerald-100";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
@@ -54,30 +54,31 @@ export default async function TestLabPage() {
   const messageRows = messages ?? [];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-6xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="text-sm font-semibold text-[#112532]/62">
             ← Back office
           </Link>
 
-          <h1 className="mt-5 text-3xl font-bold text-slate-950">
+          <h1 className="mt-5 text-3xl font-bold text-[#112532]">
             Test lab
           </h1>
 
-          <p className="mt-2 max-w-3xl text-slate-600">
+          <p className="mt-2 max-w-3xl text-[#112532]/62">
             Créez des réservations et missions simulées, visualisez les faux SMS, ouvrez les vrais liens mission, puis supprimez uniquement les données de test.
           </p>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-xl font-bold text-slate-950">
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-xl font-bold text-[#112532]">
             Nouveau scénario
           </h2>
 
           <form action={createTestScenario} className="mt-4 grid gap-4 md:grid-cols-3">
             <label className="block">
-              <span className="text-sm font-semibold text-slate-800">Bien</span>
+              <span className="text-sm font-semibold text-[#112532]/86">Bien</span>
               <select
                 name="property_id"
                 required
@@ -93,7 +94,7 @@ export default async function TestLabPage() {
             </label>
 
             <label className="block">
-              <span className="text-sm font-semibold text-slate-800">Scénario</span>
+              <span className="text-sm font-semibold text-[#112532]/86">Scénario</span>
               <select
                 name="scenario_type"
                 required
@@ -106,7 +107,7 @@ export default async function TestLabPage() {
             </label>
 
             <div className="flex items-end">
-              <button className="w-full rounded-2xl bg-slate-950 px-4 py-3 font-bold text-white">
+              <button className="w-full rounded-2xl bg-[#112532] px-4 py-3 font-bold text-white">
                 Créer le scénario
               </button>
             </div>
@@ -121,12 +122,12 @@ export default async function TestLabPage() {
 
         <section className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-950">
+            <h2 className="text-xl font-bold text-[#112532]">
               Scénarios
             </h2>
 
             {(scenarios ?? []).length === 0 && (
-              <div className="rounded-3xl bg-white p-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
+              <div className="rounded-3xl bg-white p-6 text-[#112532]/62 shadow-sm ring-1 ring-[#112532]/10">
                 Aucun scénario de test pour l’instant.
               </div>
             )}
@@ -137,13 +138,13 @@ export default async function TestLabPage() {
               );
 
               return (
-                <article key={scenario.id} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <article key={scenario.id} className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-950">
+                      <h3 className="text-lg font-bold text-[#112532]">
                         {scenario.name}
                       </h3>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-[#112532]/48">
                         {dateLabel(scenario.created_at)}
                       </p>
                     </div>
@@ -164,16 +165,16 @@ export default async function TestLabPage() {
                       ].filter(Boolean).join(" ") || "Intervenante";
 
                       return (
-                        <div key={request.id} className="rounded-2xl bg-slate-50 p-4">
+                        <div key={request.id} className="rounded-2xl bg-[#F6F3EF] p-4">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <p className="font-bold text-slate-950">
+                              <p className="font-bold text-[#112532]">
                                 {request.properties?.name ?? "Logement"}
                               </p>
-                              <p className="mt-1 text-sm text-slate-500">
+                              <p className="mt-1 text-sm text-[#112532]/48">
                                 Envoyée à {cleanerName}
                               </p>
-                              <p className="mt-1 text-sm text-slate-500">
+                              <p className="mt-1 text-sm text-[#112532]/48">
                                 Fenêtre : {dateLabel(request.work_window_start_at)} → {dateLabel(request.work_window_end_at)}
                               </p>
                             </div>
@@ -186,14 +187,14 @@ export default async function TestLabPage() {
                           <div className="mt-3 flex flex-wrap gap-2">
                             <Link
                               href={`/mission/${request.public_token}/ready-day`}
-                              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white"
+                              className="rounded-full bg-[#112532] px-4 py-2 text-sm font-bold text-white"
                             >
                               Ouvrir côté cleaner
                             </Link>
 
                             <Link
                               href={`/mission/${request.public_token}/report`}
-                              className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"
+                              className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-[#112532]/76"
                             >
                               Rapport
                             </Link>
@@ -208,27 +209,27 @@ export default async function TestLabPage() {
           </div>
 
           <aside className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-950">
+            <h2 className="text-xl font-bold text-[#112532]">
               Fake SMS inbox
             </h2>
 
             {messageRows.length === 0 && (
-              <div className="rounded-3xl bg-white p-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
+              <div className="rounded-3xl bg-white p-6 text-[#112532]/62 shadow-sm ring-1 ring-[#112532]/10">
                 Aucun faux SMS.
               </div>
             )}
 
             {messageRows.map((message) => (
-              <article key={message.id} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+              <article key={message.id} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#112532]/36">
                   {message.recipient_phone}
                 </p>
 
-                <pre className="mt-2 whitespace-pre-wrap rounded-2xl bg-slate-50 p-3 text-sm text-slate-800">
+                <pre className="mt-2 whitespace-pre-wrap rounded-2xl bg-[#F6F3EF] p-3 text-sm text-[#112532]/86">
                   {message.body}
                 </pre>
 
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-[#112532]/36">
                   {dateLabel(message.created_at)}
                 </p>
               </article>

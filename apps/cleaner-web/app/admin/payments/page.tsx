@@ -56,7 +56,8 @@ export default async function AdminPaymentsPage() {
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
@@ -106,7 +107,7 @@ export default async function AdminPaymentsPage() {
                     </p>
 
                     {request.due_at && request.status === "sent_to_owner" && (
-                      <p className="mt-1 text-sm font-semibold text-amber-700">
+                      <p className="mt-1 text-sm font-semibold text-[#8A4D00]">
                         Échéance {dateLabel(request.due_at)}
                       </p>
                     )}

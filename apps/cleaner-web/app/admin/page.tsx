@@ -7,16 +7,17 @@ export default async function AdminHomePage() {
   await requireAdmin();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
-      <div className="mx-auto max-w-4xl space-y-4">
+    <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-4xl space-y-4">
         <header>
-          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Accueil
           </p>
           <h1 className="text-3xl font-black tracking-tight">
             Pilotys
           </h1>
-          <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-[#112532]/48">
             Deux espaces : le cockpit propriétaire pour le quotidien, le back office pour configurer le système.
           </p>
         </header>
@@ -24,7 +25,7 @@ export default async function AdminHomePage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/owner/cockpit"
-            className="rounded-[1.5rem] bg-slate-950 p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-[1.5rem] bg-[#112532] p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="text-3xl">🧭</div>
             <h2 className="mt-4 text-xl font-black">Cockpit propriétaire</h2>
@@ -36,14 +37,14 @@ export default async function AdminHomePage() {
 
           <Link
             href="/admin/settings"
-            className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10 transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="text-3xl">⚙️</div>
             <h2 className="mt-4 text-xl font-black">Back office</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
+            <p className="mt-1 text-sm font-semibold text-[#112532]/48">
               Configurer les rappels, intervenantes, logements, paiements, accès et outils.
             </p>
-            <p className="mt-4 text-xs font-black text-slate-400">Ouvrir →</p>
+            <p className="mt-4 text-xs font-black text-[#112532]/36">Ouvrir →</p>
           </Link>
         </div>
       </div>

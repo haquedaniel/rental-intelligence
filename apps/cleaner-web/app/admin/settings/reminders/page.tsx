@@ -159,7 +159,7 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
           <div className="flex items-center gap-2">
             <span
               className={`h-2.5 w-2.5 rounded-full ${
-                rule.enabled ? "bg-emerald-500" : "bg-slate-300"
+                rule.enabled ? "bg-[#ECFFF6]0" : "bg-slate-300"
               }`}
             />
             <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
@@ -309,7 +309,8 @@ export default async function ReminderSettingsPage() {
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-4">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-4">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">

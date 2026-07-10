@@ -123,7 +123,7 @@ export default async function MissionPage({ params }: PageProps) {
 
   if (error || !mission) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main className="min-h-screen bg-[#F6F3EF] p-6">
 
 
       <Link
@@ -134,10 +134,10 @@ export default async function MissionPage({ params }: PageProps) {
       </Link>
 
         <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-[#112532]">
             {t("fr", "common.missionNotFound")}
           </h1>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-[#112532]/62">
             {t("fr", "common.missionNotFoundBody")}
           </p>
         </div>
@@ -157,10 +157,10 @@ export default async function MissionPage({ params }: PageProps) {
     new Date(mission.public_token_expires_at) < new Date()
   ) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main className="min-h-screen bg-[#F6F3EF] p-6">
         <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow">
-          <h1 className="text-xl font-semibold text-slate-900">{t(locale, "common.linkExpired")}</h1>
-          <p className="mt-3 text-slate-600">
+          <h1 className="text-xl font-semibold text-[#112532]">{t(locale, "common.linkExpired")}</h1>
+          <p className="mt-3 text-[#112532]/62">
             {t(locale, "common.linkExpiredBody")}
           </p>
         </div>
@@ -205,7 +205,7 @@ export default async function MissionPage({ params }: PageProps) {
   const isRefused = mission.status === "refused";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-4">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-4">
       <div className="mx-auto max-w-md">
         <div className="overflow-hidden rounded-3xl bg-white shadow-sm">
           {coverPhoto?.url && (
@@ -239,20 +239,20 @@ export default async function MissionPage({ params }: PageProps) {
             >
               Briefing séjour →
             </Link>
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-[#112532]/48">
               {t(locale, "mission.proposal")}
             </p>
 
-            <h1 className="mt-2 text-2xl font-bold text-slate-900">
+            <h1 className="mt-2 text-2xl font-bold text-[#112532]">
               {property?.name}
             </h1>
 
-            <p className="mt-1 text-slate-600">{property?.address}</p>
+            <p className="mt-1 text-[#112532]/62">{property?.address}</p>
 
             <div className="mt-5 rounded-2xl bg-slate-100 p-4">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-slate-500">{t(locale, "mission.status")}</span>
-                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700">
+                <span className="text-sm text-[#112532]/48">{t(locale, "mission.status")}</span>
+                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#112532]/76">
                   {statusLabel(mission.status, locale)}
                 </span>
               </div>
@@ -266,41 +266,41 @@ export default async function MissionPage({ params }: PageProps) {
 
             <section className="mt-6 space-y-3">
               <div>
-                <p className="text-sm text-slate-500">{t(locale, "mission.for")}</p>
-                <p className="font-medium text-slate-900">
+                <p className="text-sm text-[#112532]/48">{t(locale, "mission.for")}</p>
+                <p className="font-medium text-[#112532]">
                   {cleaner?.first_name} {cleaner?.last_name || ""}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">{t(locale, "mission.scheduledDate")}</p>
-                <p className="font-medium text-slate-900">
+                <p className="text-sm text-[#112532]/48">{t(locale, "mission.scheduledDate")}</p>
+                <p className="font-medium text-[#112532]">
                   {formatDate(mission.scheduled_start_at)}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">{t(locale, "mission.cleaningType")}</p>
-                <p className="font-medium text-slate-900">{profile?.label}</p>
+                <p className="text-sm text-[#112532]/48">{t(locale, "mission.cleaningType")}</p>
+                <p className="font-medium text-[#112532]">{profile?.label}</p>
                 {profile?.description && (
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-[#112532]/62">
                     {profile.description}
                   </p>
                 )}
               </div>
 
               <div>
-                <p className="text-sm text-slate-500">{t(locale, "mission.estimatedDuration")}</p>
-                <p className="font-medium text-slate-900">
+                <p className="text-sm text-[#112532]/48">{t(locale, "mission.estimatedDuration")}</p>
+                <p className="font-medium text-[#112532]">
                   {mission.estimated_hours} h
                 </p>
               </div>
             </section>
 
-            <section className="mt-6 rounded-2xl border border-slate-200 p-4">
-              <h2 className="font-semibold text-slate-900">{t(locale, "mission.remuneration")}</h2>
+            <section className="mt-6 rounded-2xl border border-[#112532]/10 p-4">
+              <h2 className="font-semibold text-[#112532]">{t(locale, "mission.remuneration")}</h2>
 
-              <div className="mt-3 space-y-2 text-sm text-slate-700">
+              <div className="mt-3 space-y-2 text-sm text-[#112532]/76">
                 <div className="flex justify-between">
                   <span>{t(locale, "mission.cleaning")}</span>
                   <span>{formatEuro(mission.cleaning_cost_eur)}</span>
@@ -318,7 +318,7 @@ export default async function MissionPage({ params }: PageProps) {
                   <span>{formatEuro(mission.urgency_bonus_eur)}</span>
                 </div>
 
-                <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-lg font-bold text-slate-900">
+                <div className="mt-3 flex justify-between border-t border-[#112532]/10 pt-3 text-lg font-bold text-[#112532]">
                   <span>{t(locale, "payments.total")}</span>
                   <span>{formatEuro(mission.total_cost_eur)}</span>
                 </div>
@@ -363,8 +363,8 @@ export default async function MissionPage({ params }: PageProps) {
                   </button>
                 </form>
 
-                <details className="rounded-2xl bg-slate-50 p-4">
-                  <summary className="cursor-pointer text-center text-sm font-medium text-slate-500">
+                <details className="rounded-2xl bg-[#F6F3EF] p-4">
+                  <summary className="cursor-pointer text-center text-sm font-medium text-[#112532]/48">
                     {t(locale, "mission.cannotAccept")}
                   </summary>
 
@@ -373,7 +373,7 @@ export default async function MissionPage({ params }: PageProps) {
 
                     <label
                       htmlFor="reason"
-                      className="block text-sm font-medium text-slate-700"
+                      className="block text-sm font-medium text-[#112532]/76"
                     >
                       {t(locale, "mission.refusalReasonLabel")}
                     </label>
@@ -383,7 +383,7 @@ export default async function MissionPage({ params }: PageProps) {
                       name="reason"
                       required
                       rows={3}
-                      className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-slate-900"
+                      className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-[#112532]"
                       placeholder={t(locale, "mission.reasonPlaceholder")}
                     />
 
@@ -400,7 +400,7 @@ export default async function MissionPage({ params }: PageProps) {
           </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
+        <p className="mt-4 text-center text-xs text-[#112532]/48">
           {t(locale, "common.privateLink")}
         </p>
       </div>

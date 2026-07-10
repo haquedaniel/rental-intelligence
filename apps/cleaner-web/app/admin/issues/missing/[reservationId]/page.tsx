@@ -136,7 +136,7 @@ export default async function MissingCleaningIssuePage({
 
           <Card title="Intervenantes possibles">
             {assignments.length === 0 ? (
-              <p className="text-sm font-semibold text-slate-500">
+              <p className="text-sm font-semibold text-[#112532]/48">
                 Aucune intervenante active associée à ce logement.
               </p>
             ) : (
@@ -146,11 +146,11 @@ export default async function MissingCleaningIssuePage({
                   return (
                     <div
                       key={assignment.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100"
+                      className="flex items-center justify-between gap-3 rounded-2xl bg-[#F6F3EF] p-3 ring-1 ring-slate-100"
                     >
                       <div>
-                        <p className="text-sm font-black text-slate-950">{fullName(cleaner)}</p>
-                        <p className="text-xs font-semibold text-slate-500">
+                        <p className="text-sm font-black text-[#112532]">{fullName(cleaner)}</p>
+                        <p className="text-xs font-semibold text-[#112532]/48">
                           {assignment.role || "Intervenante"} · priorité {assignment.priority ?? "—"}
                         </p>
                       </div>
@@ -186,10 +186,10 @@ export default async function MissingCleaningIssuePage({
           </ActionPanel>
 
           <Card title="Diagnostic rapide">
-            <div className="space-y-2 text-sm font-semibold text-slate-600">
-              <p>Missions liées : <strong className="text-slate-950">{requests.length}</strong></p>
-              <p>Mission active : <strong className="text-slate-950">{activeRequest ? "oui" : "non"}</strong></p>
-              <p>Équipe logement : <strong className="text-slate-950">{assignments.length}</strong></p>
+            <div className="space-y-2 text-sm font-semibold text-[#112532]/62">
+              <p>Missions liées : <strong className="text-[#112532]">{requests.length}</strong></p>
+              <p>Mission active : <strong className="text-[#112532]">{activeRequest ? "oui" : "non"}</strong></p>
+              <p>Équipe logement : <strong className="text-[#112532]">{assignments.length}</strong></p>
             </div>
           </Card>
         </div>

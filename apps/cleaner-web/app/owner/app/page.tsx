@@ -172,9 +172,9 @@ function KpiCard({
 }) {
   const classes = {
     slate: "bg-white text-[#112532] ring-[#112532]/10",
-    emerald: "bg-emerald-50 text-emerald-950 ring-emerald-100",
+    emerald: "bg-[#ECFFF6] text-emerald-950 ring-emerald-100",
     sky: "bg-sky-50 text-sky-950 ring-sky-100",
-    amber: "bg-amber-50 text-amber-950 ring-amber-100",
+    amber: "bg-[#FFF5DD] text-amber-950 ring-amber-100",
     violet: "bg-violet-50 text-violet-950 ring-violet-100",
     red: "bg-red-50 text-red-950 ring-red-100",
   };
@@ -396,7 +396,8 @@ export default async function OwnerAppPage({
     <main className="min-h-screen bg-[#F6F3EF] pb-28 text-[#112532] md:pb-8">
       <OwnerAppNav active="cockpit" />
 
-      <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
         <section className="overflow-hidden rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm">
           <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr] lg:items-end">
             <div>
@@ -480,7 +481,7 @@ export default async function OwnerAppPage({
                             : event.tone === "violet"
                               ? "bg-violet-500"
                               : event.tone === "emerald"
-                                ? "bg-emerald-500"
+                                ? "bg-[#ECFFF6]0"
                                 : "bg-sky-500"
                         }`}
                       />
@@ -507,7 +508,7 @@ export default async function OwnerAppPage({
                 <Link href="/admin/interventions" className="rounded-2xl bg-violet-50 p-4 text-sm font-black text-violet-950 ring-1 ring-violet-100">
                   + Créer une intervention
                 </Link>
-                <Link href="/owner/payments" className="rounded-2xl bg-amber-50 p-4 text-sm font-black text-amber-950 ring-1 ring-amber-100">
+                <Link href="/owner/payments" className="rounded-2xl bg-[#FFF5DD] p-4 text-sm font-black text-amber-950 ring-1 ring-amber-100">
                   Demandes de paiement
                 </Link>
                 <Link href="/owner/cockpit" className="rounded-2xl bg-[#F6F3EF] p-4 text-sm font-black text-[#112532]/86 ring-1 ring-slate-100">

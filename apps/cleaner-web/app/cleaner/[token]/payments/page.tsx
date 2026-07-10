@@ -285,13 +285,13 @@ function OwnerAvatar({
       <img
         src={photoUrl}
         alt=""
-        className="h-14 w-14 rounded-2xl object-cover ring-1 ring-slate-200"
+        className="h-14 w-14 rounded-2xl object-cover ring-1 ring-[#112532]/10"
       />
     );
   }
 
   return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white">
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#112532] text-base font-black text-white">
       {initials(name)}
     </div>
   );
@@ -319,10 +319,11 @@ export default async function CleanerPaymentsPage({
 
   if (!cleaner) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6">
-        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-bold text-slate-950">{t("fr", "common.invalidLink")}</h1>
-          <p className="mt-2 text-slate-600">{t("fr", "common.profileNotFound")}</p>
+      <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#112532]/10">
+          <h1 className="text-2xl font-bold text-[#112532]">{t("fr", "common.invalidLink")}</h1>
+          <p className="mt-2 text-[#112532]/62">{t("fr", "common.profileNotFound")}</p>
         </div>
       </main>
     );
@@ -439,10 +440,10 @@ export default async function CleanerPaymentsPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href={`/cleaner/${token}/planning`} className="text-sm font-black text-slate-500">
+          <Link href={`/cleaner/${token}/planning`} className="text-sm font-black text-[#112532]/48">
             {c.back}
           </Link>
 
@@ -450,25 +451,25 @@ export default async function CleanerPaymentsPage({
             {c.title}
           </h1>
 
-          <p className="mt-3 text-lg font-semibold text-slate-600">
+          <p className="mt-3 text-lg font-semibold text-[#112532]/62">
             {c.bravo(cleanerFirstName(cleaner))}
           </p>
 
-          <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-[#112532]/48">
             {c.subtitle}
           </p>
         </div>
 
         {query?.sent === "1" && (
-          <section className="rounded-3xl bg-emerald-50 p-5 text-emerald-900 shadow-sm ring-1 ring-emerald-100">
+          <section className="rounded-3xl bg-[#ECFFF6] p-5 text-emerald-900 shadow-sm ring-1 ring-emerald-100">
             <h2 className="text-lg font-black">{c.sent}</h2>
             <p className="mt-1 text-sm font-semibold">{c.sentBody}</p>
           </section>
         )}
 
         <section className="grid grid-cols-4 gap-2">
-          <div className="rounded-2xl bg-emerald-50 p-3 shadow-sm ring-1 ring-emerald-100">
-            <p className="text-[10px] font-black uppercase leading-tight text-emerald-700">{c.earnedToDate}</p>
+          <div className="rounded-2xl bg-[#ECFFF6] p-3 shadow-sm ring-1 ring-emerald-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-[#0B6B53]">{c.earnedToDate}</p>
             <p className="mt-2 text-lg font-black text-emerald-950 sm:text-2xl">{money(totalEarned)}</p>
           </div>
 
@@ -477,8 +478,8 @@ export default async function CleanerPaymentsPage({
             <p className="mt-2 text-lg font-black text-sky-950 sm:text-2xl">{money(currentMonthEarned)}</p>
           </div>
 
-          <div className="rounded-2xl bg-amber-50 p-3 shadow-sm ring-1 ring-amber-100">
-            <p className="text-[10px] font-black uppercase leading-tight text-amber-700">{c.requestNow}</p>
+          <div className="rounded-2xl bg-[#FFF5DD] p-3 shadow-sm ring-1 ring-amber-100">
+            <p className="text-[10px] font-black uppercase leading-tight text-[#8A4D00]">{c.requestNow}</p>
             <p className="mt-2 text-lg font-black text-amber-950 sm:text-2xl">{money(requestableTotal)}</p>
           </div>
 
@@ -494,7 +495,7 @@ export default async function CleanerPaymentsPage({
           </div>
 
           {requestable.length === 0 ? (
-            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-[#112532]/48 shadow-sm ring-1 ring-[#112532]/10">
               {c.requestableEmpty}
             </div>
           ) : (
@@ -511,7 +512,7 @@ export default async function CleanerPaymentsPage({
                   <details
                     key={`${group.ownerId}:${group.period}`}
                     name="payment-request"
-                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200 open:ring-slate-300"
+                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10 open:ring-slate-300"
                   >
                     <summary className="cursor-pointer list-none">
                       <div className="flex items-start gap-4">
@@ -519,18 +520,18 @@ export default async function CleanerPaymentsPage({
 
                         <div className="min-w-0 flex-1">
                           <h3 className="text-xl font-black">{name}</h3>
-                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                          <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                             {c.requestCard(money(total), name, monthLabel(group.period, locale))}
                           </p>
                         </div>
 
                         <div className="text-right">
-                          <p className="text-xs font-black uppercase text-slate-400">Total</p>
+                          <p className="text-xs font-black uppercase text-[#112532]/36">Total</p>
                           <p className="text-2xl font-black">{money(total)}</p>
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">
+                      <div className="mt-4 rounded-2xl bg-[#112532] px-4 py-3 text-center text-sm font-black text-white">
                         {c.prepare}
                       </div>
                     </summary>
@@ -540,8 +541,8 @@ export default async function CleanerPaymentsPage({
                       <input type="hidden" name="owner_id" value={group.ownerId} />
                       <input type="hidden" name="period" value={group.period} />
 
-                      <section className="rounded-3xl bg-slate-50 p-4">
-                        <h4 className="text-sm font-black uppercase text-slate-400">
+                      <section className="rounded-3xl bg-[#F6F3EF] p-4">
+                        <h4 className="text-sm font-black uppercase text-[#112532]/36">
                           {c.lineItems}
                         </h4>
 
@@ -549,14 +550,14 @@ export default async function CleanerPaymentsPage({
                           {group.missions.map((mission) => (
                             <div
                               key={mission.id}
-                              className="rounded-2xl bg-white p-3 ring-1 ring-slate-200"
+                              className="rounded-2xl bg-white p-3 ring-1 ring-[#112532]/10"
                             >
                               <div className="flex justify-between gap-3">
                                 <div>
                                   <p className="font-black">
                                     {dateLabel(paymentDateValue(mission), locale)} · {missionChecklistName(mission, locale)}
                                   </p>
-                                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                                  <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                                     {mission.properties?.name ?? c.missionFallback}
                                   </p>
                                 </div>
@@ -568,7 +569,7 @@ export default async function CleanerPaymentsPage({
                         </div>
                       </section>
 
-                      <section className="rounded-3xl bg-amber-50 p-4 ring-1 ring-amber-100">
+                      <section className="rounded-3xl bg-[#FFF5DD] p-4 ring-1 ring-amber-100">
                         <h4 className="text-sm font-black text-amber-950">{c.exceptionalCost}</h4>
                         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_130px]">
                           <input
@@ -588,14 +589,14 @@ export default async function CleanerPaymentsPage({
                       </section>
 
                       <label className="block">
-                        <span className="text-sm font-black text-slate-700">
+                        <span className="text-sm font-black text-[#112532]/76">
                           {c.messageOwner}
                         </span>
                         <textarea
                           name="cleaner_message"
                           rows={3}
                           placeholder={c.messagePlaceholder}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                          className="mt-2 w-full rounded-2xl border border-[#112532]/10 p-3 text-sm"
                         />
                       </label>
 
@@ -613,11 +614,11 @@ export default async function CleanerPaymentsPage({
         <section className="space-y-3">
           <div>
             <h2 className="text-2xl font-black">{c.history}</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{c.historyIntro}</p>
+            <p className="mt-1 text-sm font-semibold text-[#112532]/48">{c.historyIntro}</p>
           </div>
 
           {missionsByOwner.size === 0 ? (
-            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+            <div className="rounded-3xl bg-white p-5 text-sm font-bold text-[#112532]/48 shadow-sm ring-1 ring-[#112532]/10">
               {c.noHistory}
             </div>
           ) : (
@@ -632,13 +633,13 @@ export default async function CleanerPaymentsPage({
                 return (
                   <details
                     key={ownerId}
-                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200"
+                    className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10"
                   >
                     <summary className="flex cursor-pointer list-none items-center gap-4">
                       <OwnerAvatar name={name} photoUrl={ownerPhotoById.get(ownerId)} />
                       <div className="flex-1">
                         <h3 className="text-xl font-black">{name}</h3>
-                        <p className="text-sm font-semibold text-slate-500">
+                        <p className="text-sm font-semibold text-[#112532]/48">
                           {sortedRows.length} mission(s)
                         </p>
                       </div>
@@ -657,16 +658,16 @@ export default async function CleanerPaymentsPage({
                             : c.notRequested;
 
                         return (
-                          <div key={mission.id} className="rounded-2xl bg-slate-50 p-3">
+                          <div key={mission.id} className="rounded-2xl bg-[#F6F3EF] p-3">
                             <div className="flex justify-between gap-3">
                               <div>
                                 <p className="font-black">
                                   {dateLabel(paymentDateValue(mission), locale)} · {missionChecklistName(mission, locale)}
                                 </p>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
+                                <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                                   {mission.properties?.name ?? c.missionFallback}
                                 </p>
-                                <p className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                                <p className="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-black text-[#112532]/62 ring-1 ring-[#112532]/10">
                                   {statusText}
                                 </p>
                               </div>

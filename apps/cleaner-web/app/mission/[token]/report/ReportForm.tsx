@@ -107,14 +107,14 @@ function PendingOverlay({ locale }: { locale: CleanerLocale }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/85 px-6 backdrop-blur-sm">
-      <div className="max-w-sm rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-xl">
+      <div className="max-w-sm rounded-3xl border border-[#112532]/10 bg-white p-6 text-center shadow-xl">
         <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
 
-        <h2 className="text-lg font-bold text-slate-950">
+        <h2 className="text-lg font-bold text-[#112532]">
           {t(locale, "form.sendingTitle")}
         </h2>
 
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-[#112532]/62">
           {t(locale, "form.sendingBody")}
         </p>
       </div>
@@ -277,28 +277,28 @@ export function ReportForm({
       )}
 
       {coverPhoto?.signedUrl && (
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-[#112532]/10 bg-white shadow-sm">
           <img
             src={coverPhoto.signedUrl}
             alt={coverPhoto.title ?? t(locale, "form.photoAlt")}
             className="h-40 w-full object-cover"
           />
           <div className="p-4">
-            <p className="text-sm font-semibold text-slate-950">
+            <p className="text-sm font-semibold text-[#112532]">
               {coverPhoto.title ?? t(locale, "form.propertyToPrepare")}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#112532]/48">
               {t(locale, "form.modelPhotosInfo")}
             </p>
           </div>
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">
+      <div className="rounded-2xl border border-[#112532]/10 bg-white p-4 shadow-sm">
+        <h2 className="text-base font-semibold text-[#112532]">
           {t(locale, "form.checklistTitle")}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-[#112532]/62">
           {t(locale, "form.checklistBody")}
         </p>
       </div>
@@ -340,15 +340,15 @@ export function ReportForm({
           <section
             key={sectionKey}
             className={`rounded-2xl border bg-white p-4 shadow-sm ${
-              isChecked ? "border-emerald-200" : "border-slate-200"
+              isChecked ? "border-emerald-200" : "border-[#112532]/10"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold text-[#112532]">
                   {section.title}
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-[#112532]/48">
                   {pointCount} {pointCount > 1 ? copy.points : copy.point}
                 </p>
               </div>
@@ -367,7 +367,7 @@ export function ReportForm({
                 </span>
               )}
               {section.photo_requirement === "optional" && (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-[#112532]/62">
                   {copy.photoOptional}
                 </span>
               )}
@@ -379,8 +379,8 @@ export function ReportForm({
                 isOpen
                   ? "bg-slate-900 text-white ring-slate-900"
                   : isChecked
-                    ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
-                    : "bg-slate-950 text-white ring-slate-950"
+                    ? "bg-[#ECFFF6] text-emerald-900 ring-emerald-100"
+                    : "bg-[#112532] text-white ring-slate-950"
               }`}
               onClick={() => togglePoints(sectionKey)}
             >
@@ -395,13 +395,13 @@ export function ReportForm({
             </button>
 
             {!hasViewed && (
-              <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 ring-1 ring-amber-100">
+              <p className="mt-3 rounded-2xl bg-[#FFF5DD] px-3 py-2 text-xs font-semibold text-amber-900 ring-1 ring-amber-100">
                 {copy.readFirst}
               </p>
             )}
 
             {isOpen && (
-              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-[#ECFFF6] p-4">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800">
                   {copy.pointsTitle}
                 </p>
@@ -415,7 +415,7 @@ export function ReportForm({
 
             {sectionReferencePhotos.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#112532]/48">
                   {t(locale, "form.referencePhotos")}
                 </p>
 
@@ -425,14 +425,14 @@ export function ReportForm({
                       key={photo.id}
                       type="button"
                       onClick={() => setSelectedReferencePhoto(photo)}
-                      className="shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                      className="shrink-0 overflow-hidden rounded-2xl border border-[#112532]/10 bg-white shadow-sm"
                     >
                       <img
                         src={photo.signedUrl ?? ""}
                         alt={photo.title ?? t(locale, "form.modelPhoto")}
                         className="h-20 w-28 object-cover"
                       />
-                      <div className="max-w-28 truncate px-2 py-1 text-left text-[11px] text-slate-600">
+                      <div className="max-w-28 truncate px-2 py-1 text-left text-[11px] text-[#112532]/62">
                         {photo.title ?? t(locale, "form.modelPhoto")}
                       </div>
                     </button>
@@ -464,7 +464,7 @@ export function ReportForm({
                   className={`flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed p-4 ${
                     requiresPhoto && !hasPhoto
                       ? "border-red-300 bg-red-50"
-                      : "border-emerald-300 bg-emerald-50"
+                      : "border-emerald-300 bg-[#ECFFF6]"
                   }`}
                 >
                   <span
@@ -496,7 +496,7 @@ export function ReportForm({
                     </span>
 
                     {hasPhoto && (
-                      <span className="mt-2 block text-xs font-medium text-emerald-700">
+                      <span className="mt-2 block text-xs font-medium text-[#0B6B53]">
                         {copy.selectedPhoto}
                       </span>
                     )}
@@ -508,17 +508,17 @@ export function ReportForm({
             <div
               className={`mt-4 rounded-2xl border p-4 ${
                 isChecked
-                  ? "border-emerald-200 bg-emerald-50"
+                  ? "border-emerald-200 bg-[#ECFFF6]"
                   : hasViewed
                     ? "border-blue-200 bg-blue-50"
-                    : "border-slate-200 bg-slate-50"
+                    : "border-[#112532]/10 bg-[#F6F3EF]"
               }`}
             >
               {!hasViewed && (
                 <button
                   type="button"
                   onClick={() => openPoints(sectionKey)}
-                  className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"
+                  className="w-full rounded-2xl bg-[#112532] px-4 py-3 text-sm font-bold text-white"
                 >
                   {copy.readPoints(pointCount)}
                 </button>
@@ -567,17 +567,17 @@ export function ReportForm({
               placeholder={t(locale, "form.notePlaceholder")}
               defaultValue={section.existing_notes ?? ""}
               disabled={alreadySubmitted}
-              className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm"
+              className="mt-3 min-h-20 w-full rounded-xl border border-[#112532]/10 p-3 text-sm"
             />
           </section>
         );
       })}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900">
+      <section className="rounded-2xl border border-[#112532]/10 bg-white p-4 shadow-sm">
+        <h3 className="text-lg font-semibold text-[#112532]">
           {t(locale, "form.problemsTitle")}
         </h3>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-[#112532]/62">
           {t(locale, "form.problemsBody")}
         </p>
 
@@ -615,15 +615,15 @@ export function ReportForm({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="block text-sm font-semibold text-slate-900">
+      <section className="rounded-2xl border border-[#112532]/10 bg-white p-4 shadow-sm">
+        <label className="block text-sm font-semibold text-[#112532]">
           {t(locale, "form.generalNotes")}
         </label>
         <textarea
           name="general_notes"
           placeholder={t(locale, "form.generalNotesPlaceholder")}
           disabled={alreadySubmitted}
-          className="mt-2 min-h-28 w-full rounded-xl border border-slate-200 p-3 text-sm"
+          className="mt-2 min-h-28 w-full rounded-xl border border-[#112532]/10 p-3 text-sm"
         />
       </section>
 
@@ -632,7 +632,7 @@ export function ReportForm({
       )}
 
       {!allRequiredChecked && !alreadySubmitted && (
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-[#112532]/48">
           {t(locale, "form.requiredBeforeSubmit")}
         </p>
       )}
@@ -642,7 +642,7 @@ export function ReportForm({
           <button
             type="button"
             onClick={() => setSelectedReferencePhoto(null)}
-            className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950"
+            className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#112532]"
           >
             {t(locale, "form.close")}
           </button>
@@ -654,7 +654,7 @@ export function ReportForm({
               className="max-h-[75vh] w-full object-contain"
             />
             <div className="p-4">
-              <p className="font-semibold text-slate-950">
+              <p className="font-semibold text-[#112532]">
                 {selectedReferencePhoto.title ?? t(locale, "form.modelPhoto")}
               </p>
             </div>
@@ -679,8 +679,8 @@ function ProblemField({
   const [checked, setChecked] = useState(false);
 
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <label className="flex items-center gap-3 text-sm font-medium text-slate-900">
+    <div className="rounded-xl border border-[#112532]/10 p-3">
+      <label className="flex items-center gap-3 text-sm font-medium text-[#112532]">
         <input
           type="checkbox"
           name={name}
@@ -695,7 +695,7 @@ function ProblemField({
         <textarea
           name={notesName}
           placeholder={t(locale, "form.problemDetailsPlaceholder")}
-          className="mt-3 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm"
+          className="mt-3 min-h-20 w-full rounded-xl border border-[#112532]/10 p-3 text-sm"
         />
       )}
     </div>

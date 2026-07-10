@@ -34,7 +34,7 @@ function serviceBadgeClass(value?: string): string {
     case "maintenance_check":
       return "bg-orange-100 text-orange-900";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-slate-100 text-[#112532]/76";
   }
 }
 
@@ -50,8 +50,8 @@ function profileCard(profile: Row) {
       action={updateWorkType}
       className={`rounded-3xl p-5 shadow-sm ring-1 ${
         profile.active === false
-          ? "bg-slate-50 ring-slate-200 opacity-70"
-          : "bg-white ring-slate-200"
+          ? "bg-[#F6F3EF] ring-[#112532]/10 opacity-70"
+          : "bg-white ring-[#112532]/10"
       }`}
     >
       <input type="hidden" name="id" value={profile.id} />
@@ -61,11 +61,11 @@ function profileCard(profile: Row) {
           {serviceLabel(profile.service_type)}
         </span>
 
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-[#112532]/76">
           {numberLabel(profile.estimated_hours)}h
         </span>
 
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-[#112532]/76">
           Ordre {profile.sort_order ?? 100}
         </span>
 
@@ -82,7 +82,7 @@ function profileCard(profile: Row) {
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-bold text-slate-800">
+          <label className="block text-sm font-bold text-[#112532]/86">
             Nom affiché
           </label>
           <input
@@ -93,7 +93,7 @@ function profileCard(profile: Row) {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-800">
+          <label className="block text-sm font-bold text-[#112532]/86">
             Code interne
           </label>
           <input
@@ -104,7 +104,7 @@ function profileCard(profile: Row) {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-800">
+          <label className="block text-sm font-bold text-[#112532]/86">
             Catégorie
           </label>
           <select
@@ -121,7 +121,7 @@ function profileCard(profile: Row) {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-800">
+          <label className="block text-sm font-bold text-[#112532]/86">
             Durée estimée
           </label>
           <input
@@ -135,7 +135,7 @@ function profileCard(profile: Row) {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-800">
+          <label className="block text-sm font-bold text-[#112532]/86">
             Ordre
           </label>
           <input
@@ -148,7 +148,7 @@ function profileCard(profile: Row) {
       </div>
 
       <div className="mt-4">
-        <label className="block text-sm font-bold text-slate-800">
+        <label className="block text-sm font-bold text-[#112532]/86">
           Description / usage
         </label>
         <textarea
@@ -161,7 +161,7 @@ function profileCard(profile: Row) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
           <input
             type="checkbox"
             name="default_linen_required"
@@ -170,7 +170,7 @@ function profileCard(profile: Row) {
           Linge par défaut
         </label>
 
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
           <input
             type="checkbox"
             name="default_laundry_required"
@@ -179,7 +179,7 @@ function profileCard(profile: Row) {
           Lessive par défaut
         </label>
 
-        <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
           <input
             type="checkbox"
             name="active"
@@ -192,7 +192,7 @@ function profileCard(profile: Row) {
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           type="submit"
-          className="flex-1 rounded-2xl bg-slate-950 px-4 py-3 font-bold text-white"
+          className="flex-1 rounded-2xl bg-[#112532] px-4 py-3 font-bold text-white"
         >
           Enregistrer
         </button>
@@ -246,36 +246,37 @@ export default async function AdminWorkTypesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-6xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="text-sm font-semibold text-[#112532]/62">
             ← Back office
           </Link>
 
-          <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#112532]/48">
             Paramétrage opérations
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">
+          <h1 className="mt-1 text-3xl font-bold text-[#112532]">
             Types de mission
           </h1>
 
-          <p className="mt-2 max-w-3xl text-slate-600">
+          <p className="mt-2 max-w-3xl text-[#112532]/62">
             Ces profils apparaissent dans le formulaire de création de mission :
             ménage léger, grand ménage, tonte du jardin, contrôle linge, petite
             maintenance, etc.
           </p>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-xl font-bold text-slate-950">
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-xl font-bold text-[#112532]">
             Ajouter un type de mission
           </h2>
 
           <form action={createWorkType} className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Logement
               </label>
               <select
@@ -293,7 +294,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Nom du type
               </label>
               <input
@@ -305,7 +306,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Code interne
               </label>
               <input
@@ -316,7 +317,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Catégorie
               </label>
               <select
@@ -333,7 +334,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Durée estimée
               </label>
               <input
@@ -347,7 +348,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Ordre
               </label>
               <input
@@ -359,7 +360,7 @@ export default async function AdminWorkTypesPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-800">
+              <label className="block text-sm font-bold text-[#112532]/86">
                 Description / usage
               </label>
               <textarea
@@ -370,24 +371,24 @@ export default async function AdminWorkTypesPage() {
               />
             </div>
 
-            <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+            <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
               <input type="checkbox" name="default_linen_required" />
               Linge par défaut
             </label>
 
-            <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+            <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
               <input type="checkbox" name="default_laundry_required" />
               Lessive par défaut
             </label>
 
-            <label className="flex items-center gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+            <label className="flex items-center gap-2 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/76">
               <input type="checkbox" name="active" defaultChecked />
               Actif
             </label>
 
             <button
               type="submit"
-              className="rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white md:col-span-2"
+              className="rounded-2xl bg-[#112532] px-4 py-4 font-bold text-white md:col-span-2"
             >
               Ajouter le type de mission
             </button>
@@ -400,17 +401,17 @@ export default async function AdminWorkTypesPage() {
           return (
             <section key={property.id} className="space-y-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-950">
+                <h2 className="text-2xl font-bold text-[#112532]">
                   {property.name}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[#112532]/48">
                   {propertyProfiles.length} type(s) de mission
                 </p>
               </div>
 
               <div className="grid gap-4">
                 {propertyProfiles.length === 0 ? (
-                  <div className="rounded-3xl bg-white p-5 text-slate-600 shadow-sm ring-1 ring-slate-200">
+                  <div className="rounded-3xl bg-white p-5 text-[#112532]/62 shadow-sm ring-1 ring-[#112532]/10">
                     Aucun type de mission configuré.
                   </div>
                 ) : (

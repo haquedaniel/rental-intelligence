@@ -48,7 +48,7 @@ function OwnerForm({
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold ${
               owner.active
-                ? "bg-emerald-50 text-emerald-700"
+                ? "bg-[#ECFFF6] text-[#0B6B53]"
                 : "bg-[#112532]/6 text-[#112532]/48"
             }`}
           >
@@ -255,7 +255,7 @@ function OwnerForm({
                   </span>
 
                   {assignedElsewhere && (
-                    <span className="mt-1 block text-xs text-amber-700">
+                    <span className="mt-1 block text-xs text-[#8A4D00]">
                       Actuellement lié à {ownerName(property.owner_id, owners)}
                     </span>
                   )}
@@ -312,7 +312,8 @@ export default async function AdminOwnersPage() {
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
           <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office

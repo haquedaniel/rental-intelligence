@@ -240,7 +240,7 @@ export default async function OwnerPaymentsPage({
 
           <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
             <p className="text-sm font-semibold text-[#112532]/48">Payées</p>
-            <p className="mt-2 text-3xl font-black text-emerald-700">{paidCount}</p>
+            <p className="mt-2 text-3xl font-black text-[#0B6B53]">{paidCount}</p>
           </div>
 
           <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">

@@ -254,13 +254,13 @@ function missionTypeIcon(serviceType?: string): string {
 function missionTypeClass(serviceType?: string): string {
   switch (serviceType) {
     case "garden_lawn":
-      return "bg-emerald-50 text-emerald-800 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-800 ring-emerald-100";
     case "deep_cleaning":
       return "bg-violet-50 text-violet-800 ring-violet-100";
     case "linen_laundry":
       return "bg-sky-50 text-sky-800 ring-sky-100";
     case "inventory_check":
-      return "bg-amber-50 text-amber-900 ring-amber-100";
+      return "bg-[#FFF5DD] text-amber-900 ring-amber-100";
     case "maintenance_check":
       return "bg-orange-50 text-orange-900 ring-orange-100";
     case "other":
@@ -446,8 +446,8 @@ function rangeLabel(start: string, end: string): string {
 function changeoverCellClasses(hasDeparture: boolean, hasArrival: boolean, missingCleaning: boolean) {
   if (missingCleaning) return "bg-red-50 ring-red-200";
   if (hasDeparture && hasArrival) return "bg-gradient-to-r from-amber-50 from-0% via-amber-50 via-50% to-emerald-50 to-50% ring-[#112532]/10";
-  if (hasDeparture) return "bg-amber-50 ring-amber-100";
-  if (hasArrival) return "bg-emerald-50 ring-emerald-100";
+  if (hasDeparture) return "bg-[#FFF5DD] ring-amber-100";
+  if (hasArrival) return "bg-[#ECFFF6] ring-emerald-100";
   return "bg-white ring-slate-100";
 }
 
@@ -707,7 +707,8 @@ export default async function AdminOperationsPage({
 
   return (
     <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-7xl space-y-6">
         <div>
           <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
@@ -761,7 +762,7 @@ export default async function AdminOperationsPage({
 
           <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
             <p className="text-sm text-[#112532]/48">Acceptées</p>
-            <p className="mt-2 text-4xl font-bold text-emerald-700">{acceptedInRange}</p>
+            <p className="mt-2 text-4xl font-bold text-[#0B6B53]">{acceptedInRange}</p>
             <p className="mt-1 text-sm text-[#112532]/48">intervenante confirmée</p>
           </div>
 

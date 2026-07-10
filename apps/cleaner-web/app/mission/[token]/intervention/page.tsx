@@ -243,7 +243,7 @@ export default async function InterventionMissionPage({
   const totalCost = Number(request.total_cost_eur ?? labourTotal + materialTotal);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
 
       <Link
         href={`/mission/${token}/reservation`}
@@ -253,7 +253,7 @@ export default async function InterventionMissionPage({
       </Link>
 
       <div className="mx-auto max-w-2xl space-y-5 pb-24">
-        <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
+        <section className="rounded-[2rem] bg-[#112532] p-6 text-white shadow-xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/50">
             Mission ponctuelle
           </p>
@@ -288,18 +288,18 @@ export default async function InterventionMissionPage({
         </section>
 
         {done && (
-          <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-black text-slate-950">Détail final</h2>
-            <div className="mt-4 grid gap-3 text-sm font-bold text-slate-700">
-              <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+          <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <h2 className="text-lg font-black text-[#112532]">Détail final</h2>
+            <div className="mt-4 grid gap-3 text-sm font-bold text-[#112532]/76">
+              <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
                 <span>Main d’œuvre</span>
                 <span>{actualHours} h × {money(hourlyRate)} = {money(labourTotal)}</span>
               </div>
-              <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
+              <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
                 <span>Frais matériel</span>
                 <span>{money(materialTotal)}</span>
               </div>
-              <div className="flex justify-between rounded-2xl bg-emerald-50 p-3 text-emerald-950">
+              <div className="flex justify-between rounded-2xl bg-[#ECFFF6] p-3 text-emerald-950">
                 <span>Total</span>
                 <span>{money(totalCost)}</span>
               </div>
@@ -308,39 +308,39 @@ export default async function InterventionMissionPage({
         )}
 
         {!done && request.allow_occupied_intervention ? (
-          <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-950 ring-1 ring-amber-100">
+          <div className="rounded-2xl bg-[#FFF5DD] p-4 text-sm font-bold text-amber-950 ring-1 ring-amber-100">
             Le propriétaire autorise un créneau même si le logement est occupé. Les créneaux concernés sont signalés.
           </div>
         ) : !done ? (
-          <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
+          <div className="rounded-2xl bg-[#ECFFF6] p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
             Les créneaux pendant une occupation voyageur sont exclus automatiquement.
           </div>
         ) : null}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-lg font-black text-slate-950">Consignes</h2>
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-lg font-black text-[#112532]">Consignes</h2>
 
           {referencePhotoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={referencePhotoUrl}
               alt=""
-              className="mt-4 max-h-80 w-full rounded-2xl object-cover ring-1 ring-slate-200"
+              className="mt-4 max-h-80 w-full rounded-2xl object-cover ring-1 ring-[#112532]/10"
             />
           )}
 
-          <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">
+          <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-6 text-[#112532]/76">
             {request.mission_description || "Aucune consigne détaillée."}
           </p>
         </section>
 
         {!accepted && !refused && !done && (
           <section className="grid gap-3">
-            <form action={acceptIntervention} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <form action={acceptIntervention} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
               <input type="hidden" name="token" value={token} />
 
-              <h2 className="text-lg font-black text-slate-950">Choisir un créneau</h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
+              <h2 className="text-lg font-black text-[#112532]">Choisir un créneau</h2>
+              <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                 Durée estimée : {request.estimated_hours ?? 1} h.
               </p>
 
@@ -360,10 +360,10 @@ export default async function InterventionMissionPage({
               </button>
             </form>
 
-            <form action={refuseIntervention} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <form action={refuseIntervention} className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
               <input type="hidden" name="token" value={token} />
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Raison du refus</span>
+                <span className="text-sm font-bold text-[#112532]/86">Raison du refus</span>
                 <textarea name="reason" rows={3} required className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm" />
               </label>
               <button className="mt-3 w-full rounded-2xl bg-white px-5 py-3 font-black text-red-700 ring-1 ring-red-200">
@@ -375,20 +375,20 @@ export default async function InterventionMissionPage({
 
         {accepted && !done && (
           <section className="space-y-3">
-            <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
+            <div className="rounded-2xl bg-[#ECFFF6] p-4 text-sm font-bold text-emerald-950 ring-1 ring-emerald-100">
               Créneau confirmé : {fmt(request.scheduled_start_at)} → {fmt(request.scheduled_end_at)}
             </div>
 
             {slots.length > 0 && (
-              <details className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-                <summary className="cursor-pointer text-sm font-black text-slate-800">
+              <details className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+                <summary className="cursor-pointer text-sm font-black text-[#112532]/86">
                   Modifier le créneau
                 </summary>
 
                 <form action={changeInterventionSlot} className="mt-4">
                   <input type="hidden" name="token" value={token} />
 
-                  <p className="text-sm font-semibold text-slate-500">
+                  <p className="text-sm font-semibold text-[#112532]/48">
                     Choisissez une nouvelle date puis une heure. Le propriétaire sera prévenu.
                   </p>
 
@@ -397,7 +397,7 @@ export default async function InterventionMissionPage({
                     defaultValue={request.scheduled_start_at}
                   />
 
-                  <button className="mt-4 w-full rounded-2xl bg-slate-950 px-5 py-4 text-base font-black text-white">
+                  <button className="mt-4 w-full rounded-2xl bg-[#112532] px-5 py-4 text-base font-black text-white">
                     Enregistrer le nouveau créneau
                   </button>
                 </form>
@@ -407,19 +407,19 @@ export default async function InterventionMissionPage({
             {reportAvailable ? (
               <Link
                 href={`/mission/${token}/intervention/report`}
-                className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
+                className="block rounded-2xl bg-[#112532] px-5 py-4 text-center text-lg font-black text-white"
               >
                 Envoyer le rapport d’intervention
               </Link>
             ) : (
               <>
-                <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-600">
+                <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-[#112532]/62">
                   Le rapport est surtout prévu le jour de l’intervention, mais vous pouvez l’envoyer plus tôt si l’intervention est déjà terminée.
                 </div>
 
                 <Link
                   href={`/mission/${token}/intervention/report`}
-                  className="block rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200"
+                  className="block rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-[#112532]/76 ring-1 ring-[#112532]/10"
                 >
                   Envoyer le rapport maintenant
                 </Link>
@@ -436,14 +436,14 @@ export default async function InterventionMissionPage({
 
         {done && (
           <section className="space-y-3">
-            <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
+            <div className="rounded-2xl bg-[#ECFFF6] p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
               Rapport transmis. Merci.
             </div>
 
             {cleanerToken && (
               <Link
                 href={`/cleaner/${cleanerToken}`}
-                className="block rounded-2xl bg-slate-950 px-5 py-4 text-center text-lg font-black text-white"
+                className="block rounded-2xl bg-[#112532] px-5 py-4 text-center text-lg font-black text-white"
               >
                 Retour aux missions
               </Link>

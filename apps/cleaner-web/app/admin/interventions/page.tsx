@@ -35,38 +35,39 @@ export default async function AdminInterventionsPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8"><span className="h-2 w-2 rounded-full bg-[#E0680E]" />Pilotys · opération</div>
+        <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="text-sm font-semibold text-[#112532]/62">
             ← Back office
           </Link>
 
-          <h1 className="mt-3 text-3xl font-black text-slate-950">
+          <h1 className="mt-3 text-3xl font-black text-[#112532]">
             Missions ponctuelles
           </h1>
 
-          <p className="mt-2 max-w-3xl text-sm font-medium text-slate-600">
+          <p className="mt-2 max-w-3xl text-sm font-medium text-[#112532]/62">
             Réparations, jardinage, contrôle ponctuel, petit entretien. Ces missions ne dépendent pas d’un séjour
             et n’utilisent pas de checklist ménage.
           </p>
         </div>
 
         {params.created && (
-          <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
+          <div className="rounded-2xl bg-[#ECFFF6] p-4 text-sm font-bold text-emerald-900 ring-1 ring-emerald-100">
             Intervention créée et SMS mis en file d’attente.
           </div>
         )}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-xl font-black text-slate-950">
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-xl font-black text-[#112532]">
             Créer une intervention
           </h2>
 
           <form action={createInterventionMission} encType="multipart/form-data" className="mt-5 space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Logement</span>
+                <span className="text-sm font-bold text-[#112532]/86">Logement</span>
                 <select name="property_id" required className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm">
                   <option value="">Choisir…</option>
                   {(properties ?? []).map((property: any) => (
@@ -78,7 +79,7 @@ export default async function AdminInterventionsPage({
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Intervenant</span>
+                <span className="text-sm font-bold text-[#112532]/86">Intervenant</span>
                 <select name="cleaner_id" required className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm">
                   <option value="">Choisir…</option>
                   {(cleaners ?? []).map((cleaner: any) => (
@@ -92,7 +93,7 @@ export default async function AdminInterventionsPage({
 
             <div className="grid gap-4 md:grid-cols-[1fr_220px]">
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Titre de la mission</span>
+                <span className="text-sm font-bold text-[#112532]/86">Titre de la mission</span>
                 <input
                   name="title"
                   required
@@ -102,7 +103,7 @@ export default async function AdminInterventionsPage({
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Catégorie</span>
+                <span className="text-sm font-bold text-[#112532]/86">Catégorie</span>
                 <select name="mission_category" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm">
                   <option value="repair">Petite réparation</option>
                   <option value="garden">Jardin / tonte</option>
@@ -114,7 +115,7 @@ export default async function AdminInterventionsPage({
             </div>
 
             <label className="block">
-              <span className="text-sm font-bold text-slate-800">Description / consignes</span>
+              <span className="text-sm font-bold text-[#112532]/86">Description / consignes</span>
               <textarea
                 name="mission_description"
                 rows={5}
@@ -125,29 +126,29 @@ export default async function AdminInterventionsPage({
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Début possible</span>
+                <span className="text-sm font-bold text-[#112532]/86">Début possible</span>
                 <input name="scheduled_start_at" type="datetime-local" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm" />
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">À faire avant</span>
+                <span className="text-sm font-bold text-[#112532]/86">À faire avant</span>
                 <input name="deadline_at" required type="datetime-local" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm" />
               </label>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Heures estimées</span>
+                <span className="text-sm font-bold text-[#112532]/86">Heures estimées</span>
                 <input name="estimated_hours" type="number" step="0.25" defaultValue="1" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm" />
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Tarif horaire €</span>
+                <span className="text-sm font-bold text-[#112532]/86">Tarif horaire €</span>
                 <input name="hourly_rate_eur" type="number" step="0.01" defaultValue="20" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm" />
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-800">Preuve photo</span>
+                <span className="text-sm font-bold text-[#112532]/86">Preuve photo</span>
                 <select name="proof_photo_requirement" defaultValue="optional" className="mt-1 w-full rounded-xl border border-slate-300 p-2 text-sm">
                   <option value="none">Aucune</option>
                   <option value="optional">Optionnelle</option>
@@ -155,13 +156,13 @@ export default async function AdminInterventionsPage({
                 </select>
               </label>
 
-              <label className="flex items-end gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-700">
+              <label className="flex items-end gap-2 rounded-xl bg-[#F6F3EF] p-3 text-sm font-bold text-[#112532]/76">
                 <input name="allow_material_expenses" type="checkbox" defaultChecked />
                 Frais matériel autorisés
               </label>
             </div>
 
-            <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100">
+            <div className="rounded-2xl bg-[#FFF5DD] p-4 ring-1 ring-amber-100">
               <label className="flex gap-3 text-sm font-bold text-amber-950">
                 <input name="allow_occupied_intervention" type="checkbox" />
                 <span>
@@ -171,30 +172,30 @@ export default async function AdminInterventionsPage({
             </div>
 
             <label className="block">
-              <span className="text-sm font-bold text-slate-800">Photo de référence optionnelle</span>
+              <span className="text-sm font-bold text-[#112532]/86">Photo de référence optionnelle</span>
               <input name="reference_photo" type="file" accept="image/*" className="mt-2 block w-full text-sm" />
             </label>
 
-            <button className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-black text-white">
+            <button className="w-full rounded-2xl bg-[#112532] px-5 py-3 font-black text-white">
               Créer et envoyer la mission
             </button>
           </form>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-black text-slate-950">Dernières interventions</h2>
+          <h2 className="text-lg font-black text-[#112532]">Dernières interventions</h2>
 
           {(recent ?? []).map((request: any) => (
-            <div key={request.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <div key={request.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-base font-black text-slate-950">{request.title}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                  <p className="text-base font-black text-[#112532]">{request.title}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                     {nameFor(request.properties ?? {})} · {cleanerName(request.cleaners ?? {})}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-[#112532]/76">
                   {request.status}
                 </span>
               </div>
@@ -204,7 +205,7 @@ export default async function AdminInterventionsPage({
                   href={`/mission/${request.public_token}/intervention`}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-bold text-slate-900 underline"
+                  className="mt-3 inline-flex text-sm font-bold text-[#112532] underline"
                 >
                   Ouvrir la mission
                 </a>

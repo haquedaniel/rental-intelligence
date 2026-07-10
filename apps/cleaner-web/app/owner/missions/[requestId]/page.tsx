@@ -163,7 +163,7 @@ function badgeClass(status?: string | null) {
     case "accepted":
     case "completed":
     case "report_submitted":
-      return "bg-emerald-50 text-emerald-900 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-900 ring-emerald-100";
     case "problem_reported":
       return "bg-orange-50 text-orange-900 ring-orange-100";
     case "created":
@@ -190,7 +190,7 @@ function InfoCard({ label, value, detail }: { label: string; value: string; deta
 function MessageBubble({ title, text, tone = "blue" }: { title: string; text: string; tone?: "blue" | "amber" | "green" | "red" }) {
   const cls =
     tone === "green"
-      ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
+      ? "bg-[#ECFFF6] text-emerald-900 ring-emerald-100"
       : tone === "amber"
         ? "bg-[#FFF5DD] text-[#8A4D00] ring-[#F4B044]/25"
         : tone === "red"
@@ -434,7 +434,7 @@ function outboundStatusClass(status?: string | null) {
   switch (status) {
     case "sent":
     case "delivered":
-      return "bg-emerald-50 text-emerald-900 ring-emerald-100";
+      return "bg-[#ECFFF6] text-emerald-900 ring-emerald-100";
     case "pending":
     case "queued":
       return "bg-[#FFF5DD] text-[#A45C00] ring-[#F4B044]/25";
@@ -672,7 +672,7 @@ export default async function OwnerMissionPage({
               )}
 
               {report || interventionReport ? (
-                <Link href={reportHref} className="rounded-3xl bg-emerald-50 p-5 font-black text-emerald-900 ring-1 ring-emerald-100">
+                <Link href={reportHref} className="rounded-3xl bg-[#ECFFF6] p-5 font-black text-emerald-900 ring-1 ring-emerald-100">
                   Rapport disponible · ouvrir →
                 </Link>
               ) : (

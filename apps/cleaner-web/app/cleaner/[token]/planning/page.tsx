@@ -302,11 +302,11 @@ function statusChipClass(request: Row, overdue: boolean): string {
       return "bg-emerald-100 text-emerald-800 ring-emerald-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
     case "problem_reported":
       return "bg-orange-100 text-orange-900 ring-orange-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
@@ -325,21 +325,21 @@ function calendarMissionClass(request: Row, overdue: boolean): string {
       return "bg-emerald-100 text-emerald-950 ring-emerald-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
     case "problem_reported":
       return "bg-orange-100 text-orange-950 ring-orange-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-slate-100 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
 const PROPERTY_PALETTE = [
   {
-    label: "border-slate-300 bg-slate-50",
-    stay: "bg-slate-200 text-slate-800",
+    label: "border-slate-300 bg-[#F6F3EF]",
+    stay: "bg-slate-200 text-[#112532]/86",
   },
   {
-    label: "border-emerald-300 bg-emerald-50",
+    label: "border-emerald-300 bg-[#ECFFF6]",
     stay: "bg-emerald-100 text-emerald-900",
   },
   {
@@ -347,7 +347,7 @@ const PROPERTY_PALETTE = [
     stay: "bg-sky-100 text-sky-900",
   },
   {
-    label: "border-amber-300 bg-amber-50",
+    label: "border-amber-300 bg-[#FFF5DD]",
     stay: "bg-amber-100 text-amber-900",
   },
   {
@@ -427,7 +427,7 @@ function MissionCompactCard({
     "block min-w-0 rounded-[1.35rem] p-4 shadow-sm ring-1",
     intervention
       ? "bg-violet-50/80 ring-violet-100"
-      : "bg-white ring-slate-200",
+      : "bg-white ring-[#112532]/10",
   ].join(" ");
 
   const briefing = briefingHref(request);
@@ -441,18 +441,18 @@ function MissionCompactCard({
               {statusLabel(request, overdue, locale)}
             </span>
 
-            <h3 className="mt-3 truncate text-base font-black text-slate-950">
+            <h3 className="mt-3 truncate text-base font-black text-[#112532]">
               {title}
             </h3>
 
-            <p className="mt-1 truncate text-sm font-semibold text-slate-500">
+            <p className="mt-1 truncate text-sm font-semibold text-[#112532]/48">
               {subtitle}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-            <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
-            <p className="mt-1 text-xs font-black text-slate-900">
+          <div className="rounded-2xl bg-[#F6F3EF] px-3 py-2 text-right">
+            <p className="text-[10px] font-black uppercase text-[#112532]/36">{copy.before}</p>
+            <p className="mt-1 text-xs font-black text-[#112532]">
               {compactDateLabel(anchorAt(request), locale)}
             </p>
           </div>
@@ -555,23 +555,23 @@ function PropertyCalendar({
   }
 
   return (
-    <section className="w-full min-w-0 overflow-hidden rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <section className="w-full min-w-0 overflow-hidden rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-slate-950">{copy.calendarTitle}</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-500">{copy.calendarBody}</p>
+          <h2 className="text-xl font-black text-[#112532]">{copy.calendarTitle}</h2>
+          <p className="mt-1 text-sm font-semibold text-[#112532]/48">{copy.calendarBody}</p>
         </div>
 
         <div className="flex gap-2 text-[10px] font-black">
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{copy.stays}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-[#112532]/62">{copy.stays}</span>
           <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-800">{copy.cleanings}</span>
         </div>
       </div>
 
-      <div className="mt-4 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-2xl bg-slate-50 pb-3">
+      <div className="mt-4 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-2xl bg-[#F6F3EF] pb-3">
         <div className="min-w-max max-w-none">
-          <div className="grid grid-cols-[112px_1fr] border-b border-slate-200 bg-white">
-            <div className="sticky left-0 z-30 bg-white px-3 py-3 text-[10px] font-black uppercase text-slate-400">
+          <div className="grid grid-cols-[112px_1fr] border-b border-[#112532]/10 bg-white">
+            <div className="sticky left-0 z-30 bg-white px-3 py-3 text-[10px] font-black uppercase text-[#112532]/36">
               {copy.properties}
             </div>
 
@@ -580,7 +580,7 @@ function PropertyCalendar({
                 {monthBlocks.map((block) => (
                   <div
                     key={block.key}
-                    className="absolute top-0 h-[24px] border-l border-slate-200 px-2 text-left text-[10px] font-black uppercase text-slate-400"
+                    className="absolute top-0 h-[24px] border-l border-[#112532]/10 px-2 text-left text-[10px] font-black uppercase text-[#112532]/36"
                     style={{ left: block.left, width: block.width }}
                   >
                     {block.label}
@@ -600,10 +600,10 @@ function PropertyCalendar({
                       }`}
                       style={{ width: dayWidth }}
                     >
-                      <p className="text-[8px] font-black uppercase text-slate-400">
+                      <p className="text-[8px] font-black uppercase text-[#112532]/36">
                         {shortDay(dateKey, locale).slice(0, 3)}
                       </p>
-                      <p className="mt-1 text-[12px] font-black text-slate-900">
+                      <p className="mt-1 text-[12px] font-black text-[#112532]">
                         {dateKey.slice(8, 10)}
                       </p>
                     </div>
@@ -630,10 +630,10 @@ function PropertyCalendar({
                 <div key={propertyId} className="grid grid-cols-[112px_1fr] bg-white">
                   <div className="sticky left-0 z-20 border-r border-slate-100 bg-white p-3">
                     <div className={`rounded-2xl border-l-4 px-3 py-3 ${palette.label}`}>
-                      <p className="line-clamp-3 text-xs font-black text-slate-950">
+                      <p className="line-clamp-3 text-xs font-black text-[#112532]">
                         {propertyName(property, locale)}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold text-slate-500">
+                      <p className="mt-1 text-[10px] font-bold text-[#112532]/48">
                         {propertyRequests.length} mission(s)
                       </p>
                     </div>
@@ -648,7 +648,7 @@ function PropertyCalendar({
                           <div
                             key={`${propertyId}-${dateKey}-bg`}
                             className={`flex-none border-l ${
-                              isToday ? "bg-slate-100/70" : "border-slate-100 bg-slate-50/60"
+                              isToday ? "bg-slate-100/70" : "border-slate-100 bg-[#F6F3EF]/60"
                             }`}
                             style={{ width: dayWidth }}
                           />
@@ -894,10 +894,10 @@ export default async function CleanerPlanningPage({
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-slate-50 px-4 pb-28 pt-6 text-slate-950">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
         <div>
-          <Link href={`/cleaner/${token}`} className="text-sm font-black text-slate-500">
+          <Link href={`/cleaner/${token}`} className="text-sm font-black text-[#112532]/48">
             {copy.back}
           </Link>
 
@@ -905,7 +905,7 @@ export default async function CleanerPlanningPage({
             {copy.title}
           </h1>
 
-          <p className="mt-2 max-w-2xl text-sm font-semibold text-slate-500">
+          <p className="mt-2 max-w-2xl text-sm font-semibold text-[#112532]/48">
             {copy.subtitle}
           </p>
         </div>
@@ -914,7 +914,7 @@ export default async function CleanerPlanningPage({
           <KpiCard
             label={copy.missions}
             value={String(twoWeekRequests.length)}
-            className="bg-emerald-50 text-emerald-950 ring-emerald-100"
+            className="bg-[#ECFFF6] text-emerald-950 ring-emerald-100"
           />
           <KpiCard
             label={copy.properties}
@@ -924,7 +924,7 @@ export default async function CleanerPlanningPage({
           <KpiCard
             label={copy.hours}
             value={`${String(Math.round(twoWeekHours * 10) / 10).replace(".", ",")} h`}
-            className="bg-amber-50 text-amber-950 ring-amber-100"
+            className="bg-[#FFF5DD] text-amber-950 ring-amber-100"
           />
           <KpiCard
             label={copy.estimated}
@@ -934,7 +934,7 @@ export default async function CleanerPlanningPage({
         </section>
 
         {(overdue.length > 0 || toConfirm.length > 0) && (
-          <section className="rounded-[2rem] bg-amber-50 p-5 shadow-sm ring-1 ring-amber-100">
+          <section className="rounded-[2rem] bg-[#FFF5DD] p-5 shadow-sm ring-1 ring-amber-100">
             <h2 className="text-lg font-black text-amber-950">{copy.overdueTitle}</h2>
             <p className="mt-1 text-sm font-semibold text-amber-800/80">{copy.overdueBody}</p>
 
@@ -961,11 +961,11 @@ export default async function CleanerPlanningPage({
         />
 
         <section className="grid min-w-0 gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-black text-slate-950">{copy.nextMission}</h2>
+          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+            <h2 className="text-xl font-black text-[#112532]">{copy.nextMission}</h2>
 
             {!nextMission ? (
-              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+              <p className="mt-4 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-bold text-[#112532]/48">
                 {copy.noNextMission}
               </p>
             ) : (
@@ -978,23 +978,23 @@ export default async function CleanerPlanningPage({
                 />
 
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.before}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{copy.before}</p>
                     <p className="mt-1 text-xs font-black">{compactDateLabel(anchorAt(nextMission), locale)}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.duration}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{copy.duration}</p>
                     <p className="mt-1 text-xs font-black">{nextMission.estimated_hours ?? "—"} h</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-black uppercase text-slate-400">{copy.amount}</p>
+                  <div className="rounded-2xl bg-[#F6F3EF] p-3">
+                    <p className="text-[10px] font-black uppercase text-[#112532]/36">{copy.amount}</p>
                     <p className="mt-1 text-xs font-black">{money(missionAmount(nextMission))}</p>
                   </div>
                 </div>
 
                 <Link
                   href={missionHref(nextMission)}
-                  className="block rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
+                  className="block rounded-2xl bg-[#112532] px-4 py-3 text-center text-sm font-black text-white"
                 >
                   {copy.openMission}
                 </Link>
@@ -1002,18 +1002,18 @@ export default async function CleanerPlanningPage({
             )}
           </section>
 
-          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-black text-slate-950">{copy.upcoming}</h2>
+          <section className="min-w-0 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+            <h2 className="text-xl font-black text-[#112532]">{copy.upcoming}</h2>
 
             {groupedUpcoming.size === 0 ? (
-              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+              <p className="mt-4 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-bold text-[#112532]/48">
                 {copy.noUpcoming}
               </p>
             ) : (
               <div className="mt-4 space-y-4">
                 {[...groupedUpcoming.entries()].map(([dateKey, rows]) => (
                   <div key={dateKey}>
-                    <h3 className="text-sm font-black text-slate-500">
+                    <h3 className="text-sm font-black text-[#112532]/48">
                       {dayHeading(dateKey, today, locale)}
                     </h3>
 

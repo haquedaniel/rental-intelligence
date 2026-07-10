@@ -39,7 +39,7 @@ export default async function MissionReadyDayPage({
 
   if (!request) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 pb-28 pt-6">
+      <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6">
 
       <Link
         href={`/mission/${token}/reservation`}
@@ -48,9 +48,9 @@ export default async function MissionReadyDayPage({
         Briefing séjour →
       </Link>
 
-        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-bold text-slate-950">{t("fr", "common.missionNotFound")}</h1>
-          <p className="mt-2 text-slate-600">{t("fr", "common.missionNotFoundBody")}</p>
+        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#112532]/10">
+          <h1 className="text-2xl font-bold text-[#112532]">{t("fr", "common.missionNotFound")}</h1>
+          <p className="mt-2 text-[#112532]/62">{t("fr", "common.missionNotFoundBody")}</p>
         </div>
             <CleanerMissionNav missionToken={token} active="missions" />
     </main>
@@ -93,10 +93,10 @@ export default async function MissionReadyDayPage({
   const planningChanged = request.schedule_status === "planning_changed";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-5">
-        <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+        <section className="rounded-3xl bg-[#112532] p-6 text-white shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#112532]/36">
             {t(locale, "mission.proposal")}
           </p>
 
@@ -128,7 +128,7 @@ export default async function MissionReadyDayPage({
         </section>
 
         {planningChanged && (
-          <section className="rounded-3xl bg-amber-50 p-5 text-amber-950 shadow-sm ring-1 ring-amber-200">
+          <section className="rounded-3xl bg-[#FFF5DD] p-5 text-amber-950 shadow-sm ring-1 ring-amber-200">
             <h2 className="text-xl font-bold">{t(locale, "ready.planningChangedTitle")}</h2>
             <p className="mt-2 text-sm">
               {t(locale, "ready.planningChangedBody")}
@@ -137,7 +137,7 @@ export default async function MissionReadyDayPage({
         )}
 
         {isAccepted && (
-          <section className="rounded-3xl bg-emerald-50 p-5 text-emerald-950 shadow-sm ring-1 ring-emerald-200">
+          <section className="rounded-3xl bg-[#ECFFF6] p-5 text-emerald-950 shadow-sm ring-1 ring-emerald-200">
             <h2 className="text-xl font-bold">{t(locale, "ready.acceptedTitle")}</h2>
 
             <p className="mt-2 text-sm">
@@ -163,18 +163,18 @@ export default async function MissionReadyDayPage({
 
         {!isAccepted && !isRefused && !planningChanged && (
           <>
-            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-xl font-bold text-slate-950">
+            <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+              <h2 className="text-xl font-bold text-[#112532]">
                 {t(locale, "ready.questionTitle")}
               </h2>
 
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-[#112532]/62">
                 {t(locale, "ready.questionBody")}
               </p>
 
               <div className="mt-4 space-y-3">
                 {availableOptions.length === 0 && (
-                  <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="rounded-2xl bg-[#F6F3EF] p-4 text-sm text-[#112532]/62">
                     {t(locale, "ready.noAvailableDay")}
                   </p>
                 )}
@@ -184,11 +184,11 @@ export default async function MissionReadyDayPage({
                     <input type="hidden" name="token" value={token} />
                     <input type="hidden" name="option_id" value={option.id} />
 
-                    <button className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:bg-slate-100">
-                      <span className="block text-lg font-black text-slate-950">
+                    <button className="w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] p-4 text-left transition hover:bg-slate-100">
+                      <span className="block text-lg font-black text-[#112532]">
                         {option.label}
                       </span>
-                      <span className="mt-1 block text-sm text-slate-500">
+                      <span className="mt-1 block text-sm text-[#112532]/48">
                         {t(locale, "ready.commitment")}
                       </span>
                     </button>
@@ -197,8 +197,8 @@ export default async function MissionReadyDayPage({
               </div>
             </section>
 
-            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-lg font-bold text-slate-950">{t(locale, "ready.refuseTitle")}</h2>
+            <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+              <h2 className="text-lg font-bold text-[#112532]">{t(locale, "ready.refuseTitle")}</h2>
 
               <form action={refuseMissionFromReadyDay} className="mt-3 space-y-3">
                 <input type="hidden" name="token" value={token} />
