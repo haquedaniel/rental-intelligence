@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 
@@ -242,9 +243,9 @@ export default async function ExpensesSettingsPage() {
 
   if (!configPath) {
     return (
-      <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
-        <div className="mx-auto max-w-5xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <Link href="/admin/settings" className="text-sm font-bold text-slate-500">
+      <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
+        <div className="mx-auto max-w-5xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+          <Link href="/admin/settings" className="text-sm font-bold text-[#112532]/48">
             ← Back office
           </Link>
           <h1 className="mt-4 text-3xl font-black">Dépenses</h1>
@@ -274,38 +275,38 @@ export default async function ExpensesSettingsPage() {
   ).sort();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Link href="/admin/settings" className="text-sm font-bold text-slate-500">
+            <Link href="/admin/settings" className="text-sm font-bold text-[#112532]/48">
               ← Back office
             </Link>
             <h1 className="mt-4 text-3xl font-black tracking-tight">
               Dépenses
             </h1>
-            <p className="mt-1 max-w-3xl text-sm font-semibold text-slate-500">
+            <p className="mt-1 max-w-3xl text-sm font-semibold text-[#112532]/48">
               Première version : visualisation et modification des montants du fichier YAML.
               Les règles, dates, logements et méthodes de calcul ne changent pas.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white p-4 text-right shadow-sm ring-1 ring-slate-200">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-3xl bg-white p-4 text-right shadow-sm ring-1 ring-[#112532]/10">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Fichier
             </p>
-            <p className="mt-1 max-w-[360px] truncate text-xs font-bold text-slate-600">
+            <p className="mt-1 max-w-[360px] truncate text-xs font-bold text-[#112532]/60">
               {configPath}
             </p>
-            <p className="mt-2 text-sm font-black text-slate-950">
+            <p className="mt-2 text-sm font-black text-[#112532]">
               {editableRules.length} montant(s)
             </p>
           </div>
         </header>
 
         <section className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-[1.75rem] bg-white/92 p-4 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Total montants fixes listés
             </p>
             <p className="mt-2 text-2xl font-black">
@@ -314,27 +315,27 @@ export default async function ExpensesSettingsPage() {
                 currency: "EUR",
               })}
             </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+            <p className="mt-1 text-xs font-semibold text-[#112532]/48">
               Simple total brut des champs amount visibles, sans appliquer les règles.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-[1.75rem] bg-white/92 p-4 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Règles totales
             </p>
             <p className="mt-2 text-2xl font-black">{rules.length}</p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+            <p className="mt-1 text-xs font-semibold text-[#112532]/48">
               Certaines règles n’ont pas de montant modifiable.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-[1.75rem] bg-white/92 p-4 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Catégories
             </p>
             <p className="mt-2 text-2xl font-black">{categories.length}</p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+            <p className="mt-1 text-xs font-semibold text-[#112532]/48">
               {categories.map(categoryLabel).join(", ")}
             </p>
           </div>
@@ -345,7 +346,7 @@ export default async function ExpensesSettingsPage() {
 
           return (
             <section key={category} className="space-y-3">
-              <h2 className="text-xl font-black text-slate-950">
+              <h2 className="text-xl font-black text-[#112532]">
                 {categoryLabel(category)}
               </h2>
 
@@ -358,7 +359,7 @@ export default async function ExpensesSettingsPage() {
                     <form
                       key={rule.ruleId}
                       action={updateExpenseAmount}
-                      className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+                      className="rounded-[1.75rem] bg-white/92 p-4 shadow-sm ring-1 ring-[#112532]/8"
                     >
                       <input type="hidden" name="rule_id" value={rule.ruleId} />
                       <input type="hidden" name="field" value={field} />
@@ -366,42 +367,42 @@ export default async function ExpensesSettingsPage() {
                       <div className="grid gap-4 md:grid-cols-[1fr_190px_120px] md:items-end">
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+                            <span className="rounded-full bg-[#112532]/6 px-2 py-1 text-[10px] font-black text-[#112532]/60">
                               {rule.costFamily ?? "cost"}
                             </span>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+                            <span className="rounded-full bg-[#112532]/6 px-2 py-1 text-[10px] font-black text-[#112532]/60">
                               {rule.calculationType ?? "calculation"}
                             </span>
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+                            <span className="rounded-full bg-[#112532]/6 px-2 py-1 text-[10px] font-black text-[#112532]/60">
                               {rule.startDate ?? "—"} → {rule.endDate ?? "∞"}
                             </span>
                           </div>
 
-                          <h3 className="mt-3 text-base font-black text-slate-950">
+                          <h3 className="mt-3 text-base font-black text-[#112532]">
                             {rule.ruleId}
                           </h3>
-                          <p className="mt-1 text-sm font-semibold text-slate-500">
+                          <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                             {displayTargets(rule)}
                           </p>
                         </div>
 
                         <label className="block">
-                          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                             {field === "percentage" ? "Pourcentage" : "Montant"}
                           </span>
-                          <div className="mt-1 flex rounded-2xl border border-slate-200 bg-slate-50">
+                          <div className="mt-1 flex rounded-2xl border border-[#112532]/10 bg-[#F6F3EF]">
                             <input
                               name="value"
                               defaultValue={value ?? ""}
-                              className="min-w-0 flex-1 rounded-2xl bg-transparent px-3 py-2 text-right text-sm font-black text-slate-950 outline-none"
+                              className="min-w-0 flex-1 rounded-2xl bg-transparent px-3 py-2 text-right text-sm font-black text-[#112532] outline-none"
                             />
-                            <span className="px-3 py-2 text-sm font-black text-slate-400">
+                            <span className="px-3 py-2 text-sm font-black text-[#112532]/36">
                               {field === "percentage" ? "%" : "€"}
                             </span>
                           </div>
                         </label>
 
-                        <button className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">
+                        <button className="rounded-full bg-[#E0680E] px-4 py-2 text-sm font-black text-white shadow-sm shadow-[#E0680E]/20">
                           Enregistrer
                         </button>
                       </div>
@@ -413,6 +414,7 @@ export default async function ExpensesSettingsPage() {
           );
         })}
       </div>
-    </main>
+          <OwnerBottomNav active="settings" />
+</main>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 
@@ -167,14 +168,14 @@ function requestStatusClasses(status?: string): string {
       return "bg-sky-100 text-sky-800 ring-sky-200";
     case "report_submitted":
     case "completed":
-      return "bg-slate-950 text-white ring-slate-950";
+      return "bg-[#112532] text-white ring-slate-950";
     case "problem_reported":
       return "bg-orange-100 text-orange-900 ring-orange-200";
     case "refused":
     case "cancelled":
       return "bg-red-100 text-red-800 ring-red-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-[#112532]/6 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
@@ -263,9 +264,9 @@ function missionTypeClass(serviceType?: string): string {
     case "maintenance_check":
       return "bg-orange-50 text-orange-900 ring-orange-100";
     case "other":
-      return "bg-slate-50 text-slate-700 ring-slate-100";
+      return "bg-[#F6F3EF] text-[#112532]/76 ring-slate-100";
     default:
-      return "bg-slate-50 text-slate-700 ring-slate-100";
+      return "bg-[#F6F3EF] text-[#112532]/76 ring-slate-100";
   }
 }
 
@@ -346,7 +347,7 @@ function cleanerPhoto(cleaner?: Row | null, size = "h-10 w-10") {
   }
 
   return (
-    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700 ring-1 ring-slate-200`}>
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-[#112532]/6 text-sm font-bold text-[#112532]/76 ring-1 ring-[#112532]/10`}>
       {initials(cleaner)}
     </div>
   );
@@ -372,8 +373,8 @@ function cleanerStatusClass(cleaner?: Row | null): string {
 
 function roleClass(role?: string): string {
   return role === "primary"
-    ? "bg-slate-950 text-white"
-    : "bg-slate-100 text-slate-700";
+    ? "bg-[#112532] text-white"
+    : "bg-[#112532]/6 text-[#112532]/76";
 }
 
 function alertClass(level: "red" | "orange" | "blue") {
@@ -444,7 +445,7 @@ function rangeLabel(start: string, end: string): string {
 
 function changeoverCellClasses(hasDeparture: boolean, hasArrival: boolean, missingCleaning: boolean) {
   if (missingCleaning) return "bg-red-50 ring-red-200";
-  if (hasDeparture && hasArrival) return "bg-gradient-to-r from-amber-50 from-0% via-amber-50 via-50% to-emerald-50 to-50% ring-slate-200";
+  if (hasDeparture && hasArrival) return "bg-gradient-to-r from-amber-50 from-0% via-amber-50 via-50% to-emerald-50 to-50% ring-[#112532]/10";
   if (hasDeparture) return "bg-amber-50 ring-amber-100";
   if (hasArrival) return "bg-emerald-50 ring-emerald-100";
   return "bg-white ring-slate-100";
@@ -705,19 +706,19 @@ export default async function AdminOperationsPage({
   const backupCount = assignments.filter((assignment) => assignment.role === "backup").length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-7xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
           </Link>
 
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#112532]/48">
                 Planning des séjours & ménages
               </p>
-              <h1 className="mt-1 text-3xl font-bold text-slate-950">
+              <h1 className="mt-1 text-3xl font-bold text-[#112532]">
                 Vue propriétaire
               </h1>
             </div>
@@ -725,66 +726,66 @@ export default async function AdminOperationsPage({
             <div className="flex flex-wrap gap-2">
               <Link
                 href={propertyFilterHref(previousRange, selectedPropertyId)}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
               >
                 ← Précédent
               </Link>
 
               <Link
                 href={propertyFilterHref(todayParisDateKey(), selectedPropertyId)}
-                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                className="rounded-full bg-[#112532] px-4 py-2 text-sm font-semibold text-white shadow-sm"
               >
                 Aujourd’hui
               </Link>
 
               <Link
                 href={propertyFilterHref(nextRange, selectedPropertyId)}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200"
+                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
               >
                 Suivant →
               </Link>
             </div>
           </div>
 
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[#112532]/60">
             {longDateLabel(rangeStart)} → {longDateLabel(rangeEnd)}
           </p>
         </div>
 
         <section className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-sm">
+          <div className="rounded-3xl bg-[#112532] p-5 text-white shadow-sm">
             <p className="text-sm text-slate-300">Départs</p>
             <p className="mt-2 text-4xl font-bold">{departuresInRange.length}</p>
             <p className="mt-1 text-sm text-slate-300">{rangeLabel(rangeStart, rangeEnd)}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">Acceptées</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm text-[#112532]/48">Acceptées</p>
             <p className="mt-2 text-4xl font-bold text-emerald-700">{acceptedInRange}</p>
-            <p className="mt-1 text-sm text-slate-500">intervenante confirmée</p>
+            <p className="mt-1 text-sm text-[#112532]/48">intervenante confirmée</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">À confirmer</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm text-[#112532]/48">À confirmer</p>
             <p className="mt-2 text-4xl font-bold text-sky-700">{proposedInRange}</p>
-            <p className="mt-1 text-sm text-slate-500">proposées ou à envoyer</p>
+            <p className="mt-1 text-sm text-[#112532]/48">proposées ou à envoyer</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm text-slate-500">Terminées</p>
-            <p className="mt-2 text-4xl font-bold text-slate-950">{doneInRange}</p>
-            <p className="mt-1 text-sm text-slate-500">rapport accessible</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm text-[#112532]/48">Terminées</p>
+            <p className="mt-2 text-4xl font-bold text-[#112532]">{doneInRange}</p>
+            <p className="mt-1 text-sm text-[#112532]/48">rapport accessible</p>
           </div>
         </section>
 
-        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <section className="rounded-[1.75rem] bg-white/92 p-4 shadow-sm ring-1 ring-[#112532]/8">
           <div className="flex flex-wrap gap-2">
             <Link
               href={propertyFilterHref(rangeStart)}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 selectedPropertyId
-                  ? "bg-slate-100 text-slate-700"
-                  : "bg-slate-950 text-white"
+                  ? "bg-[#112532]/6 text-[#112532]/76"
+                  : "bg-[#112532] text-white"
               }`}
             >
               Tous les logements
@@ -796,8 +797,8 @@ export default async function AdminOperationsPage({
                 href={propertyFilterHref(rangeStart, property.id)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   selectedPropertyId === property.id
-                    ? "bg-slate-950 text-white"
-                    : "bg-slate-100 text-slate-700"
+                    ? "bg-[#112532] text-white"
+                    : "bg-[#112532]/6 text-[#112532]/76"
                 }`}
               >
                 {property.name}
@@ -809,8 +810,8 @@ export default async function AdminOperationsPage({
         <div className="grid gap-6 lg:grid-cols-[1fr_330px]">
           <section className="space-y-5">
             {alerts.length > 0 && (
-              <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <h2 className="text-xl font-bold text-slate-950">
+              <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+                <h2 className="text-xl font-bold text-[#112532]">
                   À surveiller
                 </h2>
 
@@ -842,22 +843,22 @@ export default async function AdminOperationsPage({
               return (
                 <article
                   key={property.id}
-                  className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200"
+                  className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[#112532]/10"
                 >
                   <div className="border-b border-slate-100 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-xl font-bold text-slate-950">
+                        <h2 className="text-xl font-bold text-[#112532]">
                           {property.name}
                         </h2>
                         {property.address && (
-                          <p className="mt-1 text-sm text-slate-500">
+                          <p className="mt-1 text-sm text-[#112532]/48">
                             {property.address}
                           </p>
                         )}
                       </div>
 
-                      <p className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                      <p className="rounded-full bg-[#112532]/6 px-4 py-2 text-sm font-semibold text-[#112532]/76">
                         {rangeLabel(rangeStart, rangeEnd)}
                       </p>
                     </div>
@@ -876,7 +877,7 @@ export default async function AdminOperationsPage({
                             <div
                               key={dayKey}
                               className={`rounded-2xl p-2 text-center ${
-                                isToday ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-600"
+                                isToday ? "bg-[#112532] text-white" : "bg-[#F6F3EF] text-[#112532]/60"
                               }`}
                             >
                               <p className="text-[11px] font-black uppercase opacity-70">
@@ -891,7 +892,7 @@ export default async function AdminOperationsPage({
                       </div>
 
                       <div
-                        className="grid gap-2 rounded-3xl bg-slate-50 p-3"
+                        className="grid gap-2 rounded-3xl bg-[#F6F3EF] p-3"
                         style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {propertyReservations
@@ -980,7 +981,7 @@ export default async function AdminOperationsPage({
                       </div>
 
                       <div
-                        className="grid gap-2 rounded-3xl bg-slate-50 p-3"
+                        className="grid gap-2 rounded-3xl bg-[#F6F3EF] p-3"
                         style={{ gridTemplateColumns: `repeat(${rangeDays.length}, minmax(62px, 1fr))` }}
                       >
                         {rangeDays.map((dayKey) => {
@@ -1006,7 +1007,7 @@ export default async function AdminOperationsPage({
                                 <Link
                                   href={manualMissionHref(property.id, dayKey)}
                                   title="Planifier une mission"
-                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-black text-slate-300 ring-1 ring-slate-200 hover:text-slate-950 hover:ring-slate-400"
+                                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-black text-slate-300 ring-1 ring-[#112532]/10 hover:text-[#112532] hover:ring-slate-400"
                                 >
                                   +
                                 </Link>
@@ -1082,9 +1083,9 @@ export default async function AdminOperationsPage({
           </section>
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
-            <section className="overflow-hidden rounded-3xl bg-slate-950 text-white shadow-sm">
+            <section className="overflow-hidden rounded-3xl bg-[#112532] text-white shadow-sm">
               <div className="p-5">
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[#112532]/36">
                   Mon équipe ménage
                 </p>
                 <h2 className="mt-1 text-2xl font-bold">
@@ -1104,8 +1105,8 @@ export default async function AdminOperationsPage({
               </div>
             </section>
 
-            <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <h3 className="text-lg font-bold text-slate-950">
+            <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+              <h3 className="text-lg font-bold text-[#112532]">
                 Équipe disponible
               </h3>
 
@@ -1127,11 +1128,11 @@ export default async function AdminOperationsPage({
                   ).length;
 
                   return (
-                    <div key={cleanerId} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+                    <div key={cleanerId} className="flex items-center gap-3 rounded-2xl bg-[#F6F3EF] p-3">
                       {cleanerPhoto(cleaner, "h-12 w-12")}
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-black text-slate-950">
+                        <p className="truncate font-black text-[#112532]">
                           {fullName(cleaner)}
                         </p>
 
@@ -1155,7 +1156,7 @@ export default async function AdminOperationsPage({
                           )}
                         </div>
 
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-[#112532]/48">
                           {cleaner.phone || "Téléphone non renseigné"}
                         </p>
                       </div>
@@ -1163,7 +1164,7 @@ export default async function AdminOperationsPage({
                       {cleaner?.public_token && (
                         <Link
                           href={`/cleaner/${cleaner.public_token}`}
-                          className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm ring-1 ring-slate-200"
+                          className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
                         >
                           Planning
                         </Link>
@@ -1176,6 +1177,7 @@ export default async function AdminOperationsPage({
           </aside>
         </div>
       </div>
-    </main>
+          <OwnerBottomNav active="cockpit" />
+</main>
   );
 }

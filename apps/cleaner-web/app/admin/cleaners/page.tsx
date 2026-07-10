@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "@/lib/adminAuth";
 import { createCleaner, inviteCleaner, resetCleanerOnboarding, updateCleaner } from "./actions";
@@ -112,7 +113,7 @@ function TextInput({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-800">
+      <label className="block text-sm font-semibold text-[#112532]/86">
         {label}
       </label>
       <input
@@ -163,7 +164,7 @@ function SelectInput({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-800">
+      <label className="block text-sm font-semibold text-[#112532]/86">
         {label}
       </label>
       <select
@@ -196,7 +197,7 @@ function Textarea({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-800">
+      <label className="block text-sm font-semibold text-[#112532]/86">
         {label}
       </label>
       <textarea
@@ -229,11 +230,11 @@ function CleanerForm({
 
       <section className="grid gap-4 md:grid-cols-[160px_1fr]">
         <div>
-          <p className="text-sm font-semibold text-slate-800">
+          <p className="text-sm font-semibold text-[#112532]/86">
             Photo de profil
           </p>
 
-          <div className="mt-2 h-32 w-32 overflow-hidden rounded-3xl bg-slate-100 ring-1 ring-slate-200">
+          <div className="mt-2 h-32 w-32 overflow-hidden rounded-3xl bg-[#112532]/6 ring-1 ring-[#112532]/10">
             {cleaner?.profilePhotoSignedUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -252,7 +253,7 @@ function CleanerForm({
             name="profile_photo"
             type="file"
             accept="image/*"
-            className="mt-3 block w-full text-xs text-slate-600 file:mr-2 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+            className="mt-3 block w-full text-xs text-[#112532]/60 file:mr-2 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
           />
         </div>
 
@@ -301,7 +302,7 @@ function CleanerForm({
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-950">
+        <h3 className="text-base font-bold text-[#112532]">
           Localisation
         </h3>
         <div className="mt-3 grid gap-4 md:grid-cols-3">
@@ -334,14 +335,14 @@ function CleanerForm({
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-950">
+        <h3 className="text-base font-bold text-[#112532]">
           Services proposés
         </h3>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {SERVICE_OPTIONS.map(([value, label]) => (
             <label
               key={value}
-              className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700"
+              className="flex items-center gap-2 rounded-xl bg-[#F6F3EF] p-3 text-sm text-[#112532]/76"
             >
               <input
                 type="checkbox"
@@ -356,7 +357,7 @@ function CleanerForm({
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-950">
+        <h3 className="text-base font-bold text-[#112532]">
           Rémunération
         </h3>
         <div className="mt-3 grid gap-4 md:grid-cols-4">
@@ -385,7 +386,7 @@ function CleanerForm({
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-950">
+        <h3 className="text-base font-bold text-[#112532]">
           Paiement et statut légal
         </h3>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
@@ -468,7 +469,7 @@ function CleanerForm({
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-950">
+        <h3 className="text-base font-bold text-[#112532]">
           Qualité et notes internes
         </h3>
         <div className="mt-3 grid gap-4 md:grid-cols-[160px_1fr]">
@@ -537,25 +538,25 @@ export default async function AdminCleanersPage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
           </Link>
 
-          <h1 className="mt-3 text-3xl font-bold text-slate-950">
+          <h1 className="mt-3 text-3xl font-bold text-[#112532]">
             Intervenantes ménage
           </h1>
 
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-[#112532]/60">
             Profil, disponibilité future, services, rémunération, paiement et
             informations internes.
           </p>
         </div>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-lg font-bold text-slate-950">
+        <section className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+          <h2 className="text-lg font-bold text-[#112532]">
             Ajouter une intervenante
           </h2>
 
@@ -565,12 +566,12 @@ export default async function AdminCleanersPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="px-1 text-lg font-bold text-slate-950">
+          <h2 className="px-1 text-lg font-bold text-[#112532]">
             Intervenantes existantes
           </h2>
 
           {cleaners.length === 0 && (
-            <div className="rounded-3xl bg-white p-5 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <div className="rounded-3xl bg-white p-5 text-sm text-[#112532]/60 shadow-sm ring-1 ring-[#112532]/10">
               Aucune intervenante créée pour le moment.
             </div>
           )}
@@ -578,11 +579,11 @@ export default async function AdminCleanersPage() {
           {cleaners.map((cleaner) => (
             <details
               key={cleaner.id}
-              className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+              className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8"
             >
               <summary className="cursor-pointer list-none">
                 <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
+                  <div className="h-16 w-16 overflow-hidden rounded-2xl bg-[#112532]/6 ring-1 ring-[#112532]/10">
                     {cleaner.profilePhotoSignedUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -599,7 +600,7 @@ export default async function AdminCleanersPage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-xl font-bold text-slate-950">
+                      <h3 className="text-xl font-bold text-[#112532]">
                         {fullName(cleaner) || "Sans nom"}
                       </h3>
 
@@ -612,14 +613,14 @@ export default async function AdminCleanersPage() {
                       </span>
                     </div>
 
-                    <p className="mt-1 truncate text-sm text-slate-600">
+                    <p className="mt-1 truncate text-sm text-[#112532]/60">
                       {cleaner.phone || "Pas de téléphone"} ·{" "}
                       {cleaner.hourly_rate_eur ?? 0} €/h ·{" "}
                       {cleaner.services?.length ?? 0} service(s)
                     </p>
                   </div>
 
-                  <span className="text-sm font-semibold text-slate-500">
+                  <span className="text-sm font-semibold text-[#112532]/48">
                     Modifier
                   </span>
                 </div>
@@ -642,34 +643,34 @@ export default async function AdminCleanersPage() {
                         href={cleanerAppLink(cleaner)}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white"
+                        className="rounded-full bg-[#112532] px-4 py-2 text-sm font-bold text-white"
                       >
                         Ouvrir l’espace
                       </a>
                     </div>
 
-                    <div className="mt-4 rounded-2xl bg-white p-3 text-xs font-semibold text-slate-600 ring-1 ring-amber-100">
-                      <p className="font-black text-slate-950">Lien à copier</p>
+                    <div className="mt-4 rounded-2xl bg-white p-3 text-xs font-semibold text-[#112532]/60 ring-1 ring-amber-100">
+                      <p className="font-black text-[#112532]">Lien à copier</p>
                       <p className="mt-1 break-all">{cleanerAppLink(cleaner)}</p>
                     </div>
 
-                    <div className="mt-4 grid gap-2 text-xs font-bold text-slate-600 md:grid-cols-3">
+                    <div className="mt-4 grid gap-2 text-xs font-bold text-[#112532]/60 md:grid-cols-3">
                       <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
-                        <p className="text-[10px] font-black uppercase text-slate-400">
+                        <p className="text-[10px] font-black uppercase text-[#112532]/36">
                           Invitation
                         </p>
                         <p className="mt-1">{dateTimeLabel(cleaner.app_invited_at)}</p>
                       </div>
 
                       <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
-                        <p className="text-[10px] font-black uppercase text-slate-400">
+                        <p className="text-[10px] font-black uppercase text-[#112532]/36">
                           Première ouverture
                         </p>
                         <p className="mt-1">{dateTimeLabel(cleaner.app_first_opened_at)}</p>
                       </div>
 
                       <div className="rounded-2xl bg-white p-3 ring-1 ring-amber-100">
-                        <p className="text-[10px] font-black uppercase text-slate-400">
+                        <p className="text-[10px] font-black uppercase text-[#112532]/36">
                           Accueil terminé
                         </p>
                         <p className="mt-1">{dateTimeLabel(cleaner.app_onboarded_at)}</p>
@@ -704,6 +705,7 @@ export default async function AdminCleanersPage() {
           ))}
         </section>
       </div>
-    </main>
+          <OwnerBottomNav active="cockpit" />
+</main>
   );
 }

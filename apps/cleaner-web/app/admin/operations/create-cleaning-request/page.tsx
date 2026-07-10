@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { createOrUpdateCleaningRequest } from "./actions";
@@ -105,7 +106,7 @@ function cleanerPhoto(cleaner?: Row | null, size = "h-12 w-12") {
   }
 
   return (
-    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700 ring-1 ring-slate-200`}>
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-[#112532]/6 text-sm font-bold text-[#112532]/76 ring-1 ring-[#112532]/10`}>
       {initials(cleaner)}
     </div>
   );
@@ -117,8 +118,8 @@ function roleLabel(role?: string): string {
 
 function roleClass(role?: string): string {
   return role === "primary"
-    ? "bg-slate-950 text-white"
-    : "bg-slate-100 text-slate-700";
+    ? "bg-[#112532] text-white"
+    : "bg-[#112532]/6 text-[#112532]/76";
 }
 
 function todayParisDateKey(): string {
@@ -159,17 +160,17 @@ export default async function CreateCleaningRequestPage({
 
   if (!propertyId) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-6">
+      <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
         <div className="mx-auto max-w-2xl">
-          <Link href="/admin/operations" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin/operations" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Planning opérations
           </Link>
 
-          <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h1 className="text-2xl font-bold text-slate-950">
+          <section className="mt-6 rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+            <h1 className="text-2xl font-bold text-[#112532]">
               Informations manquantes
             </h1>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-[#112532]/60">
               Impossible de créer une mission sans logement ou réservation valide.
             </p>
           </section>
@@ -259,22 +260,22 @@ export default async function CreateCleaningRequestPage({
     : scheduledDate;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-4xl">
-        <Link href="/admin/operations" className="text-sm font-semibold text-slate-600">
+        <Link href="/admin/operations" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
           ← Planning opérations
         </Link>
 
-        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <section className="mt-6 rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#112532]/48">
             {reservation ? "Ménage après séjour" : "Mission planifiée"}
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">
+          <h1 className="mt-2 text-3xl font-bold text-[#112532]">
             Créer une mission
           </h1>
 
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-[#112532]/60">
             Choisissez le type de mission, l’intervenante, la date prévue et la
             deadline. Pour une mission manuelle, l’intervenante pourra choisir
             un jour de préparation entre la date prévue et la deadline.
@@ -282,29 +283,29 @@ export default async function CreateCleaningRequestPage({
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-500">Logement</p>
-              <p className="mt-1 font-bold text-slate-950">
+            <div className="rounded-2xl bg-[#F6F3EF] p-4">
+              <p className="text-sm font-semibold text-[#112532]/48">Logement</p>
+              <p className="mt-1 font-bold text-[#112532]">
                 {property?.name ?? "Non identifié"}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-500">
+            <div className="rounded-2xl bg-[#F6F3EF] p-4">
+              <p className="text-sm font-semibold text-[#112532]/48">
                 {reservation ? "Réservation" : "Origine"}
               </p>
-              <p className="mt-1 font-bold text-slate-950">
+              <p className="mt-1 font-bold text-[#112532]">
                 {reservation
                   ? reservation.guest_name ?? reservation.source_booking_id ?? "Client"
                   : "Mission manuelle"}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-500">
+            <div className="rounded-2xl bg-[#F6F3EF] p-4">
+              <p className="text-sm font-semibold text-[#112532]/48">
                 {reservation ? "Départ" : "Date proposée"}
               </p>
-              <p className="mt-1 font-bold text-slate-950">
+              <p className="mt-1 font-bold text-[#112532]">
                 {reservation
                   ? `${dateLabel(reservation.checkout_at)} · ${timeLabel(reservation.checkout_at)}`
                   : scheduledDate}
@@ -341,7 +342,7 @@ export default async function CreateCleaningRequestPage({
               <input type="hidden" name="property_id" value={propertyId} />
 
               <section>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Titre optionnel
                 </label>
                 <input
@@ -349,13 +350,13 @@ export default async function CreateCleaningRequestPage({
                   placeholder={reservation ? "Ménage après séjour" : "Grand ménage, jardin, contrôle linge..."}
                   className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm"
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[#112532]/48">
                   Laissez vide pour utiliser le nom du type de mission choisi.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-bold text-slate-950">
+                <h2 className="text-lg font-bold text-[#112532]">
                   Intervenante
                 </h2>
 
@@ -366,7 +367,7 @@ export default async function CreateCleaningRequestPage({
                     return (
                       <label
                         key={assignment.id}
-                        className="cursor-pointer rounded-3xl border border-slate-200 bg-slate-50 p-4 has-[:checked]:border-slate-950 has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-slate-950"
+                        className="cursor-pointer rounded-3xl border border-[#112532]/10 bg-[#F6F3EF] p-4 has-[:checked]:border-slate-950 has-[:checked]:bg-white has-[:checked]:ring-2 has-[:checked]:ring-slate-950"
                       >
                         <input
                           type="radio"
@@ -380,7 +381,7 @@ export default async function CreateCleaningRequestPage({
                           {cleanerPhoto(cleaner)}
 
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-bold text-slate-950">
+                            <p className="truncate font-bold text-[#112532]">
                               {fullName(cleaner)}
                             </p>
 
@@ -395,7 +396,7 @@ export default async function CreateCleaningRequestPage({
                               )}
                             </div>
 
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-[#112532]/48">
                               {assignment.travel_distance_km ?? 0} km ·{" "}
                               {cleaner?.hourly_rate_eur ?? "?"} €/h
                             </p>
@@ -439,7 +440,7 @@ export default async function CreateCleaningRequestPage({
 
               <section className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800">
+                  <label className="block text-sm font-semibold text-[#112532]/86">
                     Date prévue
                   </label>
                   <input
@@ -451,7 +452,7 @@ export default async function CreateCleaningRequestPage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800">
+                  <label className="block text-sm font-semibold text-[#112532]/86">
                     Heure prévue
                   </label>
                   <input
@@ -463,7 +464,7 @@ export default async function CreateCleaningRequestPage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800">
+                  <label className="block text-sm font-semibold text-[#112532]/86">
                     Deadline date
                   </label>
                   <input
@@ -475,7 +476,7 @@ export default async function CreateCleaningRequestPage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800">
+                  <label className="block text-sm font-semibold text-[#112532]/86">
                     Deadline heure
                   </label>
                   <input
@@ -488,7 +489,7 @@ export default async function CreateCleaningRequestPage({
               </section>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-800">
+                <label className="block text-sm font-semibold text-[#112532]/86">
                   Notes internes
                 </label>
                 <textarea
@@ -507,7 +508,7 @@ export default async function CreateCleaningRequestPage({
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-slate-950 px-4 py-4 font-bold text-white"
+                className="w-full rounded-2xl bg-[#112532] px-4 py-4 font-bold text-white"
               >
                 Créer la mission
               </button>
@@ -515,6 +516,7 @@ export default async function CreateCleaningRequestPage({
           )}
         </section>
       </div>
-    </main>
+          <OwnerBottomNav active="cockpit" />
+</main>
   );
 }

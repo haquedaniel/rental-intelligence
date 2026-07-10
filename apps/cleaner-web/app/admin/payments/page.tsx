@@ -1,5 +1,6 @@
 
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { markPaymentPaid } from "./actions";
@@ -54,25 +55,25 @@ export default async function AdminPaymentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-slate-600">
+          <Link href="/admin" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
             ← Back office
           </Link>
 
-          <h1 className="mt-5 text-3xl font-bold text-slate-950">
+          <h1 className="mt-5 text-3xl font-bold text-[#112532]">
             Demandes de paiement
           </h1>
 
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-[#112532]/60">
             Demandes envoyées par les intervenantes aux propriétaires. Le paiement reste hors plateforme.
           </p>
         </div>
 
         <section className="space-y-3">
           {(requests ?? []).length === 0 && (
-            <div className="rounded-3xl bg-white p-6 text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <div className="rounded-3xl bg-white p-6 text-[#112532]/60 shadow-sm ring-1 ring-[#112532]/10">
               Aucune demande de paiement pour l’instant.
             </div>
           )}
@@ -89,18 +90,18 @@ export default async function AdminPaymentsPage() {
               "Propriétaire";
 
             return (
-              <div key={request.id} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div key={request.id} className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-xl font-bold text-slate-950">
+                    <p className="text-xl font-bold text-[#112532]">
                       {cleanerName} → {ownerName}
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-[#112532]/48">
                       {dateLabel(request.period_start)} → {dateLabel(request.period_end)}
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-[#112532]/48">
                       Statut : {statusLabel(request.status)}
                     </p>
 
@@ -112,10 +113,10 @@ export default async function AdminPaymentsPage() {
                   </div>
 
                   <div className="text-right">
-                    <p className="text-2xl font-black text-slate-950">
+                    <p className="text-2xl font-black text-[#112532]">
                       {money(request.total_eur)}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[#112532]/48">
                       Base {money(request.total_base_eur)} · Suppl. {money(request.total_extras_eur)}
                     </p>
                   </div>
@@ -124,7 +125,7 @@ export default async function AdminPaymentsPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href={`/owner/payments/${request.public_token}`}
-                    className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700"
+                    className="rounded-full bg-[#112532]/6 px-4 py-2 text-sm font-bold text-[#112532]/76"
                   >
                     Voir côté propriétaire
                   </Link>
@@ -143,6 +144,7 @@ export default async function AdminPaymentsPage() {
           })}
         </section>
       </div>
-    </main>
+          <OwnerBottomNav active="payments" />
+</main>
   );
 }

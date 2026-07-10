@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { OwnerAppNav } from "@/components/owner-app/OwnerAppNav";
@@ -184,12 +185,12 @@ function FilterForm({
   status: string;
 }) {
   return (
-    <form className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <form className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
       <input type="hidden" name="status" value={status} />
 
       <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
-        <details className="rounded-2xl bg-slate-50 p-3">
-          <summary className="cursor-pointer text-sm font-black text-slate-800">
+        <details className="rounded-2xl bg-[#F6F3EF] p-3">
+          <summary className="cursor-pointer text-sm font-black text-[#112532]/86">
             {selectedPropertyIds.length === 0
               ? "Tous les logements"
               : `${selectedPropertyIds.length} logement(s) sélectionné(s)`}
@@ -199,7 +200,7 @@ function FilterForm({
             {properties.map((property) => (
               <label
                 key={property.id}
-                className="flex items-center gap-2 rounded-xl bg-white p-3 text-sm font-bold text-slate-700 ring-1 ring-slate-100"
+                className="flex items-center gap-2 rounded-xl bg-white p-3 text-sm font-bold text-[#112532]/76 ring-1 ring-slate-100"
               >
                 <input
                   type="checkbox"
@@ -215,22 +216,22 @@ function FilterForm({
 
         <div className="grid grid-cols-2 gap-2">
           <label>
-            <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Début</span>
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">Début</span>
             <input
               type="date"
               name="start"
               defaultValue={start}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
             />
           </label>
 
           <label>
-            <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Fin</span>
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">Fin</span>
             <input
               type="date"
               name="end"
               defaultValue={end}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
             />
           </label>
         </div>
@@ -238,18 +239,18 @@ function FilterForm({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-2 text-xs font-black">
-          <Link href={buildHref({ path: "/owner/app/reservations", start: parisDateKey(), end: addDays(parisDateKey(), 29), selectedPropertyIds, status })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={buildHref({ path: "/owner/app/reservations", start: parisDateKey(), end: addDays(parisDateKey(), 29), selectedPropertyIds, status })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             30 jours
           </Link>
-          <Link href={buildHref({ path: "/owner/app/reservations", start: parisDateKey(), end: addDays(parisDateKey(), 89), selectedPropertyIds, status })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={buildHref({ path: "/owner/app/reservations", start: parisDateKey(), end: addDays(parisDateKey(), 89), selectedPropertyIds, status })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             90 jours
           </Link>
-          <Link href={buildHref({ path: "/owner/app/reservations", start: `${parisDateKey().slice(0, 4)}-01-01`, end: `${parisDateKey().slice(0, 4)}-12-31`, selectedPropertyIds, status })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={buildHref({ path: "/owner/app/reservations", start: `${parisDateKey().slice(0, 4)}-01-01`, end: `${parisDateKey().slice(0, 4)}-12-31`, selectedPropertyIds, status })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             Année
           </Link>
         </div>
 
-        <button className="rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white">
+        <button className="rounded-full bg-[#112532] px-5 py-2 text-sm font-black text-white">
           Appliquer
         </button>
       </div>
@@ -328,11 +329,11 @@ export default async function OwnerReservationsPage({
     .filter((group) => group.rows.length > 0);
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-28 text-slate-950 md:pb-8">
+    <main className="min-h-screen bg-[#F6F3EF] pb-28 text-[#112532] md:pb-8">
       <OwnerAppNav active="reservations" />
 
       <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
-        <header className="rounded-[2rem] bg-slate-950 p-5 text-white shadow-sm">
+        <header className="rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
             Source de vérité
           </p>
@@ -353,8 +354,8 @@ export default async function OwnerReservationsPage({
         />
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <div className="rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Affichées</p>
+          <div className="rounded-[1.35rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">Affichées</p>
             <p className="mt-2 text-2xl font-black">{visibleRows.length}</p>
           </div>
 
@@ -393,8 +394,8 @@ export default async function OwnerReservationsPage({
               href={buildHref({ path: "/owner/app/reservations", start, end, selectedPropertyIds, status: key })}
               className={
                 status === key
-                  ? "rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white"
-                  : "rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 ring-1 ring-slate-200"
+                  ? "rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white"
+                  : "rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]/76 ring-1 ring-[#112532]/10"
               }
             >
               {label}
@@ -403,25 +404,25 @@ export default async function OwnerReservationsPage({
         </div>
 
         {grouped.length === 0 ? (
-          <section className="rounded-[2rem] bg-white p-6 text-sm font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+          <section className="rounded-[2rem] bg-white p-6 text-sm font-bold text-[#112532]/48 shadow-sm ring-1 ring-[#112532]/10">
             Aucune réservation pour ces filtres.
           </section>
         ) : (
           grouped.map((group) => (
-            <section key={group.property.id} className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200">
+            <section key={group.property.id} className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-[#112532]/10">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
                 <div>
-                  <h2 className="text-xl font-black text-slate-950">
+                  <h2 className="text-xl font-black text-[#112532]">
                     {group.property.name}
                   </h2>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                  <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                     {group.rows.length} réservation(s) · {money(group.revenue)}
                   </p>
                 </div>
 
                 <Link
                   href={`/owner/cockpit?start=${start}&end=${end}&property=${group.property.id}`}
-                  className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
+                  className="rounded-full bg-[#112532]/6 px-3 py-2 text-xs font-black text-[#112532]/60"
                 >
                   Voir planning
                 </Link>
@@ -429,7 +430,7 @@ export default async function OwnerReservationsPage({
 
               <div className="overflow-x-auto">
                 <table className="min-w-[920px] w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <thead className="bg-[#F6F3EF] text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                     <tr>
                       <th className="px-4 py-3">Dates</th>
                       <th className="px-4 py-3">Voyageur</th>
@@ -443,19 +444,19 @@ export default async function OwnerReservationsPage({
                   <tbody className="divide-y divide-slate-100">
                     {group.rows.map((reservation) => (
                       <tr key={reservation.id} className="align-top">
-                        <td className="px-4 py-3 font-black text-slate-950">
+                        <td className="px-4 py-3 font-black text-[#112532]">
                           {dateLabel(reservation.checkin_at)} → {dateLabel(reservation.checkout_at)}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-slate-700">
+                        <td className="px-4 py-3 font-semibold text-[#112532]/76">
                           {guestName(reservation)}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-slate-500">
+                        <td className="px-4 py-3 font-semibold text-[#112532]/48">
                           {sourceLabel(reservation)}
                         </td>
-                        <td className="px-4 py-3 text-right font-black text-slate-950">
+                        <td className="px-4 py-3 text-right font-black text-[#112532]">
                           {nights(reservation)}
                         </td>
-                        <td className="px-4 py-3 text-right font-black text-slate-950">
+                        <td className="px-4 py-3 text-right font-black text-[#112532]">
                           {isCancelled(reservation) ? "—" : money(reservationRevenue(reservation))}
                         </td>
                         <td className="px-4 py-3">
@@ -463,7 +464,7 @@ export default async function OwnerReservationsPage({
                             {reservationStatus(reservation)}
                           </span>
                         </td>
-                        <td className="max-w-[180px] truncate px-4 py-3 text-xs font-semibold text-slate-400">
+                        <td className="max-w-[180px] truncate px-4 py-3 text-xs font-semibold text-[#112532]/36">
                           {reservation.source_booking_id || reservation.external_id || reservation.id}
                         </td>
                       </tr>
@@ -475,6 +476,7 @@ export default async function OwnerReservationsPage({
           ))
         )}
       </div>
-    </main>
+          <OwnerBottomNav active="reservations" />
+</main>
   );
 }

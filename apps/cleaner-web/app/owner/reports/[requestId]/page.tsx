@@ -279,10 +279,10 @@ export default async function OwnerReportPage({ params }: PageProps) {
 
   if (requestError || !request) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-10">
-        <div className="mx-auto max-w-2xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-xl font-black text-slate-950">Rapport introuvable</h1>
-          <p className="mt-2 text-slate-600">Impossible de trouver cette mission.</p>
+      <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-10 text-[#112532]">
+        <div className="mx-auto max-w-2xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+          <h1 className="text-xl font-black text-[#112532]">Rapport introuvable</h1>
+          <p className="mt-2 text-[#112532]/60">Impossible de trouver cette mission.</p>
         </div>
             <OwnerBottomNav active="reports" />
     </main>
@@ -364,31 +364,31 @@ export default async function OwnerReportPage({ params }: PageProps) {
 
     if (!interventionReport) {
       return (
-        <main className="min-h-screen bg-slate-50 px-4 py-6">
+        <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
           <div className="mx-auto max-w-3xl space-y-4">
-            <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+            <Link href="/owner/cockpit" className="text-sm font-bold text-[#112532]/60">
               ← Retour cockpit
             </Link>
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
               <p className="text-xs font-black uppercase tracking-wide text-violet-500">
                 Intervention ponctuelle
               </p>
-              <h1 className="mt-2 text-2xl font-black text-slate-950">
+              <h1 className="mt-2 text-2xl font-black text-[#112532]">
                 Rapport non reçu
               </h1>
-              <p className="mt-2 text-slate-600">
+              <p className="mt-2 text-[#112532]/60">
                 L’intervention existe, mais aucun rapport n’a encore été envoyé.
               </p>
 
-              <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm font-black text-slate-950">
+              <div className="mt-5 rounded-2xl bg-[#F6F3EF] p-4">
+                <p className="text-sm font-black text-[#112532]">
                   {request.title || "Intervention"}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
+                <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                   {property?.name ?? "Logement"} · {fullName(cleaner)}
                 </p>
-                <p className="mt-2 text-sm font-semibold text-slate-600">
+                <p className="mt-2 text-sm font-semibold text-[#112532]/60">
                   Créneau : {formatDateTime(request.scheduled_start_at)} → {formatDateTime(request.scheduled_end_at)}
                 </p>
               </div>
@@ -400,16 +400,16 @@ export default async function OwnerReportPage({ params }: PageProps) {
     }
 
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-5">
+      <main className="min-h-screen bg-[#F6F3EF] px-4 py-5">
         <div className="mx-auto max-w-5xl space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+            <Link href="/owner/cockpit" className="text-sm font-bold text-[#112532]/60">
               ← Retour cockpit
             </Link>
 
             <Link
               href="/owner/payments"
-              className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+              className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
             >
               Paiements
             </Link>
@@ -438,7 +438,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                   </p>
                 </div>
 
-                <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950">
+                <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]">
                   {hasProblem ? "À contrôler" : "Rapport reçu"}
                 </span>
               </div>
@@ -469,12 +469,12 @@ export default async function OwnerReportPage({ params }: PageProps) {
 
           <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
             <div className="space-y-5">
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Mission demandée
                 </p>
 
-                <h2 className="mt-1 text-xl font-black text-slate-950">
+                <h2 className="mt-1 text-xl font-black text-[#112532]">
                   Consignes données
                 </h2>
 
@@ -483,22 +483,22 @@ export default async function OwnerReportPage({ params }: PageProps) {
                     <img
                       src={referencePhotoUrl}
                       alt=""
-                      className="mt-4 max-h-96 w-full rounded-3xl object-cover ring-1 ring-slate-200"
+                      className="mt-4 max-h-96 w-full rounded-3xl object-cover ring-1 ring-[#112532]/10"
                     />
                   </a>
                 )}
 
-                <p className="mt-4 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">
+                <p className="mt-4 whitespace-pre-wrap text-sm font-semibold leading-6 text-[#112532]/76">
                   {request.mission_description || "Aucune consigne détaillée."}
                 </p>
               </section>
 
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Rapport intervenant
                 </p>
 
-                <h2 className="mt-1 text-xl font-black text-slate-950">
+                <h2 className="mt-1 text-xl font-black text-[#112532]">
                   Travail réalisé
                 </h2>
 
@@ -520,24 +520,24 @@ export default async function OwnerReportPage({ params }: PageProps) {
                 )}
               </section>
 
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                    <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                       Photos de preuve
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-slate-950">
+                    <h2 className="mt-1 text-xl font-black text-[#112532]">
                       Vérification visuelle
                     </h2>
                   </div>
 
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                  <span className="rounded-full bg-[#112532]/6 px-3 py-1 text-xs font-black text-[#112532]/60">
                     {proofPhotos.length} photo(s)
                   </span>
                 </div>
 
                 {proofPhotos.length === 0 ? (
-                  <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  <p className="mt-4 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/48">
                     Aucune photo de preuve n’a été jointe à ce rapport.
                   </p>
                 ) : (
@@ -548,7 +548,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                         href={photo.signedUrl ?? "#"}
                         target="_blank"
                         rel="noreferrer"
-                        className="group overflow-hidden rounded-3xl bg-slate-100 ring-1 ring-slate-200"
+                        className="group overflow-hidden rounded-3xl bg-[#112532]/6 ring-1 ring-[#112532]/10"
                       >
                         {photo.signedUrl ? (
                           <img
@@ -557,16 +557,16 @@ export default async function OwnerReportPage({ params }: PageProps) {
                             className="h-40 w-full object-cover transition group-hover:scale-[1.02]"
                           />
                         ) : (
-                          <div className="flex h-40 items-center justify-center text-sm font-semibold text-slate-400">
+                          <div className="flex h-40 items-center justify-center text-sm font-semibold text-[#112532]/36">
                             Photo indisponible
                           </div>
                         )}
 
                         <div className="p-3">
-                          <p className="truncate text-sm font-black text-slate-950">
+                          <p className="truncate text-sm font-black text-[#112532]">
                             Photo d’intervention
                           </p>
-                          <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                          <p className="mt-0.5 text-xs font-semibold text-[#112532]/48">
                             {formatDateTime(photo.created_at)}
                           </p>
                         </div>
@@ -578,34 +578,34 @@ export default async function OwnerReportPage({ params }: PageProps) {
             </div>
 
             <aside className="space-y-5">
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Coût intervention
                 </p>
 
-                <h2 className="mt-1 text-xl font-black text-slate-950">
+                <h2 className="mt-1 text-xl font-black text-[#112532]">
                   {money(finalTotal)}
                 </h2>
 
                 <div className="mt-4 space-y-2 text-sm font-bold">
-                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
-                    <span className="text-slate-500">Temps prévu</span>
-                    <span className="text-slate-950">{estimatedHours || "—"} h</span>
+                  <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
+                    <span className="text-[#112532]/48">Temps prévu</span>
+                    <span className="text-[#112532]">{estimatedHours || "—"} h</span>
                   </div>
 
-                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
-                    <span className="text-slate-500">Temps réel</span>
-                    <span className="text-slate-950">{actualHours || "—"} h</span>
+                  <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
+                    <span className="text-[#112532]/48">Temps réel</span>
+                    <span className="text-[#112532]">{actualHours || "—"} h</span>
                   </div>
 
-                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
-                    <span className="text-slate-500">Main d’œuvre</span>
-                    <span className="text-slate-950">{money(labourTotal)}</span>
+                  <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
+                    <span className="text-[#112532]/48">Main d’œuvre</span>
+                    <span className="text-[#112532]">{money(labourTotal)}</span>
                   </div>
 
-                  <div className="flex justify-between rounded-2xl bg-slate-50 p-3">
-                    <span className="text-slate-500">Frais matériel</span>
-                    <span className="text-slate-950">{money(materialTotal)}</span>
+                  <div className="flex justify-between rounded-2xl bg-[#F6F3EF] p-3">
+                    <span className="text-[#112532]/48">Frais matériel</span>
+                    <span className="text-[#112532]">{money(materialTotal)}</span>
                   </div>
 
                   <div className="flex justify-between rounded-2xl bg-violet-50 p-3 text-violet-950 ring-1 ring-violet-100">
@@ -615,13 +615,13 @@ export default async function OwnerReportPage({ params }: PageProps) {
                 </div>
               </section>
 
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Frais matériel
                 </p>
 
                 {expenses.length === 0 ? (
-                  <p className="mt-3 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  <p className="mt-3 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/48">
                     Aucun frais matériel déclaré.
                   </p>
                 ) : (
@@ -638,34 +638,34 @@ export default async function OwnerReportPage({ params }: PageProps) {
                 )}
               </section>
 
-              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Détails
                 </p>
 
                 <dl className="mt-3 space-y-3 text-sm">
                   <div>
-                    <dt className="font-bold text-slate-400">Créneau</dt>
-                    <dd className="font-black text-slate-950">
+                    <dt className="font-bold text-[#112532]/36">Créneau</dt>
+                    <dd className="font-black text-[#112532]">
                       {formatDateTime(request.scheduled_start_at)} → {formatDateTime(request.scheduled_end_at)}
                     </dd>
                   </div>
 
                   <div>
-                    <dt className="font-bold text-slate-400">Rapport envoyé</dt>
-                    <dd className="font-black text-slate-950">
+                    <dt className="font-bold text-[#112532]/36">Rapport envoyé</dt>
+                    <dd className="font-black text-[#112532]">
                       {formatDateTime(interventionReport.updated_at || interventionReport.created_at)}
                     </dd>
                   </div>
 
                   <div>
-                    <dt className="font-bold text-slate-400">Statut</dt>
-                    <dd className="font-black text-slate-950">{request.status}</dd>
+                    <dt className="font-bold text-[#112532]/36">Statut</dt>
+                    <dd className="font-black text-[#112532]">{request.status}</dd>
                   </div>
 
                   <div>
-                    <dt className="font-bold text-slate-400">Adresse</dt>
-                    <dd className="font-semibold text-slate-700">{property?.address ?? "—"}</dd>
+                    <dt className="font-bold text-[#112532]/36">Adresse</dt>
+                    <dd className="font-semibold text-[#112532]/76">{property?.address ?? "—"}</dd>
                   </div>
                 </dl>
               </section>
@@ -679,15 +679,15 @@ export default async function OwnerReportPage({ params }: PageProps) {
 
   if (!report) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-6">
+      <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
         <div className="mx-auto max-w-3xl space-y-4">
-          <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+          <Link href="/owner/cockpit" className="text-sm font-bold text-[#112532]/60">
             ← Retour cockpit
           </Link>
 
-          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h1 className="text-2xl font-black text-slate-950">Rapport non reçu</h1>
-            <p className="mt-2 text-slate-600">
+          <section className="rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+            <h1 className="text-2xl font-black text-[#112532]">Rapport non reçu</h1>
+            <p className="mt-2 text-[#112532]/60">
               La mission existe, mais aucun rapport de ménage n’a encore été envoyé.
             </p>
           </section>
@@ -739,16 +739,16 @@ export default async function OwnerReportPage({ params }: PageProps) {
   const totalSections = Math.max(checks.length, sectionRows?.length ?? 0);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-5">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-5">
       <div className="mx-auto max-w-5xl space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/owner/cockpit" className="text-sm font-bold text-slate-600">
+          <Link href="/owner/cockpit" className="text-sm font-bold text-[#112532]/60">
             ← Retour cockpit
           </Link>
 
           <Link
             href="/owner/payments"
-            className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+            className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
           >
             Paiements
           </Link>
@@ -777,7 +777,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                 </p>
               </div>
 
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950">
+              <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]">
                 {status.badge}
               </span>
             </div>
@@ -808,13 +808,13 @@ export default async function OwnerReportPage({ params }: PageProps) {
 
         <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="space-y-5">
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                     Commentaires intervenante
                   </p>
-                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                  <h2 className="mt-1 text-xl font-black text-[#112532]">
                     À lire en priorité
                   </h2>
                 </div>
@@ -854,24 +854,24 @@ export default async function OwnerReportPage({ params }: PageProps) {
               )}
             </section>
 
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                     Photos de preuve
                   </p>
-                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                  <h2 className="mt-1 text-xl font-black text-[#112532]">
                     Vérification visuelle
                   </h2>
                 </div>
 
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                <span className="rounded-full bg-[#112532]/6 px-3 py-1 text-xs font-black text-[#112532]/60">
                   {photos.length} photo(s)
                 </span>
               </div>
 
               {photos.length === 0 ? (
-                <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                <p className="mt-4 rounded-2xl bg-[#F6F3EF] p-4 text-sm font-semibold text-[#112532]/48">
                   Aucune photo de preuve n’a été jointe à ce rapport.
                 </p>
               ) : (
@@ -882,7 +882,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                       href={photo.signedUrl ?? "#"}
                       target="_blank"
                       rel="noreferrer"
-                      className="group overflow-hidden rounded-3xl bg-slate-100 ring-1 ring-slate-200"
+                      className="group overflow-hidden rounded-3xl bg-[#112532]/6 ring-1 ring-[#112532]/10"
                     >
                       {photo.signedUrl ? (
                         <img
@@ -891,16 +891,16 @@ export default async function OwnerReportPage({ params }: PageProps) {
                           className="h-40 w-full object-cover transition group-hover:scale-[1.02]"
                         />
                       ) : (
-                        <div className="flex h-40 items-center justify-center text-sm font-semibold text-slate-400">
+                        <div className="flex h-40 items-center justify-center text-sm font-semibold text-[#112532]/36">
                           Photo indisponible
                         </div>
                       )}
 
                       <div className="p-3">
-                        <p className="truncate text-sm font-black text-slate-950">
+                        <p className="truncate text-sm font-black text-[#112532]">
                           {sectionLabel(photo.section_key, sectionsByKey)}
                         </p>
-                        <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                        <p className="mt-0.5 text-xs font-semibold text-[#112532]/48">
                           {formatDateTime(photo.uploaded_at)}
                         </p>
                       </div>
@@ -912,12 +912,12 @@ export default async function OwnerReportPage({ params }: PageProps) {
           </div>
 
           <aside className="space-y-5">
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+              <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                 Résumé checklist
               </p>
 
-              <h2 className="mt-1 text-xl font-black text-slate-950">
+              <h2 className="mt-1 text-xl font-black text-[#112532]">
                 {validatedCount}/{totalSections || validatedCount} rubriques validées
               </h2>
 
@@ -928,7 +928,7 @@ export default async function OwnerReportPage({ params }: PageProps) {
                     className={`rounded-2xl p-3 ring-1 ${
                       check.checked
                         ? "bg-emerald-50 text-emerald-900 ring-emerald-100"
-                        : "bg-slate-50 text-slate-700 ring-slate-100"
+                        : "bg-[#F6F3EF] text-[#112532]/76 ring-slate-100"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -948,25 +948,25 @@ export default async function OwnerReportPage({ params }: PageProps) {
               </div>
             </section>
 
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+              <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                 Détails
               </p>
 
               <dl className="mt-3 space-y-3 text-sm">
                 <div>
-                  <dt className="font-bold text-slate-400">Mission prévue</dt>
-                  <dd className="font-black text-slate-950">{formatDateTime(request.ready_by_at || request.scheduled_start_at)}</dd>
+                  <dt className="font-bold text-[#112532]/36">Mission prévue</dt>
+                  <dd className="font-black text-[#112532]">{formatDateTime(request.ready_by_at || request.scheduled_start_at)}</dd>
                 </div>
 
                 <div>
-                  <dt className="font-bold text-slate-400">Statut</dt>
-                  <dd className="font-black text-slate-950">{request.status}</dd>
+                  <dt className="font-bold text-[#112532]/36">Statut</dt>
+                  <dd className="font-black text-[#112532]">{request.status}</dd>
                 </div>
 
                 <div>
-                  <dt className="font-bold text-slate-400">Adresse</dt>
-                  <dd className="font-semibold text-slate-700">{property?.address ?? "—"}</dd>
+                  <dt className="font-bold text-[#112532]/36">Adresse</dt>
+                  <dd className="font-semibold text-[#112532]/76">{property?.address ?? "—"}</dd>
                 </div>
               </dl>
             </section>

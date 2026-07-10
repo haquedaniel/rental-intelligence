@@ -1,5 +1,6 @@
 import { markPaymentRequestPaid, refusePaymentRequest } from "./actions";
 import PrintButton from "./PrintButton";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ function statusClass(status?: string | null): string {
     case "sent_to_owner":
       return "bg-amber-100 text-amber-800 ring-amber-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-[#112532]/6 text-[#112532]/76 ring-[#112532]/10";
   }
 }
 
@@ -77,8 +78,8 @@ function InfoLine({ label, value }: { label: string; value?: unknown }) {
 
   return (
     <p className="flex justify-between gap-4 border-b border-slate-100 py-2 text-sm">
-      <span className="font-semibold text-slate-500">{label}</span>
-      <span className="text-right font-bold text-slate-950">{text}</span>
+      <span className="font-semibold text-[#112532]/48">{label}</span>
+      <span className="text-right font-bold text-[#112532]">{text}</span>
     </p>
   );
 }
@@ -110,7 +111,7 @@ function PayOrRefuseActions({ request }: { request: Row }) {
 
   if (!open) {
     return (
-      <div className="rounded-3xl bg-slate-50 p-5 text-slate-600 ring-1 ring-slate-200">
+      <div className="rounded-3xl bg-[#F6F3EF] p-5 text-[#112532]/60 ring-1 ring-[#112532]/10">
         <p className="text-sm font-semibold">
           Cette demande n’est pas ouverte au règlement.
         </p>
@@ -125,7 +126,7 @@ function PayOrRefuseActions({ request }: { request: Row }) {
         <button className="w-full rounded-2xl bg-emerald-600 px-4 py-4 text-base font-black text-white shadow-sm">
           Marquer comme payé
         </button>
-        <p className="mt-2 text-xs font-semibold text-slate-500">
+        <p className="mt-2 text-xs font-semibold text-[#112532]/48">
           À utiliser après paiement par virement, espèces, chèque ou autre moyen convenu.
         </p>
       </form>
@@ -140,7 +141,7 @@ function PayOrRefuseActions({ request }: { request: Row }) {
             required
             rows={3}
             placeholder="Expliquez le motif : montant incorrect, supplément non validé, mission à vérifier..."
-            className="mt-2 w-full rounded-2xl border border-red-200 bg-white p-3 text-sm text-slate-950"
+            className="mt-2 w-full rounded-2xl border border-red-200 bg-white p-3 text-sm text-[#112532]"
           />
         </label>
 
@@ -165,16 +166,16 @@ function PrintableDocument({
     "Intervenante";
 
   return (
-    <section id="payment-document" className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 print:shadow-none print:ring-0">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
+    <section id="payment-document" className="rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8 print:shadow-none print:ring-0">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#112532]/10 pb-5">
         <div>
-          <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+          <p className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
             Demande de paiement
           </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-950">
+          <h1 className="mt-2 text-3xl font-black text-[#112532]">
             Relevé de missions et demande de règlement
           </h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">
+          <p className="mt-2 text-sm font-semibold text-[#112532]/48">
             Période : {periodLabel(request)} · {compactDate(request.period_start)} au {compactDate(request.period_end)}
           </p>
         </div>
@@ -186,11 +187,11 @@ function PrintableDocument({
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">
+          <h2 className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
             Intervenante
           </h2>
-          <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-            <p className="text-lg font-black text-slate-950">{cleanerName}</p>
+          <div className="mt-3 rounded-2xl bg-[#F6F3EF] p-4">
+            <p className="text-lg font-black text-[#112532]">{cleanerName}</p>
             <InfoLine label="Nom légal" value={request.cleaner_legal_name_snapshot} />
             <InfoLine label="Adresse" value={request.cleaner_address_snapshot} />
             <InfoLine label="SIRET" value={request.cleaner_siret_snapshot} />
@@ -199,10 +200,10 @@ function PrintableDocument({
         </div>
 
         <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">
+          <h2 className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
             Règlement
           </h2>
-          <div className="mt-3 rounded-2xl bg-slate-50 p-4">
+          <div className="mt-3 rounded-2xl bg-[#F6F3EF] p-4">
             <InfoLine label="Destinataire" value={request.owner_recipient_name} />
             <InfoLine label="Échéance" value={compactDate(request.due_at)} />
             <InfoLine label="Mode" value={request.payment_method_snapshot} />
@@ -219,9 +220,9 @@ function PrintableDocument({
         </div>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-slate-200">
+      <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-[#112532]/10">
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
+          <thead className="bg-[#F6F3EF] text-xs font-black uppercase tracking-wide text-[#112532]/48">
             <tr>
               <th className="p-3">Date</th>
               <th className="p-3">Logement</th>
@@ -233,18 +234,18 @@ function PrintableDocument({
           <tbody>
             {lines.map((line) => (
               <tr key={line.id} className="border-t border-slate-100">
-                <td className="p-3 font-semibold text-slate-700">{compactDate(line.work_date)}</td>
-                <td className="p-3 text-slate-600">{line.property_name || "—"}</td>
+                <td className="p-3 font-semibold text-[#112532]/76">{compactDate(line.work_date)}</td>
+                <td className="p-3 text-[#112532]/60">{line.property_name || "—"}</td>
                 <td className="p-3">
-                  <p className="font-bold text-slate-950">{line.description}</p>
+                  <p className="font-bold text-[#112532]">{line.description}</p>
                   {line.line_type === "extra" && (
                     <p className="mt-1 text-xs font-bold text-amber-700">Ligne exceptionnelle</p>
                   )}
                 </td>
-                <td className="p-3 text-right font-semibold text-slate-700">
+                <td className="p-3 text-right font-semibold text-[#112532]/76">
                   {Number(line.hours ?? 0) > 0 ? `${String(line.hours).replace(".", ",")} h` : "—"}
                 </td>
-                <td className="p-3 text-right font-black text-slate-950">
+                <td className="p-3 text-right font-black text-[#112532]">
                   {money(line.amount_eur)}
                 </td>
               </tr>
@@ -254,7 +255,7 @@ function PrintableDocument({
       </div>
 
       <div className="mt-6 flex justify-end">
-        <div className="w-full max-w-sm rounded-2xl bg-slate-950 p-5 text-white">
+        <div className="w-full max-w-sm rounded-2xl bg-[#112532] p-5 text-white">
           <div className="flex justify-between text-sm font-semibold text-slate-300">
             <span>Missions</span>
             <span>{money(request.total_base_eur)}</span>
@@ -270,7 +271,7 @@ function PrintableDocument({
         </div>
       </div>
 
-      <p className="mt-6 text-xs font-semibold text-slate-400">
+      <p className="mt-6 text-xs font-semibold text-[#112532]/36">
         Document préparé à partir des informations déclarées par l’intervenante et des missions validées dans la plateforme.
         Ce document facilite le règlement et le suivi comptable ; il ne remplace pas une facture lorsque celle-ci est légalement requise.
       </p>
@@ -296,10 +297,10 @@ export default async function OwnerPaymentPage({
 
   if (error || !request) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8">
-        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-black text-slate-950">Lien invalide</h1>
-          <p className="mt-2 text-slate-600">
+      <main className="min-h-screen bg-[#F6F3EF] px-4 py-8">
+        <div className="mx-auto max-w-xl rounded-[2rem] bg-white/92 p-6 shadow-sm ring-1 ring-[#112532]/8">
+          <h1 className="text-2xl font-black text-[#112532]">Lien invalide</h1>
+          <p className="mt-2 text-[#112532]/60">
             Cette demande de paiement n’existe pas ou n’est plus accessible.
           </p>
         </div>
@@ -315,7 +316,7 @@ export default async function OwnerPaymentPage({
     .order("created_at", { ascending: true });
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 print:bg-white print:px-0 print:py-0">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 py-6 print:bg-white print:px-0 print:py-0">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -327,10 +328,10 @@ export default async function OwnerPaymentPage({
       <div className="mx-auto max-w-6xl space-y-6 print:max-w-none print:space-y-0">
         <div className="no-print flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+            <p className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
               Paiement intervenante
             </p>
-            <h1 className="mt-1 text-3xl font-black text-slate-950">
+            <h1 className="mt-1 text-3xl font-black text-[#112532]">
               Demande de règlement
             </h1>
           </div>
@@ -342,14 +343,14 @@ export default async function OwnerPaymentPage({
           <PrintableDocument request={request} lines={(lines ?? []) as Row[]} />
 
           <aside className="no-print space-y-4">
-            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+              <p className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
                 À régler
               </p>
-              <p className="mt-2 text-4xl font-black text-slate-950">
+              <p className="mt-2 text-4xl font-black text-[#112532]">
                 {money(request.total_eur)}
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
+              <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                 Échéance : {compactDate(request.due_at)}
               </p>
             </div>
@@ -358,6 +359,7 @@ export default async function OwnerPaymentPage({
           </aside>
         </div>
       </div>
-    </main>
+          <OwnerBottomNav active="payments" />
+</main>
   );
 }

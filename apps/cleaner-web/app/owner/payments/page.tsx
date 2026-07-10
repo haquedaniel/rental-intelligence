@@ -94,14 +94,14 @@ function statusClass(request: Row): string {
   }
 
   if (status === "refused") {
-    return "bg-slate-200 text-slate-700 ring-slate-300";
+    return "bg-[#112532]/10 text-[#112532]/76 ring-[#112532]/14";
   }
 
   if (status === "sent_to_owner") {
     return "bg-amber-100 text-amber-800 ring-amber-200";
   }
 
-  return "bg-slate-100 text-slate-600 ring-slate-200";
+  return "bg-[#112532]/6 text-[#112532]/60 ring-[#112532]/10";
 }
 
 function matchesFilter(request: Row, filter: string): boolean {
@@ -125,8 +125,8 @@ function FilterLink({
       href={href}
       className={
         active
-          ? "rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white"
-          : "rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 ring-1 ring-slate-200"
+          ? "rounded-full bg-[#112532] px-4 py-2 text-sm font-black text-white"
+          : "rounded-full bg-white px-4 py-2 text-sm font-black text-[#112532]/76 ring-1 ring-[#112532]/10"
       }
     >
       {children}
@@ -195,53 +195,57 @@ export default async function OwnerPaymentsPage({
     .reduce((sum, request) => sum + Number(request.total_eur ?? 0), 0);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-4 pb-28 pt-6 text-[#112532]">
       <div className="mx-auto max-w-6xl space-y-6">
+        <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8">
+          <span className="h-2 w-2 rounded-full bg-[#E0680E]" />
+          Pilotys · pilotage
+        </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <Link href="/owner/cockpit" className="text-sm font-semibold text-slate-600">
+            <Link href="/owner/cockpit" className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-[#112532]/60 ring-1 ring-[#112532]/8">
               ← Cockpit propriétaire
             </Link>
 
-            <h1 className="mt-5 text-3xl font-black text-slate-950">
+            <h1 className="mt-5 text-3xl font-black text-[#112532]">
               Demandes de paiement
             </h1>
 
-            <p className="mt-2 max-w-2xl text-slate-600">
+            <p className="mt-2 max-w-2xl text-[#112532]/60">
               Suivi des demandes mensuelles envoyées par les intervenantes.
               Vous pouvez ouvrir chaque demande, l’imprimer pour la comptabilité,
               la marquer comme payée ou la refuser avec un motif.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-sm">
-            <p className="text-sm font-semibold text-slate-400">À traiter</p>
+          <div className="rounded-3xl bg-[#112532] p-5 text-white shadow-sm">
+            <p className="text-sm font-semibold text-[#112532]/36">À traiter</p>
             <p className="mt-1 text-3xl font-black">{money(actionTotal)}</p>
-            <p className="mt-1 text-sm font-semibold text-slate-400">
+            <p className="mt-1 text-sm font-semibold text-[#112532]/36">
               {actionCount} demande(s)
             </p>
           </div>
         </div>
 
         <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm font-semibold text-slate-500">À régler</p>
-            <p className="mt-2 text-3xl font-black text-slate-950">{actionCount}</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm font-semibold text-[#112532]/48">À régler</p>
+            <p className="mt-2 text-3xl font-black text-[#112532]">{actionCount}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm font-semibold text-slate-500">En retard</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm font-semibold text-[#112532]/48">En retard</p>
             <p className="mt-2 text-3xl font-black text-red-700">{overdueCount}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm font-semibold text-slate-500">Payées</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm font-semibold text-[#112532]/48">Payées</p>
             <p className="mt-2 text-3xl font-black text-emerald-700">{paidCount}</p>
           </div>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <p className="text-sm font-semibold text-slate-500">Refusées</p>
-            <p className="mt-2 text-3xl font-black text-slate-700">{refusedCount}</p>
+          <div className="rounded-[2rem] bg-white/92 p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-sm font-semibold text-[#112532]/48">Refusées</p>
+            <p className="mt-2 text-3xl font-black text-[#112532]/76">{refusedCount}</p>
           </div>
         </section>
 
@@ -264,12 +268,12 @@ export default async function OwnerPaymentsPage({
         </div>
 
         {visible.length === 0 ? (
-          <section className="rounded-3xl bg-white p-8 text-slate-600 shadow-sm ring-1 ring-slate-200">
+          <section className="rounded-3xl bg-white p-8 text-[#112532]/60 shadow-sm ring-1 ring-[#112532]/10">
             Aucune demande dans cette catégorie.
           </section>
         ) : (
-          <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-            <div className="hidden grid-cols-[1.3fr_1fr_1fr_120px_150px] gap-4 bg-slate-50 px-5 py-3 text-xs font-black uppercase tracking-wide text-slate-400 md:grid">
+          <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-[#112532]/10">
+            <div className="hidden grid-cols-[1.3fr_1fr_1fr_120px_150px] gap-4 bg-[#F6F3EF] px-5 py-3 text-xs font-black uppercase tracking-wide text-[#112532]/36 md:grid">
               <div>Intervenante</div>
               <div>Propriétaire</div>
               <div>Période</div>
@@ -286,40 +290,40 @@ export default async function OwnerPaymentsPage({
                   <Link
                     key={request.id}
                     href={`/owner/payments/${request.public_token}`}
-                    className="block px-5 py-4 hover:bg-slate-50"
+                    className="block px-5 py-4 hover:bg-[#F6F3EF]"
                   >
                     <div className="grid gap-3 md:grid-cols-[1.3fr_1fr_1fr_120px_150px] md:items-center">
                       <div>
-                        <p className="font-black text-slate-950">
+                        <p className="font-black text-[#112532]">
                           {request.cleaner_name_snapshot || fullName(cleaner)}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                        <p className="mt-1 text-sm font-semibold text-[#112532]/48">
                           Envoyée le {compactDate(request.sent_at || request.created_at)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-sm font-bold text-slate-800">
+                        <p className="text-sm font-bold text-[#112532]/86">
                           {request.owner_recipient_name || ownerName(owner)}
                         </p>
                         {request.owner_recipient_phone && (
-                          <p className="mt-1 text-xs font-semibold text-slate-400">
+                          <p className="mt-1 text-xs font-semibold text-[#112532]/36">
                             {request.owner_recipient_phone}
                           </p>
                         )}
                       </div>
 
                       <div>
-                        <p className="text-sm font-bold text-slate-800">
+                        <p className="text-sm font-bold text-[#112532]/86">
                           {monthLabel(request.period_start)}
                         </p>
-                        <p className="mt-1 text-xs font-semibold text-slate-400">
+                        <p className="mt-1 text-xs font-semibold text-[#112532]/36">
                           Échéance {compactDate(request.due_at)}
                         </p>
                       </div>
 
                       <div className="md:text-right">
-                        <p className="text-lg font-black text-slate-950">
+                        <p className="text-lg font-black text-[#112532]">
                           {money(request.total_eur)}
                         </p>
                       </div>

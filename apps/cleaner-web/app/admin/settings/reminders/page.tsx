@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -149,7 +150,7 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
   return (
     <form
       action={updateReminderRule}
-      className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200"
+      className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10"
     >
       <input type="hidden" name="id" value={rule.id} />
 
@@ -161,7 +162,7 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
                 rule.enabled ? "bg-emerald-500" : "bg-slate-300"
               }`}
             />
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               {rule.rule_key}
             </p>
           </div>
@@ -169,15 +170,15 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
           <input
             name="label"
             defaultValue={rule.label}
-            className="mt-1 w-full rounded-xl border border-transparent bg-transparent text-xl font-black tracking-tight text-slate-950 outline-none focus:border-slate-200 focus:bg-slate-50 focus:px-2"
+            className="mt-1 w-full rounded-xl border border-transparent bg-transparent text-xl font-black tracking-tight text-[#112532] outline-none focus:border-[#112532]/10 focus:bg-[#F6F3EF] focus:px-2"
           />
 
-          <p className="mt-1 text-xs font-semibold text-slate-500">
+          <p className="mt-1 text-xs font-semibold text-[#112532]/48">
             {humanTiming(rule)} · délai rattrapage {rule.grace_minutes} min
           </p>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">
+        <label className="flex cursor-pointer items-center gap-2 rounded-full bg-[#112532]/6 px-3 py-2 text-xs font-black text-[#112532]/76">
           <input
             type="checkbox"
             name="enabled"
@@ -190,13 +191,13 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Type de rappel
           </span>
           <select
             name="timing_type"
             defaultValue={rule.timing_type}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
           >
             <option value="minutes_before">X minutes avant</option>
             <option value="day_of_at_time">Jour même à une heure fixe</option>
@@ -204,7 +205,7 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Minutes avant
           </span>
           <input
@@ -213,27 +214,27 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
             min="0"
             defaultValue={rule.minutes_before ?? ""}
             placeholder="1440"
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
           />
-          <p className="mt-1 text-[10px] font-semibold text-slate-400">
+          <p className="mt-1 text-[10px] font-semibold text-[#112532]/36">
             10080 = J-7 · 1440 = J-1 · 120 = 2h
           </p>
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Heure jour même
           </span>
           <input
             type="time"
             name="local_time"
             defaultValue={(rule.local_time || "").slice(0, 5)}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Rattrapage max
           </span>
           <input
@@ -241,9 +242,9 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
             name="grace_minutes"
             min="0"
             defaultValue={rule.grace_minutes}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
           />
-          <p className="mt-1 text-[10px] font-semibold text-slate-400">
+          <p className="mt-1 text-[10px] font-semibold text-[#112532]/36">
             Évite les vieux SMS si le script était arrêté.
           </p>
         </label>
@@ -251,36 +252,36 @@ function RuleCard({ rule }: { rule: ReminderRule }) {
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <label className="block">
-          <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Message SMS
           </span>
           <textarea
             name="message_template"
             defaultValue={rule.message_template}
             rows={11}
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-xs font-semibold text-slate-900"
+            className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-3 font-mono text-xs font-semibold text-[#112532]"
           />
         </label>
 
         <div>
-          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
             Aperçu
           </p>
-          <div className="mt-1 min-h-[220px] whitespace-pre-wrap rounded-2xl bg-slate-950 p-4 text-xs font-semibold text-white shadow-inner">
+          <div className="mt-1 min-h-[220px] whitespace-pre-wrap rounded-2xl bg-[#112532] p-4 text-xs font-semibold text-white shadow-inner">
             {previewSms(rule.message_template)}
           </div>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="rounded-2xl bg-slate-50 px-3 py-2 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-100">
+        <div className="rounded-2xl bg-[#F6F3EF] px-3 py-2 text-[10px] font-semibold text-[#112532]/48 ring-1 ring-slate-100">
           Variables : {"{cleaner_first_name}"}, {"{cleaner_name}"}, {"{property_name}"},{" "}
           {"{scheduled_text}"}, {"{mission_link}"}
         </div>
 
         <button
           type="submit"
-          className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
+          className="rounded-full bg-[#112532] px-4 py-2 text-xs font-black text-white"
         >
           Sauvegarder
         </button>
@@ -307,62 +308,62 @@ export default async function ReminderSettingsPage() {
   const rules = (data ?? []) as ReminderRule[];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
       <div className="mx-auto max-w-5xl space-y-4">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Paramètres
             </p>
             <h1 className="text-3xl font-black tracking-tight">Rappels ménage</h1>
-            <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+            <p className="mt-1 max-w-2xl text-sm font-semibold text-[#112532]/48">
               Configure les rappels envoyés aux intervenantes après acceptation d’une mission.
             </p>
           </div>
 
           <Link
             href="/owner/cockpit"
-            className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+            className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
           >
             Retour planning
           </Link>
         </header>
 
-        <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-sm font-black text-slate-950">Créer un rappel simple</h2>
+        <section className="rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
+          <h2 className="text-sm font-black text-[#112532]">Créer un rappel simple</h2>
 
           <form action={createReminderRule} className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_160px_auto] md:items-end">
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+              <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                 Clé
               </span>
               <input
                 name="rule_key"
                 placeholder="accepted_j_minus_3"
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+                className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
               />
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+              <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                 Nom
               </span>
               <input
                 name="label"
                 placeholder="Rappel J-3"
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+                className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
               />
             </label>
 
             <label className="block">
-              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+              <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
                 Minutes avant
               </span>
               <input
                 name="minutes_before"
                 type="number"
                 defaultValue={4320}
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900"
+                className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] px-3 py-2 text-sm font-black text-[#112532]"
               />
             </label>
 
@@ -374,7 +375,7 @@ export default async function ReminderSettingsPage() {
 
             <button
               type="submit"
-              className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
+              className="rounded-full bg-[#112532] px-4 py-2 text-xs font-black text-white"
             >
               Créer
             </button>
@@ -387,6 +388,7 @@ export default async function ReminderSettingsPage() {
           ))}
         </div>
       </div>
-    </main>
+          <OwnerBottomNav active="settings" />
+</main>
   );
 }

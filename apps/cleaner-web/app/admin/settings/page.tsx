@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
@@ -161,14 +162,14 @@ function statusClass(status: Card["status"]) {
   if (status === "legacy") return "bg-amber-100 text-amber-900 ring-amber-200";
   if (status === "sensitive") return "bg-red-100 text-red-800 ring-red-200";
   if (status === "dev") return "bg-purple-100 text-purple-800 ring-purple-200";
-  return "bg-slate-100 text-slate-600 ring-slate-200";
+  return "bg-[#112532]/6 text-[#112532]/60 ring-[#112532]/10";
 }
 
 function ConfigCard({ card }: { card: Card }) {
   const inner = (
-    <div className="h-full rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
+    <div className="h-full rounded-[1.25rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10 transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xl">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#112532]/6 text-xl">
           {card.emoji}
         </div>
         <span className={`rounded-full px-2 py-1 text-[10px] font-black ring-1 ${statusClass(card.status)}`}>
@@ -176,14 +177,14 @@ function ConfigCard({ card }: { card: Card }) {
         </span>
       </div>
 
-      <h3 className="mt-4 text-lg font-black tracking-tight text-slate-950">
+      <h3 className="mt-4 text-lg font-black tracking-tight text-[#112532]">
         {card.title}
       </h3>
-      <p className="mt-1 text-sm font-semibold leading-snug text-slate-500">
+      <p className="mt-1 text-sm font-semibold leading-snug text-[#112532]/48">
         {card.subtitle}
       </p>
 
-      <div className="mt-4 text-xs font-black text-slate-400">
+      <div className="mt-4 text-xs font-black text-[#112532]/36">
         {card.href ? "Ouvrir →" : "Bientôt"}
       </div>
     </div>
@@ -204,17 +205,21 @@ export default async function SettingsHomePage() {
   await requireAdmin();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 text-slate-950 sm:px-6">
+    <main className="min-h-screen bg-[#F6F3EF] px-3 py-4 text-[#112532] sm:px-6">
       <div className="mx-auto max-w-6xl space-y-6">
+        <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#112532]/45 ring-1 ring-[#112532]/8">
+          <span className="h-2 w-2 rounded-full bg-[#E0680E]" />
+          Pilotys · pilotage
+        </div>
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">
               Back office
             </p>
             <h1 className="text-3xl font-black tracking-tight">
               Configuration
             </h1>
-            <p className="mt-1 max-w-2xl text-sm font-semibold text-slate-500">
+            <p className="mt-1 max-w-2xl text-sm font-semibold text-[#112532]/48">
               Le planning sert au quotidien. Cette page sert à organiser le système :
               intervenantes, logements, rappels, paiements, accès et outils.
             </p>
@@ -223,20 +228,20 @@ export default async function SettingsHomePage() {
           <div className="flex gap-2">
             <Link
               href="/admin/planning-v2"
-              className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+              className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
             >
               Planning
             </Link>
             <Link
               href="/admin"
-              className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200"
+              className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532]/76 shadow-sm ring-1 ring-[#112532]/10"
             >
               Admin
             </Link>
           </div>
         </header>
 
-        <section className="rounded-[1.25rem] bg-slate-950 p-4 text-white shadow-sm">
+        <section className="rounded-[1.25rem] bg-[#112532] p-4 text-white shadow-sm">
           <p className="text-sm font-black">Principe de navigation</p>
           <p className="mt-1 text-sm font-semibold text-white/70">
             Les pages <strong>issues</strong> ne sont pas listées ici : elles sont ouvertes depuis la cloche de notifications.
@@ -251,7 +256,7 @@ export default async function SettingsHomePage() {
 
           return (
             <section key={section} className="space-y-3">
-              <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">
+              <h2 className="text-sm font-black uppercase tracking-wide text-[#112532]/36">
                 {section}
               </h2>
 
@@ -264,6 +269,7 @@ export default async function SettingsHomePage() {
           );
         })}
       </div>
-    </main>
+          <OwnerBottomNav active="settings" />
+</main>
   );
 }

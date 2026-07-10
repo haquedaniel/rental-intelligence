@@ -1,4 +1,5 @@
 import Link from "next/link";
+import OwnerBottomNav from "@/components/owner/OwnerBottomNav";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { OwnerAppNav } from "@/components/owner-app/OwnerAppNav";
@@ -170,7 +171,7 @@ function KpiCard({
   tone?: "slate" | "emerald" | "sky" | "amber" | "violet" | "red";
 }) {
   const classes = {
-    slate: "bg-white text-slate-950 ring-slate-200",
+    slate: "bg-white text-[#112532] ring-[#112532]/10",
     emerald: "bg-emerald-50 text-emerald-950 ring-emerald-100",
     sky: "bg-sky-50 text-sky-950 ring-sky-100",
     amber: "bg-amber-50 text-amber-950 ring-amber-100",
@@ -199,10 +200,10 @@ function FilterBar({
   end: string;
 }) {
   return (
-    <form className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <form className="rounded-[1.75rem] bg-white p-4 shadow-sm ring-1 ring-[#112532]/10">
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-        <details className="rounded-2xl bg-slate-50 p-3">
-          <summary className="cursor-pointer text-sm font-black text-slate-800">
+        <details className="rounded-2xl bg-[#F6F3EF] p-3">
+          <summary className="cursor-pointer text-sm font-black text-[#112532]/86">
             {selectedPropertyIds.length === 0
               ? "Tous les logements"
               : `${selectedPropertyIds.length} logement(s) sélectionné(s)`}
@@ -212,7 +213,7 @@ function FilterBar({
             {properties.map((property) => (
               <label
                 key={property.id}
-                className="flex items-center gap-2 rounded-xl bg-white p-3 text-sm font-bold text-slate-700 ring-1 ring-slate-100"
+                className="flex items-center gap-2 rounded-xl bg-white p-3 text-sm font-bold text-[#112532]/76 ring-1 ring-slate-100"
               >
                 <input
                   type="checkbox"
@@ -228,22 +229,22 @@ function FilterBar({
 
         <div className="grid grid-cols-2 gap-2">
           <label>
-            <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Début</span>
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">Début</span>
             <input
               type="date"
               name="start"
               defaultValue={start}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
             />
           </label>
 
           <label>
-            <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Fin</span>
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#112532]/36">Fin</span>
             <input
               type="date"
               name="end"
               defaultValue={end}
-              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold"
+              className="mt-1 w-full rounded-2xl border border-[#112532]/10 bg-white px-3 py-2 text-sm font-bold"
             />
           </label>
         </div>
@@ -251,18 +252,18 @@ function FilterBar({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-2 text-xs font-black">
-          <Link href={periodHref({ days: 30, selectedPropertyIds })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={periodHref({ days: 30, selectedPropertyIds })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             30 jours
           </Link>
-          <Link href={periodHref({ days: 90, selectedPropertyIds })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={periodHref({ days: 90, selectedPropertyIds })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             90 jours
           </Link>
-          <Link href={periodHref({ days: 365, selectedPropertyIds })} className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">
+          <Link href={periodHref({ days: 365, selectedPropertyIds })} className="rounded-full bg-[#112532]/6 px-3 py-2 text-[#112532]/60">
             Saison
           </Link>
         </div>
 
-        <button className="rounded-full bg-slate-950 px-5 py-2 text-sm font-black text-white">
+        <button className="rounded-full bg-[#112532] px-5 py-2 text-sm font-black text-white">
           Appliquer
         </button>
       </div>
@@ -392,11 +393,11 @@ export default async function OwnerAppPage({
   const machineOk = actionRequests.length === 0 && openPayments.length === 0;
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-28 text-slate-950 md:pb-8">
+    <main className="min-h-screen bg-[#F6F3EF] pb-28 text-[#112532] md:pb-8">
       <OwnerAppNav active="cockpit" />
 
       <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-5 lg:px-8">
-        <section className="overflow-hidden rounded-[2rem] bg-slate-950 p-5 text-white shadow-sm">
+        <section className="overflow-hidden rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm">
           <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr] lg:items-end">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
@@ -411,8 +412,8 @@ export default async function OwnerAppPage({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-3xl bg-white p-4 text-slate-950">
-                <p className="text-[10px] font-black uppercase text-slate-400">CA confirmé</p>
+              <div className="rounded-3xl bg-white p-4 text-[#112532]">
+                <p className="text-[10px] font-black uppercase text-[#112532]/36">CA confirmé</p>
                 <p className="mt-2 text-2xl font-black">{money(confirmedRevenue)}</p>
               </div>
               <div className="rounded-3xl bg-white/10 p-4">
@@ -440,20 +441,20 @@ export default async function OwnerAppPage({
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                   Machine
                 </p>
-                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                <h2 className="mt-1 text-2xl font-black text-[#112532]">
                   Le flux en cours
                 </h2>
               </div>
 
               <Link
                 href={`/owner/app/reservations?start=${start}&end=${end}${selectedPropertyIds.map((id) => `&property=${id}`).join("")}`}
-                className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black text-white"
+                className="rounded-full bg-[#112532] px-4 py-2 text-xs font-black text-white"
               >
                 Réservations
               </Link>
@@ -461,7 +462,7 @@ export default async function OwnerAppPage({
 
             <div className="mt-4 space-y-2">
               {recentEvents.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                <p className="rounded-2xl bg-[#F6F3EF] p-4 text-sm font-bold text-[#112532]/48">
                   Aucun événement sur cette période.
                 </p>
               ) : (
@@ -469,7 +470,7 @@ export default async function OwnerAppPage({
                   <Link
                     key={event.key}
                     href={event.href}
-                    className="block rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-sm"
+                    className="block rounded-2xl bg-[#F6F3EF] p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-sm"
                   >
                     <div className="flex items-start gap-3">
                       <span
@@ -485,10 +486,10 @@ export default async function OwnerAppPage({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="font-black text-slate-950">{event.title}</p>
-                          <p className="shrink-0 text-xs font-black text-slate-400">{event.meta}</p>
+                          <p className="font-black text-[#112532]">{event.title}</p>
+                          <p className="shrink-0 text-xs font-black text-[#112532]/36">{event.meta}</p>
                         </div>
-                        <p className="mt-1 truncate text-sm font-semibold text-slate-500">{event.summary}</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[#112532]/48">{event.summary}</p>
                       </div>
                     </div>
                   </Link>
@@ -498,8 +499,8 @@ export default async function OwnerAppPage({
           </section>
 
           <aside className="space-y-4">
-            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+              <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                 Accès rapide
               </p>
               <div className="mt-4 grid gap-2">
@@ -509,26 +510,27 @@ export default async function OwnerAppPage({
                 <Link href="/owner/payments" className="rounded-2xl bg-amber-50 p-4 text-sm font-black text-amber-950 ring-1 ring-amber-100">
                   Demandes de paiement
                 </Link>
-                <Link href="/owner/cockpit" className="rounded-2xl bg-slate-50 p-4 text-sm font-black text-slate-800 ring-1 ring-slate-100">
+                <Link href="/owner/cockpit" className="rounded-2xl bg-[#F6F3EF] p-4 text-sm font-black text-[#112532]/86 ring-1 ring-slate-100">
                   Ancien cockpit / planning
                 </Link>
               </div>
             </section>
 
-            <section id="revenus" className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <section id="revenus" className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/10">
+              <p className="text-xs font-black uppercase tracking-wide text-[#112532]/36">
                 Revenus
               </p>
-              <h2 className="mt-1 text-xl font-black text-slate-950">
+              <h2 className="mt-1 text-xl font-black text-[#112532]">
                 {money(confirmedRevenue)}
               </h2>
-              <p className="mt-2 text-sm font-semibold text-slate-500">
+              <p className="mt-2 text-sm font-semibold text-[#112532]/48">
                 Source simple : réservations actives sur la période. Les benchmarks, recommandations de prix et page views viendront ici comme signaux lisibles, pas comme tableau BI lourd.
               </p>
             </section>
           </aside>
         </section>
       </div>
-    </main>
+          <OwnerBottomNav active="cockpit" />
+</main>
   );
 }

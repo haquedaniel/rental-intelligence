@@ -85,18 +85,18 @@ export default function MissionProfileFields({
   }
 
   return (
-    <section className="rounded-3xl bg-slate-50 p-5 ring-1 ring-slate-100">
-      <h2 className="text-lg font-bold text-slate-950">
+    <section className="rounded-3xl bg-[#F6F3EF] p-5 ring-1 ring-slate-100">
+      <h2 className="text-lg font-bold text-[#112532]">
         Type de mission
       </h2>
 
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-[#112532]/60">
         La durée, le type de travail et la checklist viennent du profil choisi.
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-semibold text-slate-800">
+          <label className="block text-sm font-semibold text-[#112532]/86">
             Profil
           </label>
 
@@ -114,14 +114,14 @@ export default function MissionProfileFields({
           </select>
 
           {selectedProfile && (
-            <p className="mt-2 text-xs font-semibold text-slate-500">
+            <p className="mt-2 text-xs font-semibold text-[#112532]/48">
               {serviceIcon(selectedProfile.service_type)} {serviceLabel(selectedProfile.service_type)}
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-800">
+          <label className="block text-sm font-semibold text-[#112532]/86">
             Durée estimée
           </label>
 
@@ -135,14 +135,14 @@ export default function MissionProfileFields({
             className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm"
           />
 
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-[#112532]/48">
             Préremplie depuis le profil, modifiable pour cette mission.
           </p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <label className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-semibold text-slate-700 ring-1 ring-slate-100">
+        <label className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-semibold text-[#112532]/76 ring-1 ring-slate-100">
           <input
             type="checkbox"
             name="linen_required"
@@ -152,7 +152,7 @@ export default function MissionProfileFields({
           Linge à prévoir
         </label>
 
-        <label className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-semibold text-slate-700 ring-1 ring-slate-100">
+        <label className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-semibold text-[#112532]/76 ring-1 ring-slate-100">
           <input
             type="checkbox"
             name="laundry_required"
