@@ -1,69 +1,24 @@
 "use client";
 
-
-function calendarDayIsBookable(day: Record<string, any> | null | undefined): boolean {
-  if (!day) return false;
-
-  if ("bookable" in day) {
-    const value = day.bookable;
-    if (value === true || value === "true" || value === 1 || value === "1") return true;
-    return false;
-  }
-
-  if ("units_available" in day || "unitsAvailable" in day) {
-    const units = Number(day.units_available ?? day.unitsAvailable ?? 0);
-    if (!Number.isFinite(units) || units <= 0) return false;
-  }
-
-  const status = String(day.status || "").toLowerCase();
-  if (status && !["success_available", "available", "bookable", "open"].includes(status)) {
-    return false;
-  }
-
-  return true;
-}
-
 function calendarDayPriceAmount(day: Record<string, any> | null | undefined): number | null {
   if (!day) return null;
-  if (!calendarDayIsBookable(day)) return null;
 
-  const nightlyFields = [
-    "own_nightly_amount",
-    "ownNightlyAmount",
-    "nightly_amount",
-    "nightly_price_eur",
-    "available_price_eur",
-    "public_price_eur",
-    "recommended_price_eur",
+  const fields = [
+    "price_eur",
     "daily_price_eur",
     "rate_eur",
-    "price_eur",
+    "recommended_price_eur",
+    "public_price_eur",
+    "base_price_eur",
+    "available_price_eur",
+    "min_price_eur",
   ];
 
-  for (const field of nightlyFields) {
+  for (const field of fields) {
     const value = day[field];
     if (value === null || value === undefined || value === "") continue;
     const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed >= 25) return parsed;
-  }
-
-  const totalFields = [
-    "own_total_amount",
-    "ownTotalAmount",
-    "total_amount",
-    "offer_price",
-  ];
-
-  const nights = Number(day.nights || day.length_of_stay || day.stay_nights || 1);
-
-  for (const field of totalFields) {
-    const value = day[field];
-    if (value === null || value === undefined || value === "") continue;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) continue;
-
-    const nightly = Number.isFinite(nights) && nights > 0 ? parsed / nights : parsed;
-    if (nightly >= 25) return nightly;
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
   }
 
   return null;
@@ -94,7 +49,6 @@ function isCalendarDayBooked(day: Record<string, any> | null | undefined): boole
     day.status === "occupied",
   );
 }
-
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Tone = "navy" | "blue" | "orange" | "mustard" | "green";
