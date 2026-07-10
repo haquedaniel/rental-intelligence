@@ -139,7 +139,7 @@ function requestHref(request: Row): string {
     return request.public_token ? `/mission/${request.public_token}/intervention` : "/admin/interventions";
   }
 
-  return `/owner/issues/request/${request.id}`;
+  return `/owner/missions/${request.id}`;
 }
 
 function periodHref({

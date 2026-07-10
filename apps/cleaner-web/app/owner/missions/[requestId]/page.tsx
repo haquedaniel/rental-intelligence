@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
 import OwnerBottomNav, { OwnerTopNav } from "@/components/owner/OwnerBottomNav";
@@ -233,6 +234,186 @@ async function signedPhotos(
   return out;
 }
 
+
+function missionLink(request: Row) {
+  const base = process.env.CLEANER_WEB_BASE_URL || "";
+  if (!request.public_token) return "";
+  return `${base}/mission/${request.public_token}/ready-day`;
+}
+
+function manualSmsBody(request: Row, property: Row | null, cleaner: Row | null) {
+  const cleanerFirst = cleaner?.first_name || "Bonjour";
+  const propertyName = property?.name || "Logement";
+  const amount = euro(numberValue(request, ["total_cost_eur", "cleaning_cost_eur", "amount_eur"]));
+  const link = missionLink(request);
+
+  return [
+    `Bonjour ${cleanerFirst} 👋`,
+    "",
+    "Mission ménage à confirmer.",
+    "",
+    `🏠 ${propertyName}`,
+    `📅 ${dateTime(request.work_window_start_at || request.scheduled_start_at)}`,
+    `💶 ${amount}`,
+    "",
+    link ? `Lien mission : ${link}` : "Lien mission indisponible.",
+  ].join("\n");
+}
+
+async function enqueueManualMissionSms(formData: FormData) {
+  "use server";
+
+  await requireAdmin();
+
+  const requestId = String(formData.get("request_id") ?? "");
+  if (!requestId) {
+    throw new Error("Mission manquante.");
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: request, error: requestError } = await supabase
+    .from("cleaning_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (requestError || !request) {
+    throw new Error(`Mission introuvable : ${requestError?.message ?? ""}`);
+  }
+
+  const [{ data: cleaner }, { data: property }] = await Promise.all([
+    request.assigned_cleaner_id
+      ? supabase.from("cleaners").select("*").eq("id", request.assigned_cleaner_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    request.property_id
+      ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const recipientPhone = String(
+    cleaner?.phone ||
+      cleaner?.phone_number ||
+      cleaner?.mobile ||
+      cleaner?.mobile_phone ||
+      "",
+  )
+    .replace(/[ .-]/g, "")
+    .trim();
+
+  if (!recipientPhone) {
+    throw new Error("L’intervenante n’a pas de numéro de téléphone.");
+  }
+
+  const eventKey = `cleaning:${request.id}:manual-resend:${Date.now()}`;
+
+  await supabase.from("outbound_messages").insert({
+    cleaning_request_id: request.id,
+    cleaner_id: cleaner?.id ?? null,
+    owner_id: property?.owner_id ?? null,
+    channel: "sms",
+    message_type: "mission_manual_resend",
+    recipient_phone: recipientPhone,
+    body: manualSmsBody(request, property, cleaner),
+    status: request.test_scenario_id ? "sent" : "pending",
+    provider: request.test_scenario_id ? "test_lab" : "twilio",
+    event_key: eventKey,
+    is_test: Boolean(request.test_scenario_id),
+    test_scenario_id: request.test_scenario_id ?? null,
+  });
+
+  await supabase.from("cleaning_request_change_log").insert({
+    cleaning_request_id: request.id,
+    changed_by: "owner_page",
+    change_type: "manual_sms_resend_requested",
+    before_data: {},
+    after_data: { event_key: eventKey, recipient_phone: recipientPhone },
+    note: "SMS manuel demandé depuis la page mission propriétaire.",
+  });
+
+  revalidatePath(`/owner/missions/${request.id}`);
+  revalidatePath(`/owner/missions/${request.id}`);
+  revalidatePath("/owner/cockpit");
+}
+
+function payloadOf(row: Row | null | undefined): Row {
+  const payload = row?.payload ?? row?.raw_payload ?? row?.metadata ?? {};
+  if (typeof payload === "string") {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      return {};
+    }
+  }
+  return payload && typeof payload === "object" ? payload : {};
+}
+
+function valueWithPayload(row: Row | null | undefined, keys: string[], fallback = "—") {
+  if (!row) return fallback;
+  const payload = payloadOf(row);
+  for (const key of keys) {
+    const value = row[key] ?? payload[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value);
+    }
+  }
+  return fallback;
+}
+
+function outboundStatusLabel(status?: string | null) {
+  switch (status) {
+    case "pending":
+      return "En attente d’envoi";
+    case "queued":
+      return "En file";
+    case "sent":
+      return "Envoyé";
+    case "delivered":
+      return "Distribué";
+    case "failed":
+      return "Échec";
+    case "cancelled":
+      return "Annulé";
+    default:
+      return status || "—";
+  }
+}
+
+function outboundStatusClass(status?: string | null) {
+  switch (status) {
+    case "sent":
+    case "delivered":
+      return "bg-emerald-50 text-emerald-900 ring-emerald-100";
+    case "pending":
+    case "queued":
+      return "bg-[#FFF5DD] text-[#A45C00] ring-[#F4B044]/25";
+    case "failed":
+      return "bg-red-50 text-red-900 ring-red-100";
+    case "cancelled":
+      return "bg-slate-100 text-slate-500 ring-slate-200";
+    default:
+      return "bg-[#EFF6F8] text-[#1E5365] ring-[#80A5B7]/25";
+  }
+}
+
+function auditTitle(row: Row) {
+  const type = String(row.change_type || row.event_type || row.action || "Événement");
+  return type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function compactJson(value: any) {
+  if (!value) return "";
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+
 export default async function OwnerMissionPage({
   params,
 }: {
@@ -258,6 +439,8 @@ export default async function OwnerMissionPage({
     reportResult,
     interventionReportResult,
     outboundResult,
+    auditResult,
+    siblingRequestsResult,
   ] = await Promise.all([
     request.property_id
       ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle()
@@ -270,7 +453,11 @@ export default async function OwnerMissionPage({
       : Promise.resolve({ data: null }),
     supabase.from("cleaning_reports").select("*").eq("cleaning_request_id", request.id).maybeSingle(),
     supabase.from("intervention_reports").select("*").eq("cleaning_request_id", request.id).maybeSingle(),
-    supabase.from("outbound_messages").select("*").eq("cleaning_request_id", request.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("outbound_messages").select("*").eq("cleaning_request_id", request.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("cleaning_request_change_log").select("*").eq("cleaning_request_id", request.id).order("created_at", { ascending: false }).limit(80),
+    request.reservation_id
+      ? supabase.from("cleaning_requests").select("*").eq("reservation_id", request.reservation_id).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
 
   const property = propertyResult.data as Row | null;
@@ -279,6 +466,8 @@ export default async function OwnerMissionPage({
   const report = reportResult.data as Row | null;
   const interventionReport = interventionReportResult.data as Row | null;
   const outboundMessages = (outboundResult.data ?? []) as Row[];
+  const auditEvents = (auditResult.data ?? []) as Row[];
+  const siblingRequests = ((siblingRequestsResult.data ?? []) as Row[]).filter((row) => row.id !== request.id);
 
   const [{ data: coverPhoto }, cleaningPhotoResult, interventionPhotoResult] = await Promise.all([
     request.property_id
@@ -477,29 +666,126 @@ export default async function OwnerMissionPage({
           )}
         </section>
 
-        <section className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Historique messages</p>
-          <h2 className="mt-2 text-2xl font-black">Notifications envoyées</h2>
-
-          <div className="mt-5 space-y-3">
-            {outboundMessages.length ? (
-              outboundMessages.map((message) => (
-                <div key={message.id} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-black">{message.channel || message.message_type || "Message"}</p>
-                    <p className="text-xs font-bold text-[#112532]/45">{dateTime(message.created_at || message.sent_at)}</p>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm font-medium text-[#112532]/65">
-                    {message.body || message.message || message.content || "Message enregistré."}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-2xl bg-[#F4F8FA] p-4 text-sm font-bold text-[#112532]/50 ring-1 ring-[#112532]/6">
-                Aucun message sortant lié à cette mission.
+        <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">SMS / notifications</p>
+                <h2 className="mt-2 text-2xl font-black">Messages mission</h2>
+                <p className="mt-1 text-sm font-bold text-[#112532]/48">
+                  Historique des propositions, relances, confirmations et erreurs d’envoi.
+                </p>
               </div>
-            )}
-          </div>
+
+              <form action={enqueueManualMissionSms}>
+                <input type="hidden" name="request_id" value={request.id} />
+                <button className="rounded-full bg-[#112532] px-4 py-3 text-xs font-black text-white shadow-sm">
+                  Renvoyer SMS
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {outboundMessages.length ? (
+                outboundMessages.map((message) => (
+                  <div key={message.id} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-[#112532]">
+                          {String(message.message_type || message.channel || "Message").replace(/_/g, " ")}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-[#112532]/45">
+                          {dateTime(message.created_at || message.sent_at || message.last_attempt_at)}
+                          {" · "}
+                          {valueWithPayload(message, ["recipient_phone", "to", "provider_to"], "destinataire inconnu")}
+                        </p>
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-[10px] font-black ring-1 ${outboundStatusClass(message.status)}`}>
+                        {outboundStatusLabel(message.status)}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 whitespace-pre-wrap rounded-2xl bg-white p-3 text-sm font-medium leading-6 text-[#112532]/68 ring-1 ring-[#112532]/6">
+                      {valueWithPayload(message, ["body", "message", "content", "text"], "Message enregistré sans contenu.")}
+                    </p>
+
+                    {(message.provider_message_id || message.error || message.event_key) ? (
+                      <div className="mt-3 grid gap-2 text-xs font-bold text-[#112532]/45 sm:grid-cols-2">
+                        <span>Provider : {message.provider || "—"}</span>
+                        <span>ID : {message.provider_message_id || "—"}</span>
+                        <span>Dernière tentative : {dateTime(message.last_attempt_at)}</span>
+                        <span>Erreur : {message.error || "—"}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-[#F4F8FA] p-4 text-sm font-bold text-[#112532]/50 ring-1 ring-[#112532]/6">
+                  Aucun message sortant lié à cette mission.
+                </div>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">Propositions / audit</p>
+            <h2 className="mt-2 text-2xl font-black">Historique opérationnel</h2>
+
+            {siblingRequests.length ? (
+              <div className="mt-5 rounded-2xl bg-[#FFF5DD] p-4 ring-1 ring-[#F4B044]/25">
+                <p className="text-sm font-black text-[#8A4D00]">Autres propositions pour ce séjour</p>
+                <div className="mt-3 space-y-2">
+                  {siblingRequests.map((sibling) => (
+                    <Link
+                      key={sibling.id}
+                      href={`/owner/missions/${sibling.id}`}
+                      className="block rounded-2xl bg-white p-3 text-sm font-bold text-[#112532] ring-1 ring-[#112532]/8"
+                    >
+                      {sibling.title || sibling.mission_type || "Mission"} · {statusLabel(sibling.status)} · {dateTime(sibling.created_at)}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-5 space-y-3">
+              {auditEvents.length ? (
+                auditEvents.map((event) => (
+                  <details key={event.id} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-[#112532]">{auditTitle(event)}</p>
+                          <p className="mt-1 text-xs font-bold text-[#112532]/45">
+                            {dateTime(event.created_at || event.changed_at)} · {event.changed_by || "système"}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-[#112532]/45 ring-1 ring-[#112532]/8">
+                          Détail
+                        </span>
+                      </div>
+                    </summary>
+
+                    {event.note ? (
+                      <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-[#112532]/65 ring-1 ring-[#112532]/6">
+                        {event.note}
+                      </p>
+                    ) : null}
+
+                    {(event.before_data || event.after_data) ? (
+                      <pre className="mt-3 max-h-80 overflow-auto rounded-2xl bg-[#112532] p-3 text-xs text-white/80">
+{compactJson({ before: event.before_data, after: event.after_data })}
+                      </pre>
+                    ) : null}
+                  </details>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-[#F4F8FA] p-4 text-sm font-bold text-[#112532]/50 ring-1 ring-[#112532]/6">
+                  Aucun audit log identifié pour cette mission.
+                </div>
+              )}
+            </div>
+          </article>
         </section>
       </div>
 

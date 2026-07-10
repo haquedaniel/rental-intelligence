@@ -108,7 +108,7 @@ function requestHref(request: Row) {
   if (["completed", "report_submitted", "problem_reported"].includes(status)) {
     return `/owner/reports/${request.id}`;
   }
-  return `/owner/issues/request/${request.id}`;
+  return `/owner/missions/${request.id}`;
 }
 
 function initialsFromParts(first?: unknown, last?: unknown, fallback = "?") {

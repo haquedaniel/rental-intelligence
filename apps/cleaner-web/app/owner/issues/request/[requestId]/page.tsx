@@ -234,7 +234,7 @@ async function sendMissionSms(formData: FormData) {
       .eq("id", request.id);
   }
 
-  revalidatePath(`/owner/issues/request/${request.id}`);
+  revalidatePath(`/owner/missions/${request.id}`);
   revalidatePath("/owner/cockpit");
 }
 

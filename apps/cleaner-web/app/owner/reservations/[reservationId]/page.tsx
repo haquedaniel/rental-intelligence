@@ -197,6 +197,12 @@ function riskTone(value?: string | null): string {
   }
 }
 
+
+function ownerMissionHref(value?: string | null): string | null {
+  if (!value) return null;
+  return value.replace("/owner/missions/", "/owner/missions/");
+}
+
 function cleanerName(cleaner?: Row | null): string {
   if (!cleaner) return "Non affectée";
   return [cleaner.first_name, cleaner.last_name].filter(Boolean).join(" ") || "Intervenante";
@@ -780,7 +786,7 @@ export default async function OwnerReservationPage({
             </div>
 
             {context?.primary_action_href ? (
-              <Link href={context.primary_action_href} className="rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white">
+              <Link href={ownerMissionHref(context.primary_action_href) || context.primary_action_href} className="rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white">
                 {context.primary_action_label || "Ouvrir"}
               </Link>
             ) : null}
