@@ -296,7 +296,7 @@ function PropertyTimelineCard({
           <MarketRail units={units} gridTemplateColumns={gridTemplateColumns} />
 
           <div className="relative rounded-2xl bg-slate-50 p-1.5 ring-1 ring-slate-100">
-            <div className="absolute inset-1.5 grid gap-1 pointer-events-none" style={{ gridTemplateColumns }}>
+            <div className="absolute inset-1.5 grid gap-1" style={{ gridTemplateColumns }}>
               {units.map((unit) => {
                 const score = marketTensionScore(unit.start);
                 return (
@@ -323,7 +323,7 @@ function PropertyTimelineCard({
                     key={reservation.id}
                     href={reservationHref(reservation)}
                     title={`${reservationTitle(reservation)}\nArrivée ${compactDateLabel(checkin)} · Départ ${compactDateLabel(checkout)}`}
-                    className="z-10 min-h-8 rounded-lg bg-gradient-to-br from-slate-950 to-slate-700 px-1.5 py-1 text-white shadow-sm transition hover:scale-[1.01] hover:shadow-md pointer-events-auto cursor-pointer z-30"
+                    className="z-10 min-h-8 rounded-lg bg-gradient-to-br from-slate-950 to-slate-700 px-1.5 py-1 text-white shadow-sm transition hover:scale-[1.01] hover:shadow-md"
                     style={{ gridColumn: `${span.start} / span ${span.span}` }}
                   >
                     <p className="truncate text-[10px] font-black">{reservationTitle(reservation)}</p>

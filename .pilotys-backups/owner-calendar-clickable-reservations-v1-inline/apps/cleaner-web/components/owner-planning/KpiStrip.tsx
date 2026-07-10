@@ -342,7 +342,7 @@ function ExpenseChart({
                 className="h-7 rounded-full bg-amber-600"
                 style={{ width: `${Math.max(4, pctOfExpenses)}%` }}
               />
-              <div className="absolute inset-0 flex items-center justify-end px-2 text-[10px] font-black text-slate-900 pointer-events-none">
+              <div className="absolute inset-0 flex items-center justify-end px-2 text-[10px] font-black text-slate-900">
                 {money(item.amount)}
               </div>
             </div>

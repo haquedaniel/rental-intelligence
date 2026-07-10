@@ -204,7 +204,7 @@ function MetricButton({ active, onClick, label, value, delta, tone }: { active: 
         active ? "ring-[#E0680E]/36 shadow-[0_14px_34px_rgba(224,104,14,0.09)]" : "ring-[#112532]/8 hover:ring-[#112532]/15"
       }`}
     >
-      <svg viewBox="0 0 320 90" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25 pointer-events-none">
+      <svg viewBox="0 0 320 90" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25">
         <path d="M0 48 C58 82 104 38 164 55 C222 72 262 25 320 45 V90 H0 Z" fill={wave} />
       </svg>
       <div className="relative flex items-center gap-3">
@@ -704,7 +704,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                     <div className="relative h-full overflow-hidden rounded-[1rem]">
                       <div className="absolute bottom-2 left-2 top-2 z-40 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
 
-                      <div className="absolute inset-0 grid gap-1 pointer-events-none" style={{ gridTemplateColumns }}>
+                      <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const covered = coveredDays.has(day);
@@ -717,7 +717,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         })}
                       </div>
 
-                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2 pointer-events-none">
+                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
                         {rowReservations
                           .filter((reservation) => reservation.cleaningDay)
                           .map((reservation) => {
@@ -736,7 +736,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           })}
                       </div>
 
-                      <div className="absolute inset-0 z-20 pointer-events-none">
+                      <div className="absolute inset-0 z-20">
                         {rowReservations.map((reservation) => (
                           <a
                             key={reservation.id}
@@ -748,8 +748,8 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                               backgroundColor: listing.dot,
                             }}
                           >
-                            <span className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                              <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8 pointer-events-none" />
+                            <span className="absolute inset-0 overflow-hidden rounded-2xl">
+                              <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8" />
                             </span>
                             <span className="relative flex h-full items-center justify-center truncate px-3 text-xs font-black leading-5">{reservation.guest}</span>
                             <ReservationTooltip reservation={reservation} />
@@ -757,7 +757,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         ))}
                       </div>
 
-                      <div className="absolute inset-0 z-30 pointer-events-none">
+                      <div className="absolute inset-0 z-30">
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
