@@ -233,45 +233,6 @@ class Beds24Client:
         }
 
         return self.get("/inventory/rooms/availability", params=params)
-
-    def get_booking_messages(
-        self,
-        booking_id: Optional[int | str] = None,
-        property_id: Optional[int] = None,
-        room_id: Optional[int] = None,
-        modified_from: Optional[str] = None,
-        modified_to: Optional[str] = None,
-        page: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """
-        Fetch Beds24/OTA guest messages.
-
-        Beds24 API v2 documents this under /bookings/messages.
-        We keep the method deliberately thin and store the raw response in our
-        own ingestion output first, because exact message field names vary by
-        channel and Beds24 account settings.
-        """
-        params: Dict[str, Any] = {}
-
-        if booking_id is not None:
-            params["bookingId"] = booking_id
-
-        if property_id is not None:
-            params["propertyId"] = property_id
-
-        if room_id is not None:
-            params["roomId"] = room_id
-
-        if modified_from:
-            params["modifiedFrom"] = modified_from
-
-        if modified_to:
-            params["modifiedTo"] = modified_to
-
-        if page is not None:
-            params["page"] = page
-
-        return self.get("/bookings/messages", params=params)
     
     def post(
         self,
