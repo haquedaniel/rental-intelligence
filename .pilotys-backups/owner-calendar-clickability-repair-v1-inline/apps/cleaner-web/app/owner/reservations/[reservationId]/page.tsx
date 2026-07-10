@@ -368,7 +368,7 @@ function StayCard({ title, reservation }: { title: string; reservation: Row | nu
           <p className="mt-1 text-xs font-bold text-[#112532]/52">
             {shortDateNoYear(reservation.checkin_at)} → {shortDateNoYear(reservation.checkout_at)}
           </p>
-          <Link href={`/owner/reservations/${reservation.id}`} className="mt-3 inline-flex text-xs font-black text-[#E0680E] relative z-40 pointer-events-auto cursor-pointer">
+          <Link href={`/owner/reservations/${reservation.id}`} className="mt-3 inline-flex text-xs font-black text-[#E0680E]">
             Ouvrir →
           </Link>
         </>
@@ -965,7 +965,7 @@ export default async function OwnerReservationPage({
                 <p className="text-sm font-black">Toutes les missions associées</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {cleaningRequests.map((request) => (
-                    <Link key={request.id} href={`/owner/missions/${request.id}`} className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532] ring-1 ring-[#112532]/8 relative z-50 pointer-events-auto cursor-pointer">
+                    <Link key={request.id} href={`/owner/missions/${request.id}`} className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#112532] ring-1 ring-[#112532]/8">
                       {request.title || request.mission_type || "Mission"} · {statusLabel(request.status)}
                     </Link>
                   ))}

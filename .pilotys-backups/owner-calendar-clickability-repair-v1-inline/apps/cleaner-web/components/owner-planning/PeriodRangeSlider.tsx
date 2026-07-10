@@ -119,7 +119,7 @@ export function PeriodRangeSlider({
                   const value = Math.min(Number(event.target.value), right - 1);
                   setLeft(value);
                 }}
-                className="absolute inset-x-2 top-0 z-20 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
+                className="pointer-events-none absolute inset-x-2 top-0 z-20 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
               />
 
               <input
@@ -131,7 +131,7 @@ export function PeriodRangeSlider({
                   const value = Math.max(Number(event.target.value), left + 1);
                   setRight(value);
                 }}
-                className="absolute inset-x-2 top-0 z-30 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
+                className="pointer-events-none absolute inset-x-2 top-0 z-30 h-9 appearance-none bg-transparent accent-slate-950 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-slate-950 [&::-webkit-slider-thumb]:shadow-md"
               />
             </div>
 

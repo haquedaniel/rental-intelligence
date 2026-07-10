@@ -383,7 +383,7 @@ async function enqueueManualMissionSms(formData: FormData) {
   });
 
   revalidatePath(`/owner/missions/${request.id}`);
-  revalidatePath(`/owner/missions/${request.id}`);
+  revalidatePath(`/owner/issues/request/${request.id}`);
   revalidatePath("/owner/cockpit");
 }
 
@@ -795,7 +795,7 @@ export default async function OwnerMissionPage({
                     <Link
                       key={sibling.id}
                       href={`/owner/missions/${sibling.id}`}
-                      className="block rounded-2xl bg-white p-3 text-sm font-bold text-[#112532] ring-1 ring-[#112532]/8 relative z-50 pointer-events-auto cursor-pointer"
+                      className="block rounded-2xl bg-white p-3 text-sm font-bold text-[#112532] ring-1 ring-[#112532]/8"
                     >
                       {sibling.title || sibling.mission_type || "Mission"} · {statusLabel(sibling.status)} · {dateTime(sibling.created_at)}
                     </Link>

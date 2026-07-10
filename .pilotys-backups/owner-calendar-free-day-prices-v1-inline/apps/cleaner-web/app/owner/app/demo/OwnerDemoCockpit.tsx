@@ -1,54 +1,5 @@
 "use client";
 
-function calendarDayPriceAmount(day: Record<string, any> | null | undefined): number | null {
-  if (!day) return null;
-
-  const fields = [
-    "price_eur",
-    "daily_price_eur",
-    "rate_eur",
-    "recommended_price_eur",
-    "public_price_eur",
-    "base_price_eur",
-    "available_price_eur",
-    "min_price_eur",
-  ];
-
-  for (const field of fields) {
-    const value = day[field];
-    if (value === null || value === undefined || value === "") continue;
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  }
-
-  return null;
-}
-
-function calendarDayPriceLabel(day: Record<string, any> | null | undefined): string | null {
-  const amount = calendarDayPriceAmount(day);
-  if (!amount) return null;
-
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function isCalendarDayBooked(day: Record<string, any> | null | undefined): boolean {
-  if (!day) return false;
-
-  return Boolean(
-    day.reservation_id ||
-    day.booking_id ||
-    day.source_booking_id ||
-    day.is_booked ||
-    day.booked ||
-    day.occupied ||
-    day.status === "booked" ||
-    day.status === "occupied",
-  );
-}
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Tone = "navy" | "blue" | "orange" | "mustard" | "green";
@@ -516,7 +467,7 @@ function Planning({ selected }: { selected: Scope[] }) {
       </div>
 
       <div className="w-full overflow-x-auto p-4">
-        <div className="min-w-[1760px] relative">
+        <div className="min-w-[1760px]">
           <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${planningDays.length}, ${dayWidth})` }}>
             {monthSpans.map((span) => (
               <div key={span.month} className="rounded-full bg-[#F4F8FA] px-4 py-1.5 text-sm font-black text-[#477084]" style={{ gridColumn: `${span.start} / span ${span.span}` }}>
@@ -529,15 +480,6 @@ function Planning({ selected }: { selected: Scope[] }) {
             {planningDays.map((day, index) => (
               <div key={`${day.month}-${index}`} className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-1.5 py-1.5 text-center text-[10px] font-black leading-4 text-[#112532]/58 ring-1 ring-[#112532]/5">
                 {day.label}
-                  {!isCalendarDayBooked(day) && calendarDayPriceLabel(day) ? (
-                    <span
-                      title="Prix jour libre"
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
-                    >
-                      {calendarDayPriceLabel(day)}
-                    </span>
-                  ) : null}
-
               </div>
             ))}
           </div>

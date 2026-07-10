@@ -532,7 +532,7 @@ function Planning({ selected }: { selected: Scope[] }) {
                   {!isCalendarDayBooked(day) && calendarDayPriceLabel(day) ? (
                     <span
                       title="Prix jour libre"
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
+                      className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
                     >
                       {calendarDayPriceLabel(day)}
                     </span>

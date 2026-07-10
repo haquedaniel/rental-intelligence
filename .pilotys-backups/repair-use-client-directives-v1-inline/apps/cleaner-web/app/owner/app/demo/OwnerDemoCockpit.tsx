@@ -1,6 +1,5 @@
-"use client";
 
-function calendarDayPriceAmount(day: Record<string, any> | null | undefined): number | null {
+function calendarDayPriceAmount(day: Row | null | undefined): number | null {
   if (!day) return null;
 
   const fields = [
@@ -24,7 +23,7 @@ function calendarDayPriceAmount(day: Record<string, any> | null | undefined): nu
   return null;
 }
 
-function calendarDayPriceLabel(day: Record<string, any> | null | undefined): string | null {
+function calendarDayPriceLabel(day: Row | null | undefined): string | null {
   const amount = calendarDayPriceAmount(day);
   if (!amount) return null;
 
@@ -35,7 +34,7 @@ function calendarDayPriceLabel(day: Record<string, any> | null | undefined): str
   }).format(amount);
 }
 
-function isCalendarDayBooked(day: Record<string, any> | null | undefined): boolean {
+function isCalendarDayBooked(day: Row | null | undefined): boolean {
   if (!day) return false;
 
   return Boolean(
@@ -49,6 +48,9 @@ function isCalendarDayBooked(day: Record<string, any> | null | undefined): boole
     day.status === "occupied",
   );
 }
+
+"use client";
+
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Tone = "navy" | "blue" | "orange" | "mustard" | "green";
@@ -532,7 +534,7 @@ function Planning({ selected }: { selected: Scope[] }) {
                   {!isCalendarDayBooked(day) && calendarDayPriceLabel(day) ? (
                     <span
                       title="Prix jour libre"
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
+                      className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
                     >
                       {calendarDayPriceLabel(day)}
                     </span>

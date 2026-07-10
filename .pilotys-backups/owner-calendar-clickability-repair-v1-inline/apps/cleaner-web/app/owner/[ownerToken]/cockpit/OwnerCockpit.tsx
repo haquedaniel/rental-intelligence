@@ -253,7 +253,7 @@ function MetricButton({ active, onClick, label, value, delta, tone }: { active: 
         active ? "ring-[#E0680E]/36 shadow-[0_14px_34px_rgba(224,104,14,0.09)]" : "ring-[#112532]/8 hover:ring-[#112532]/15"
       }`}
     >
-      <svg viewBox="0 0 320 90" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25">
+      <svg viewBox="0 0 320 90" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25 pointer-events-none">
         <path d="M0 48 C58 82 104 38 164 55 C222 72 262 25 320 45 V90 H0 Z" fill={wave} />
       </svg>
       <div className="relative flex items-center gap-3">
@@ -580,7 +580,7 @@ function reservationCleaningTitle(state: PlanningReservation["cleaningState"]) {
 
 function ReservationTooltip({ reservation }: { reservation: PlanningReservation }) {
   return (
-    <span className="absolute left-1/2 top-full z-[80] mt-2 hidden w-64 -translate-x-1/2 rounded-2xl bg-white p-3 text-left text-[#112532] shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10 group-hover:block">
+    <span className="pointer-events-none absolute left-1/2 top-full z-[80] mt-2 hidden w-64 -translate-x-1/2 rounded-2xl bg-white p-3 text-left text-[#112532] shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10 group-hover:block">
       <span className="block truncate text-sm font-black">{reservation.guest}</span>
       <span className="mt-1 block text-xs font-bold text-[#112532]/58">
         {formatMoney(reservation.price)} · {reservation.span} nuit{reservation.span > 1 ? "s" : ""} · {reservation.nightly}€/nuit
@@ -753,7 +753,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                     <div className="relative h-full overflow-hidden rounded-[1rem]">
                       <div className="absolute bottom-2 left-2 top-2 z-40 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
 
-                      <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
+                      <div className="absolute inset-0 grid gap-1 pointer-events-none" style={{ gridTemplateColumns }}>
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const covered = coveredDays.has(day);
@@ -766,7 +766,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         })}
                       </div>
 
-                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
+                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2 pointer-events-none">
                         {rowReservations
                           .filter((reservation) => reservation.cleaningDay)
                           .map((reservation) => {
@@ -785,7 +785,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                           })}
                       </div>
 
-                      <div className="absolute inset-0 z-20">
+                      <div className="absolute inset-0 z-20 pointer-events-none">
                         {rowReservations.map((reservation) => (
                           <a
                             key={reservation.id}
@@ -797,8 +797,8 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                               backgroundColor: listing.dot,
                             }}
                           >
-                            <span className="absolute inset-0 overflow-hidden rounded-2xl">
-                              <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8" />
+                            <span className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                              <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8 pointer-events-none" />
                             </span>
                             <span className="relative flex h-full items-center justify-center truncate px-3 text-xs font-black leading-5">{reservation.guest}</span>
                             <ReservationTooltip reservation={reservation} />
@@ -806,7 +806,7 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
                         ))}
                       </div>
 
-                      <div className="absolute inset-0 z-30">
+                      <div className="absolute inset-0 z-30 pointer-events-none">
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
