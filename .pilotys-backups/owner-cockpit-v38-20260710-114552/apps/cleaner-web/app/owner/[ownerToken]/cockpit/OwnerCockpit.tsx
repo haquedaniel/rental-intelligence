@@ -13,7 +13,6 @@ import type {
 } from "./types";
 
 const MONTH_TARGET_FALLBACK = 4000;
-const PLANNING_DAY_GAP_PX = 4; // Tailwind gap-1 between day cells.
 
 function formatMoney(value: number, digits = 0) {
   return new Intl.NumberFormat("fr-FR", {
@@ -490,24 +489,18 @@ function AutoScrollPlanningRail({
 
 
 
-function planningDayPitchPx(dayWidthPx: number) {
-  return dayWidthPx + PLANNING_DAY_GAP_PX;
-}
-
 function dayCenterLeftPx(day: number, dayWidthPx: number) {
-  const pitch = planningDayPitchPx(dayWidthPx);
-  return (Math.max(1, day) - 1) * pitch + dayWidthPx / 2;
+  return (Math.max(1, day) - 0.5) * dayWidthPx;
 }
 
 function reservationLeftPx(reservation: PlanningReservation, dayWidthPx: number) {
   // Check-in afternoon: start halfway through the check-in day.
-  return dayCenterLeftPx(reservation.start, dayWidthPx);
+  return (reservation.start - 0.5) * dayWidthPx;
 }
 
 function reservationWidthPx(reservation: PlanningReservation, dayWidthPx: number) {
   // Checkout morning: end halfway through the checkout day.
-  // A stay with span N should run from the centre of day D to the centre of day D+N.
-  return Math.max(44, reservation.span * planningDayPitchPx(dayWidthPx));
+  return Math.max(44, reservation.span * dayWidthPx);
 }
 
 function reservationCleaningBorder(state: PlanningReservation["cleaningState"]) {
