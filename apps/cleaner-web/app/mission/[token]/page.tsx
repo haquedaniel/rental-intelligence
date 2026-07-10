@@ -118,6 +118,14 @@ export default async function MissionPage({ params }: PageProps) {
   if (error || !mission) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
+
+      <Link
+        href={`/mission/${token}/reservation`}
+        className="mb-4 inline-flex rounded-full bg-[#112532] px-4 py-3 text-sm font-black text-white shadow-sm"
+      >
+        Briefing séjour →
+      </Link>
+
         <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow">
           <h1 className="text-xl font-semibold text-slate-900">
             {t("fr", "common.missionNotFound")}
