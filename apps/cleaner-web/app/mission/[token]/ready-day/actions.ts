@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logCleaningRequestEvent } from "@/lib/operationalEventLog";
 import { fullDateTimeLabel } from "@/lib/missionReadyDays";
 import {
   backupMissionOfferMessage,
@@ -238,6 +239,28 @@ export async function acceptMissionReadyDay(formData: FormData) {
     throw new Error(`Impossible d’accepter la mission : ${updateError.message}`);
   }
 
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: "mission_ready_day_confirmed",
+    severity: "info",
+    source: "ready_day_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: "accepted",
+    reasonCode: "cleaner_selected_ready_day",
+    reason: "Cleaner selected a ready-by day and confirmed the mission.",
+    title: "Mission confirmée",
+    summary: `Prêt avant ${option.ready_by_at}`,
+    eventKey: `mission:${request.id}:ready_day_confirmed:${option.id}`,
+    context: {
+      token,
+      option_id: option.id,
+      ready_by_at: option.ready_by_at,
+      ready_by_date: option.ready_by_date,
+      previous_schedule_status: request.schedule_status,
+    },
+  });
+
   await supabase
     .from("cleaning_request_ready_day_options")
     .update({ selected_at: null })
@@ -371,6 +394,29 @@ export async function refuseMissionFromReadyDay(formData: FormData) {
     throw new Error(`Impossible de refuser la mission : ${refuseError.message}`);
   }
 
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: "mission_refused",
+    severity: "warning",
+    source: "ready_day_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: "refused",
+    reasonCode: "cleaner_refused_ready_day_offer",
+    reason: refusalReason,
+    title: "Mission refusée",
+    summary: refusalReason,
+    eventKey: `mission:${request.id}:ready_day_refused:${now}`,
+    context: {
+      token,
+      refusal_reason: refusalReason,
+      previous_schedule_status: request.schedule_status,
+      new_schedule_status: originalScheduleStatus,
+      backup_cleaner_found: Boolean(backupCleaner),
+      backup_cleaner_id: backupCleaner?.id ?? null,
+    },
+  });
+
   await enqueueSms({
     phone: primaryCleaner?.phone,
     cleaningRequestId: request.id,
@@ -442,6 +488,29 @@ export async function refuseMissionFromReadyDay(formData: FormData) {
       newRequestId: backupRequest.id,
       backupCleanerId: backupCleaner.id,
       testScenarioId: request.test_scenario_id,
+    });
+
+    await logCleaningRequestEvent(supabase, backupRequest.id, {
+      eventType: "mission_backup_created_after_refusal",
+      severity: "warning",
+      source: "ready_day_action",
+      actorType: "system",
+      statusBefore: null,
+      statusAfter: "sent",
+      reasonCode: "primary_cleaner_refused",
+      reason: "A backup mission was created automatically after the primary cleaner refused.",
+      title: "Mission proposée à un backup",
+      summary: `Backup après refus de ${primaryName}`,
+      eventKey: `mission:${backupRequest.id}:backup_after_refusal:${request.id}`,
+      context: {
+        original_request_id: request.id,
+        original_cleaner_id: request.assigned_cleaner_id,
+        original_cleaner_name: primaryName,
+        backup_cleaner_id: backupCleaner.id,
+        backup_cleaner_name: displayName(backupCleaner),
+        refusal_reason: refusalReason,
+        property_name: propertyName,
+      },
     });
 
     const baseUrl = siteBaseUrl();

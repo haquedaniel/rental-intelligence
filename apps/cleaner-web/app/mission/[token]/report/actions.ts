@@ -4,6 +4,7 @@ import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logCleaningRequestEvent } from "@/lib/operationalEventLog";
 import { getCleanerLocale, type CleanerLocale } from "@/lib/cleanerI18n";
 import { loadTranslatedChecklistSections } from "@/lib/checklistSectionTranslations";
 
@@ -432,5 +433,33 @@ if (!template) {
     );
   }
 
-  redirect(`/mission/${token}/report?submitted=1`);
+  await logCleaningRequestEvent(supabase, mission.id, {
+    eventType: hasProblem ? "mission_problem_reported" : "mission_report_submitted",
+    severity: hasProblem ? "warning" : "info",
+    source: "cleaning_report_action",
+    actorType: "cleaner",
+    actorId: mission.assigned_cleaner_id,
+    statusBefore: mission.status,
+    statusAfter: hasProblem ? "problem_reported" : "report_submitted",
+    reasonCode: hasProblem ? "cleaner_reported_problem" : "cleaner_submitted_report",
+    reason: hasProblem
+      ? "Cleaner submitted a report with at least one problem flag."
+      : "Cleaner submitted the cleaning report.",
+    title: hasProblem ? "Problème signalé" : "Rapport ménage reçu",
+    summary: hasProblem ? "Le rapport contient un problème." : "Le rapport ménage a été envoyé.",
+    eventKey: `mission:${mission.id}:report:${Date.now()}`,
+    context: {
+      token,
+      has_problem: hasProblem,
+      damage_found: damageFound,
+      missing_items: missingItems,
+      guest_left_items: guestLeftItems,
+      linen_problem: linenProblem,
+      consumables_problem: consumablesProblem,
+      checklist_template_id: template.id,
+      checklist_version: template.version,
+    },
+  });
+
+redirect(`/mission/${token}/report?submitted=1`);
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logCleaningRequestEvent } from "@/lib/operationalEventLog";
 
 const BASE_URL =
   process.env.CLEANER_WEB_BASE_URL ||
@@ -181,6 +182,28 @@ export async function acceptIntervention(formData: FormData) {
     throw new Error(`Impossible d’accepter : ${updateError.message}`);
   }
 
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: "intervention_accepted",
+    severity: "info",
+    source: "intervention_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: "accepted",
+    reasonCode: "intervenant_selected_slot",
+    reason: "Intervenant accepted the intervention and selected a slot.",
+    title: "Intervention acceptée",
+    summary: request.title,
+    eventKey: `intervention:${request.id}:accepted:${selectedStartIso}`,
+    context: {
+      token,
+      selected_start_at: selectedStartIso,
+      selected_end_at: selectedEndIso,
+      estimated_hours: estimatedHours,
+      allow_occupied_intervention: request.allow_occupied_intervention ?? null,
+    },
+  });
+
   await enqueueOwnerSms(
     request,
     [
@@ -287,6 +310,29 @@ export async function changeInterventionSlot(formData: FormData) {
     throw new Error(`Impossible de modifier le créneau : ${updateError.message}`);
   }
 
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: "intervention_slot_changed",
+    severity: "info",
+    source: "intervention_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: request.status,
+    reasonCode: "intervenant_changed_slot",
+    reason: "Intervenant changed the accepted intervention slot.",
+    title: "Créneau intervention modifié",
+    summary: request.title,
+    eventKey: `intervention:${request.id}:slot_changed:${selectedStartIso}`,
+    context: {
+      token,
+      previous_scheduled_start_at: request.scheduled_start_at ?? null,
+      previous_scheduled_end_at: request.scheduled_end_at ?? null,
+      selected_start_at: selectedStartIso,
+      selected_end_at: selectedEndIso,
+      estimated_hours: estimatedHours,
+    },
+  });
+
   await enqueueOwnerSms(
     request,
     [
@@ -335,6 +381,26 @@ export async function refuseIntervention(formData: FormData) {
   if (updateError) {
     throw new Error(`Impossible de refuser : ${updateError.message}`);
   }
+
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: "intervention_refused",
+    severity: "warning",
+    source: "intervention_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: "refused",
+    reasonCode: "intervenant_refused",
+    reason: reason || "No reason provided.",
+    title: "Intervention refusée",
+    summary: request.title,
+    eventKey: `intervention:${request.id}:refused:${now}`,
+    context: {
+      token,
+      refusal_reason: reason || null,
+      no_backup_escalation: request.no_backup_escalation ?? null,
+    },
+  });
 
   await enqueueOwnerSms(
     request,

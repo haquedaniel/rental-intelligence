@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { Buffer } from "node:buffer";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logCleaningRequestEvent } from "@/lib/operationalEventLog";
 
 const PHOTO_BUCKET = "intervention-report-photos";
 
@@ -315,5 +316,36 @@ export async function submitInterventionReport(formData: FormData) {
     totalCost,
   });
 
-  redirect(`/mission/${token}/intervention?reported=1`);
+  await logCleaningRequestEvent(supabase, request.id, {
+    eventType: finalStatus === "problem_reported"
+      ? "intervention_problem_reported"
+      : "intervention_report_submitted",
+    severity: finalStatus === "problem_reported" ? "warning" : "info",
+    source: "intervention_report_action",
+    actorType: "cleaner",
+    actorId: request.assigned_cleaner_id,
+    statusBefore: request.status,
+    statusAfter: finalStatus,
+    reasonCode: finalStatus === "problem_reported"
+      ? "intervenant_reported_problem"
+      : "intervenant_submitted_report",
+    reason: "Intervention report submitted by cleaner/intervenant.",
+    title: finalStatus === "problem_reported"
+      ? "Problème intervention signalé"
+      : "Rapport intervention reçu",
+    summary: request.title,
+    eventKey: `intervention:${request.id}:report:${Date.now()}`,
+    context: {
+      token,
+      final_status: finalStatus,
+      report_status: status,
+      actual_hours: actualHours,
+      labour_total_eur: labourTotal,
+      material_total_eur: materialTotal,
+      total_cost_eur: totalCost,
+      proof_photo_count: proofFiles.length,
+    },
+  });
+
+redirect(`/mission/${token}/intervention?reported=1`);
 }
