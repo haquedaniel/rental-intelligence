@@ -548,17 +548,6 @@ function rangePosition(startKey: string, endKey: string, units: string[]) {
   };
 }
 
-function groupReadyDayOptionsByRequestId(options: Row[]) {
-  return options.reduce<Record<string, Row[]>>((acc, option) => {
-    const requestId = String(option.cleaning_request_id ?? "");
-    if (!requestId) return acc;
-
-    if (!acc[requestId]) acc[requestId] = [];
-    acc[requestId].push(option);
-    return acc;
-  }, {});
-}
-
 function KpiCard({
   label,
   value,
@@ -759,7 +748,6 @@ function PropertyPlanningTimeline({
   requests,
   cleanersById,
   reservationsById,
-  readyOptionsByRequestId,
   currentCleanerId,
   locale,
 }: {
@@ -768,7 +756,6 @@ function PropertyPlanningTimeline({
   requests: Row[];
   cleanersById: Record<string, Row>;
   reservationsById: Record<string, Row>;
-  readyOptionsByRequestId: Record<string, Row[]>;
   currentCleanerId: string;
   locale: CleanerLocale;
 }) {
@@ -1157,21 +1144,6 @@ export default async function CleanerPlanningPage({
     ...new Set(visibleCalendarRequests.map((request) => request.assigned_cleaner_id).filter(Boolean)),
   ];
 
-  const readyOptionRequestIds = visibleCalendarRequests
-    .filter((request) => ["created", "sent"].includes(String(request.status)))
-    .map((request) => request.id)
-    .filter(Boolean);
-
-  const readyOptionsResult = readyOptionRequestIds.length
-    ? await supabase
-        .from("cleaning_request_ready_day_options")
-        .select("*")
-        .in("cleaning_request_id", readyOptionRequestIds)
-        .order("ready_by_at", { ascending: true })
-    : { data: [] };
-
-  const readyOptionsByRequestId = groupReadyDayOptionsByRequestId((readyOptionsResult.data ?? []) as Row[]);
-
   const cleanersResult = cleanerIds.length
     ? await supabase.from("cleaners").select("*").in("id", cleanerIds)
     : { data: [] };
@@ -1308,7 +1280,6 @@ export default async function CleanerPlanningPage({
           requests={visibleCalendarRequests}
           cleanersById={cleanersById}
           reservationsById={reservationsById}
-          readyOptionsByRequestId={readyOptionsByRequestId}
           currentCleanerId={String(cleaner.id)}
           locale={locale}
         />

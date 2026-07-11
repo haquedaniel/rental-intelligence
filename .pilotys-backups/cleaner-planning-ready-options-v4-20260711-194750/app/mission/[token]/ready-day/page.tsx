@@ -25,14 +25,10 @@ function shortDate(value?: string | null): string {
 
 export default async function MissionReadyDayPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams?: Promise<{ option_id?: string }>;
 }) {
   const { token } = await params;
-  const query = searchParams ? await searchParams : {};
-  const highlightedOptionId = String(query?.option_id ?? "");
   const supabase = getSupabaseAdmin();
 
   const { data: request } = await supabase
@@ -183,22 +179,12 @@ export default async function MissionReadyDayPage({
                   </p>
                 )}
 
-                {availableOptions.map((option) => {
-                  const isHighlighted = String(option.id) === highlightedOptionId;
-
-                  return (
+                {availableOptions.map((option) => (
                   <form key={option.id} action={acceptMissionReadyDay}>
                     <input type="hidden" name="token" value={token} />
                     <input type="hidden" name="option_id" value={option.id} />
 
-                    <button
-                      className={[
-                        "w-full rounded-2xl border p-4 text-left transition",
-                        isHighlighted
-                          ? "border-[#E0680E] bg-[#FFF5DD] shadow-sm ring-2 ring-[#E0680E]/20"
-                          : "border-[#112532]/10 bg-[#F6F3EF] hover:bg-white",
-                      ].join(" ")}
-                    >
+                    <button className="w-full rounded-2xl border border-[#112532]/10 bg-[#F6F3EF] p-4 text-left transition hover:bg-slate-100">
                       <span className="block text-lg font-black text-[#112532]">
                         {option.label}
                       </span>
@@ -207,8 +193,7 @@ export default async function MissionReadyDayPage({
                       </span>
                     </button>
                   </form>
-                  );
-                })}
+                ))}
               </div>
             </section>
 
