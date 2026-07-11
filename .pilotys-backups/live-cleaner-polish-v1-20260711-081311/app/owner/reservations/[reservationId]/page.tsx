@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import OwnerBottomNav, { OwnerTopNav } from "@/components/owner/OwnerBottomNav";
-import ReservationInstructionSubmitButton from "@/components/owner/ReservationInstructionSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -596,11 +595,6 @@ export default async function OwnerReservationPage({
     null;
   const latestReport = latestReportResult.data as Row | null;
 
-  const preparationInstructionLocked = [preparationMission, checkoutMission, ...cleaningRequests].some((request) =>
-    ["completed", "report_submitted", "problem_reported", "cancelled"].includes(String(request?.status ?? "")),
-  );
-
-
   const allMissionCleanerIds = Array.from(
     new Set(
       [preparationMission, checkoutMission, ...cleaningRequests]
@@ -833,11 +827,11 @@ export default async function OwnerReservationPage({
         </section>
         <section className="rounded-[2rem] bg-[#FFF5DD] p-5 text-[#8A4D00] shadow-sm ring-1 ring-[#F4B044]/25">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">
-            Important notes
+            Instruction préparation
           </p>
-          <h2 className="mt-2 text-2xl font-black">Add any important notes</h2>
+          <h2 className="mt-2 text-2xl font-black">À montrer à l’intervenante</h2>
           <p className="mt-2 text-sm font-bold leading-6 opacity-75">
-            Add anything the cleaner must know for this specific stay. These notes appear on the cleaner checklist/report page.
+            Cette note appartient à ce séjour. La mission qui prépare ce séjour l’affichera en priorité sur la page mission de l’intervenante.
           </p>
 
           <form action={saveReservationPreparationNote} className="mt-4">
@@ -846,17 +840,13 @@ export default async function OwnerReservationPage({
               name="cleaner_preparation_note"
               defaultValue={reservation.cleaner_preparation_note || ""}
               rows={4}
-              disabled={preparationInstructionLocked}
-              className="w-full rounded-2xl border border-[#F4B044]/30 bg-white px-4 py-3 text-sm font-bold text-[#112532] outline-none placeholder:text-[#112532]/35 disabled:bg-[#112532]/5 disabled:text-[#112532]/45"
-              placeholder="Example: cot in the main bedroom, sofa-bed linen, pet attention, special timing..."
+              className="w-full rounded-2xl border border-[#F4B044]/30 bg-white px-4 py-3 text-sm font-bold text-[#112532] outline-none placeholder:text-[#112532]/35"
+              placeholder="Ex. Installer le lit bébé dans la chambre, prévoir draps canapé-lit, attention animal, horaire particulier..."
             />
-            <ReservationInstructionSubmitButton locked={preparationInstructionLocked} />
+            <button className="mt-3 rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white shadow-sm">
+              Enregistrer l’instruction
+            </button>
           </form>
-          {preparationInstructionLocked ? (
-            <p className="mt-3 text-xs font-bold opacity-60">
-              These notes are locked because the related mission is already complete.
-            </p>
-          ) : null}
         </section>
 
 

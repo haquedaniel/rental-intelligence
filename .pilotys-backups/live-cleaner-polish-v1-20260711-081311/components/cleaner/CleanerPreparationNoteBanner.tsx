@@ -83,15 +83,15 @@ export async function CleanerPreparationNoteBanner({ missionToken }: { missionTo
   if (!note) return null;
 
   return (
-    <section className="rounded-3xl bg-[#EFF6F8] p-5 text-[#112532] shadow-sm ring-1 ring-[#80A5B7]/25">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#E0680E]">
-        Important notes
+    <section className="rounded-3xl bg-[#112532] p-5 text-white shadow-sm">
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+        Important pour le prochain séjour
       </p>
-      <h2 className="mt-2 text-xl font-black">Before completing the checklist</h2>
-      <p className="mt-3 whitespace-pre-wrap text-base font-black leading-7 text-[#112532]/82">
+      <h2 className="mt-2 text-xl font-black">À vérifier avant de valider le rapport</h2>
+      <p className="mt-3 whitespace-pre-wrap text-base font-black leading-7 text-white/85">
         {note}
       </p>
-      <p className="mt-4 rounded-2xl bg-white/80 p-3 text-xs font-bold text-[#112532]/55 ring-1 ring-[#112532]/6">
+      <p className="mt-4 rounded-2xl bg-white/10 p-3 text-xs font-bold text-white/65">
         {preparedReservation?.guest_name || "Prochain séjour"} · arrivée {formatDate(preparedReservation?.checkin_at)}
       </p>
     </section>

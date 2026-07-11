@@ -220,7 +220,7 @@ export default async function MissionPage({ params }: PageProps) {
             {preparationNote ? (
               <section className="mb-5 rounded-2xl bg-[#112532] p-4 text-white shadow-sm">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-                  Important notes
+                  Important pour le prochain séjour
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-base font-black leading-7 text-white/85">
                   {preparationNote}

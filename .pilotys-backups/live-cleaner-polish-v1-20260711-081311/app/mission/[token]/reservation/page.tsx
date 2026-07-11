@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import CleanerMissionNav from "@/components/navigation/CleanerMissionNav";
-import { CleanerBottomNav } from "@/components/navigation/CleanerBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -220,7 +218,7 @@ export default async function CleanerReservationBriefingPage({ params }: { param
 
   if (!request) notFound();
 
-  const [propertyResult, reservationResult, messagesResult, cleanerResult] = await Promise.all([
+  const [propertyResult, reservationResult, messagesResult] = await Promise.all([
     request.property_id ? supabase.from("properties").select("*").eq("id", request.property_id).maybeSingle() : Promise.resolve({ data: null }),
     (request.prepares_reservation_id || request.reservation_id) ? supabase.from("reservations").select("*").eq("id", request.prepares_reservation_id || request.reservation_id).maybeSingle() : Promise.resolve({ data: null }),
     (request.prepares_reservation_id || request.reservation_id)
@@ -231,13 +229,11 @@ export default async function CleanerReservationBriefingPage({ params }: { param
           .order("sent_at", { ascending: false })
           .limit(30)
       : Promise.resolve({ data: [] }),
-    request.assigned_cleaner_id ? supabase.from("cleaners").select("public_token").eq("id", request.assigned_cleaner_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
   const property = propertyResult.data as Row | null;
   const reservation = reservationResult.data as Row | null;
   const messages = (messagesResult.data ?? []) as Row[];
-  const cleaner = cleanerResult.data as Row | null;
   const coverUrl = await propertyCoverUrl(supabase, request.property_id);
   const { previousReservation, nextReservation } = await previousAndNextReservations(supabase, reservation, request.property_id);
 
@@ -281,9 +277,6 @@ export default async function CleanerReservationBriefingPage({ params }: { param
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#112532] via-[#112532]/72 to-[#112532]/28" />
         <div className="relative mx-auto max-w-4xl px-4 pb-8 pt-5">
-          <div className="mb-4 rounded-2xl bg-white/8 p-2 backdrop-blur-md ring-1 ring-white/12">
-            <CleanerMissionNav missionToken={token} active="missions" />
-          </div>
           <div className="flex items-center justify-between gap-3">
             <Link href={`/mission/${token}`} className="rounded-full bg-white/12 px-4 py-2 text-xs font-black text-white ring-1 ring-white/18">
               ← Retour mission
@@ -323,10 +316,10 @@ export default async function CleanerReservationBriefingPage({ params }: { param
         </section>
 
         {priorityNote ? (
-          <section className="rounded-[2rem] bg-[#EFF6F8] p-5 text-[#112532] shadow-sm ring-1 ring-[#80A5B7]/25">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#E0680E]">Important notes</p>
-            <h2 className="mt-2 text-2xl font-black">Before the next stay</h2>
-            <p className="mt-4 whitespace-pre-wrap text-base font-bold leading-7 text-[#112532]/75">{priorityNote}</p>
+          <section className="rounded-[2rem] bg-[#112532] p-5 text-white shadow-sm ring-1 ring-[#112532]/20">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Important pour le séjour préparé</p>
+            <h2 className="mt-2 text-2xl font-black">À faire / vérifier en priorité</h2>
+            <p className="mt-4 whitespace-pre-wrap text-base font-bold leading-7 text-white/82">{priorityNote}</p>
           </section>
         ) : null}
 
@@ -402,12 +395,6 @@ export default async function CleanerReservationBriefingPage({ params }: { param
           Retour à la mission
         </Link>
       </div>
-      <CleanerBottomNav
-        cleanerToken={cleaner?.public_token}
-        missionToken={token}
-        active="missions"
-        locale="fr"
-      />
     </main>
   );
 }

@@ -726,10 +726,10 @@ export default async function OwnerMissionPage({
           )}
         </section>
 
-        <section className="grid min-w-0 gap-5 lg:grid-cols-[1fr_1fr]">
-          <article className="min-w-0 overflow-hidden rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
-            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
+        <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+          <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-[#112532]/8">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#80A5B7]">SMS / notifications</p>
                 <h2 className="mt-2 text-2xl font-black">Messages mission</h2>
                 <p className="mt-1 text-sm font-bold text-[#112532]/48">
@@ -748,13 +748,13 @@ export default async function OwnerMissionPage({
             <div className="mt-5 space-y-3">
               {outboundMessages.length ? (
                 outboundMessages.map((message) => (
-                  <div key={message.id} className="min-w-0 overflow-hidden rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
-                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-black text-[#112532]">
+                  <div key={message.id} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-[#112532]">
                           {String(message.message_type || message.channel || "Message").replace(/_/g, " ")}
                         </p>
-                        <p className="mt-1 break-words text-xs font-bold text-[#112532]/45">
+                        <p className="mt-1 text-xs font-bold text-[#112532]/45">
                           {dateTime(message.created_at || message.sent_at || message.last_attempt_at)}
                           {" · "}
                           {valueWithPayload(message, ["recipient_phone", "to", "provider_to"], "destinataire inconnu")}
@@ -765,16 +765,16 @@ export default async function OwnerMissionPage({
                       </span>
                     </div>
 
-                    <p className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-white p-3 text-sm font-medium leading-6 text-[#112532]/68 ring-1 ring-[#112532]/6">
+                    <p className="mt-3 whitespace-pre-wrap rounded-2xl bg-white p-3 text-sm font-medium leading-6 text-[#112532]/68 ring-1 ring-[#112532]/6">
                       {valueWithPayload(message, ["body", "message", "content", "text"], "Message enregistré sans contenu.")}
                     </p>
 
                     {(message.provider_message_id || message.error || message.event_key) ? (
-                      <div className="mt-3 grid min-w-0 gap-2 text-xs font-bold text-[#112532]/45 sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 text-xs font-bold text-[#112532]/45 sm:grid-cols-2">
                         <span>Provider : {message.provider || "—"}</span>
-                        <span className="break-all">ID : {message.provider_message_id || "—"}</span>
+                        <span>ID : {message.provider_message_id || "—"}</span>
                         <span>Dernière tentative : {dateTime(message.last_attempt_at)}</span>
-                        <span className="break-words">Erreur : {message.error || "—"}</span>
+                        <span>Erreur : {message.error || "—"}</span>
                       </div>
                     ) : null}
                   </div>
@@ -816,7 +816,7 @@ export default async function OwnerMissionPage({
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-black text-[#112532]">{auditTitle(event)}</p>
-                          <p className="mt-1 break-words text-xs font-bold text-[#112532]/45">
+                          <p className="mt-1 text-xs font-bold text-[#112532]/45">
                             {dateTime(event.created_at || event.changed_at)} · {event.changed_by || "système"}
                           </p>
                         </div>
