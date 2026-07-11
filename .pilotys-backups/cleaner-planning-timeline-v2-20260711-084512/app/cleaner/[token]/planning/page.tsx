@@ -11,8 +11,7 @@ type Row = Record<string, any>;
 
 const PARIS_TZ = "Europe/Paris";
 const DAY_WIDTH = 52;
-const HISTORY_DAYS = 7;
-const HORIZON_DAYS = 191;
+const HORIZON_DAYS = 184;
 
 const PROPERTY_PALETTE = [
   {
@@ -680,6 +679,9 @@ function PropertyThumb({
       </div>
       <div className="min-w-0">
         <p className="truncate text-xs font-black text-[#112532]">{name}</p>
+        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#112532]/36">
+          {palette.key}
+        </p>
       </div>
     </div>
   );
@@ -698,7 +700,7 @@ function MissionBubble({
   overdue: boolean;
   locale: CleanerLocale;
 }) {
-  const showIdentity = ["accepted", "completed", "report_submitted"].includes(String(request.status));
+  const showPhoto = Boolean(cleaner?.signedPhotoUrl) && ["accepted", "completed", "report_submitted"].includes(String(request.status));
   const title = `${cleanerName(cleaner, mine ? c(locale).mine : c(locale).otherCleaner)} · ${statusLabel(request, overdue, locale)} · ${fullDateLabel(anchorAt(request), locale)}`;
 
   const classes = [
@@ -708,7 +710,7 @@ function MissionBubble({
     mine ? "hover:scale-105" : "opacity-72",
   ].join(" ");
 
-  const content = showIdentity ? (
+  const content = showPhoto ? (
     <CleanerAvatar cleaner={cleaner} fallback={mine ? "M" : "?"} />
   ) : (
     <span>{calendarMissionIcon(request, overdue)}</span>
@@ -748,9 +750,7 @@ function PropertyPlanningTimeline({
 }) {
   const copy = c(locale);
   const today = parisDateKey(new Date());
-  const calendarStartKey = addDays(today, -HISTORY_DAYS);
-  const todayIndex = HISTORY_DAYS;
-  const units = Array.from({ length: HORIZON_DAYS }, (_, index) => addDays(calendarStartKey, index));
+  const units = Array.from({ length: HORIZON_DAYS }, (_, index) => addDays(today, index));
   const timelineWidth = units.length * DAY_WIDTH;
 
   const monthBlocks: Array<{ key: string; label: string; left: number; width: number }> = [];
@@ -801,7 +801,7 @@ function PropertyPlanningTimeline({
         ))}
       </div>
 
-      <div className="mt-3 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-[1.7rem] bg-[#F6F3EF] pb-3" data-cleaner-timeline-scroll data-today-index={todayIndex} data-day-width={DAY_WIDTH}>
+      <div className="mt-3 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-[1.7rem] bg-[#F6F3EF] pb-3">
         <div className="min-w-max max-w-none">
           <div className="relative h-[82px] border-b border-[#112532]/10 bg-white" style={{ width: timelineWidth }}>
             <div className="absolute left-0 top-0 h-[24px]">
@@ -874,9 +874,13 @@ function PropertyPlanningTimeline({
                       })}
                     </div>
 
-                    <div className="absolute left-0 right-0 top-[108px] h-px border-t border-dashed border-[#112532]/10" />
+                    <div className="absolute left-3 top-2 z-30 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black text-[#112532]/62 shadow-sm ring-1 ring-[#112532]/8">
+                      {propertyName(property, locale)}
+                    </div>
 
-                    <div className="absolute left-0 right-0 top-8 h-[54px]">
+                    <div className="absolute left-0 right-0 top-28 h-px border-t border-dashed border-[#112532]/10" />
+
+                    <div className="absolute left-0 right-0 top-10 h-[36px]">
                       {propertyReservations.map((reservation) => {
                         if (!reservation.checkin_at || !reservation.checkout_at) return null;
 
@@ -894,7 +898,7 @@ function PropertyPlanningTimeline({
                         const linkedRequest = linkedRequestForReservation(propertyRequests, reservation);
                         const briefing = briefingHref(linkedRequest);
 
-                        const className = `absolute top-0 flex h-[48px] flex-col justify-center overflow-hidden rounded-[1.4rem] px-3 py-1 text-[10px] font-black shadow-sm ${palette.stay}`;
+                        const className = `absolute top-0 h-[30px] overflow-hidden rounded-full px-3 py-1 text-[10px] font-black shadow-sm ${palette.stay}`;
 
                         if (briefing) {
                           return (
@@ -905,8 +909,7 @@ function PropertyPlanningTimeline({
                               style={{ left: pos.left, width: pos.width }}
                               title={`${guestName(reservation, locale)} · ${copy.briefing}`}
                             >
-                              <p className="truncate text-[11px] leading-tight">{guestName(reservation, locale)}</p>
-                              <p className="truncate text-[9px] leading-tight opacity-70">{compactDateLabel(reservation.checkin_at, locale)} → {compactDateLabel(reservation.checkout_at, locale)}</p>
+                              <p className="truncate">{guestName(reservation, locale)}</p>
                             </Link>
                           );
                         }
@@ -918,14 +921,13 @@ function PropertyPlanningTimeline({
                             style={{ left: pos.left, width: pos.width }}
                             title={`${guestName(reservation, locale)} · ${propertyName(property, locale)}`}
                           >
-                            <p className="truncate text-[11px] leading-tight">{guestName(reservation, locale)}</p>
-                            <p className="truncate text-[9px] leading-tight opacity-70">{compactDateLabel(reservation.checkin_at, locale)} → {compactDateLabel(reservation.checkout_at, locale)}</p>
+                            <p className="truncate">{guestName(reservation, locale)}</p>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="absolute left-0 right-0 top-[86px] h-[24px]">
+                    <div className="absolute left-0 right-0 top-[82px] h-[24px]">
                       {propertyRequests.map((request) => {
                         if (!["created", "sent"].includes(String(request.status))) return null;
                         if (String(request.assigned_cleaner_id || "") !== currentCleanerId) return null;
@@ -952,28 +954,7 @@ function PropertyPlanningTimeline({
                       })}
                     </div>
 
-
-                    <div className="pointer-events-none absolute left-0 right-0 top-[78px] h-[42px]">
-                      {propertyRequests.map((request) => {
-                        const anchor = dateKeyFrom(anchorAt(request));
-                        if (!anchor) return null;
-                        const center = centerForDateKey(anchor, units);
-                        if (center === null) return null;
-
-                        const reservation = reservationsById[String(linkedReservationId(request) || "")];
-                        if (!reservation) return null;
-
-                        return (
-                          <div
-                            key={`${request.id}-connector`}
-                            className={`absolute top-0 h-[42px] border-l-2 border-dashed ${palette.line}`}
-                            style={{ left: center }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    <div className="absolute left-0 right-0 top-[114px] h-[40px]">
+                    <div className="absolute left-0 right-0 top-[106px] h-[40px]">
                       {propertyRequests.map((request) => {
                         const anchor = dateKeyFrom(anchorAt(request));
                         if (!anchor) return null;
@@ -1051,8 +1032,7 @@ export default async function CleanerPlanningPage({
   const horizonEnd = addDays(today, HORIZON_DAYS - 1);
   const twoWeekEnd = addDays(today, 13);
 
-  const calendarStartKey = addDays(today, -HISTORY_DAYS);
-  const calendarStart = new Date(`${calendarStartKey}T00:00:00.000Z`);
+  const calendarStart = new Date(`${today}T00:00:00.000Z`);
   const calendarEnd = new Date(`${horizonEnd}T23:59:59.000Z`);
 
   const { data: requestRows } = await supabase
@@ -1412,21 +1392,6 @@ export default async function CleanerPlanningPage({
           </section>
         </section>
       </div>
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            requestAnimationFrame(() => {
-              const el = document.querySelector('[data-cleaner-timeline-scroll]');
-              if (!el) return;
-              const todayIndex = Number(el.getAttribute('data-today-index') || 0);
-              const dayWidth = Number(el.getAttribute('data-day-width') || 52);
-              const target = Math.max(0, todayIndex * dayWidth - 120);
-              el.scrollLeft = target;
-            });
-          `,
-        }}
-      />
 
       <CleanerBottomNav cleanerToken={token} active="planning" locale={locale} />
     </main>
