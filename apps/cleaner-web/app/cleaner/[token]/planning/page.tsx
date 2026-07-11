@@ -517,6 +517,19 @@ function centerForDateKey(dateKey: string, units: string[]) {
   return index * DAY_WIDTH + DAY_WIDTH / 2;
 }
 
+
+function reservationCheckoutCenter(reservation: Row | null | undefined, units: string[]) {
+  if (!reservation?.checkout_at) return null;
+  const checkout = dateKeyFrom(reservation.checkout_at);
+  if (!checkout) return null;
+
+  const offset = daysBetween(units[0], checkout);
+  const center = offset * DAY_WIDTH + DAY_WIDTH / 2;
+
+  if (center < 0 || center > units.length * DAY_WIDTH) return null;
+  return center;
+}
+
 function rangePosition(startKey: string, endKey: string, units: string[]) {
   const startOffset = daysBetween(units[0], startKey);
   const endOffset = daysBetween(units[0], endKey);
@@ -801,7 +814,7 @@ function PropertyPlanningTimeline({
         ))}
       </div>
 
-      <div className="mt-3 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-[1.7rem] bg-[#F6F3EF] pb-3" data-cleaner-timeline-scroll data-today-index={todayIndex} data-day-width={DAY_WIDTH}>
+      <div className="mt-3 w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-[1.7rem] bg-[#F6F3EF] pb-3 [scrollbar-width:thin]" data-cleaner-timeline-scroll data-today-index={todayIndex} data-day-width={DAY_WIDTH}>
         <div className="min-w-max max-w-none">
           <div className="relative h-[82px] border-b border-[#112532]/10 bg-white" style={{ width: timelineWidth }}>
             <div className="absolute left-0 top-0 h-[24px]">
@@ -854,10 +867,10 @@ function PropertyPlanningTimeline({
               );
 
               return (
-                <div key={propertyId} className="relative bg-white" style={{ width: timelineWidth }}>
+                <div key={propertyId} className="relative overflow-visible bg-white" style={{ width: timelineWidth }}>
                   <div className={`absolute left-0 top-0 z-20 h-full w-1.5 ${palette.dot}`} />
 
-                  <div className="relative h-[136px]" style={{ width: timelineWidth }}>
+                  <div className="relative h-[168px]" style={{ width: timelineWidth }}>
                     <div className="absolute inset-0 flex">
                       {units.map((dateKey) => {
                         const isToday = dateKey === today;
@@ -873,8 +886,6 @@ function PropertyPlanningTimeline({
                         );
                       })}
                     </div>
-
-                    <div className="absolute left-0 right-0 top-[108px] h-px border-t border-dashed border-[#112532]/10" />
 
                     <div className="absolute left-0 right-0 top-8 h-[54px]">
                       {propertyReservations.map((reservation) => {
@@ -922,70 +933,6 @@ function PropertyPlanningTimeline({
                             <p className="truncate text-[9px] leading-tight opacity-70">{compactDateLabel(reservation.checkin_at, locale)} → {compactDateLabel(reservation.checkout_at, locale)}</p>
                           </div>
                         );
-                      })}
-                    </div>
-
-                    <div className="absolute left-0 right-0 top-[86px] h-[24px]">
-                      {propertyRequests.map((request) => {
-                        if (!["created", "sent"].includes(String(request.status))) return null;
-                        if (String(request.assigned_cleaner_id || "") !== currentCleanerId) return null;
-
-                        const reservation = reservationsById[String(linkedReservationId(request) || "")];
-                        const startKey = dateKeyFrom(windowStartAt(request, reservation));
-                        const endKey = dateKeyFrom(anchorAt(request));
-                        if (!startKey || !endKey) return null;
-
-                        const pos = rangePosition(startKey, endKey, units);
-                        if (!pos) return null;
-
-                        return (
-                          <Link
-                            key={`${request.id}-zone`}
-                            href={missionHref(request)}
-                            className={`absolute top-0 h-[22px] rounded-full px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-[#8A4D00] ring-1 ${palette.zone}`}
-                            style={{ left: pos.left, width: pos.width }}
-                            title={`${copy.proposedWindow} · ${statusLabel(request, false, locale)}`}
-                          >
-                            <span className="truncate">{copy.chooseDay}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-
-                    <div className="pointer-events-none absolute left-0 right-0 top-[78px] h-[42px]">
-                      {propertyRequests.map((request) => {
-                        const anchor = dateKeyFrom(anchorAt(request));
-                        if (!anchor) return null;
-                        const center = centerForDateKey(anchor, units);
-                        if (center === null) return null;
-
-                        const reservation = reservationsById[String(linkedReservationId(request) || "")];
-                        if (!reservation) return null;
-
-                        return (
-                          <div
-                            key={`${request.id}-connector`}
-                            className={`absolute top-0 h-[42px] border-l-2 border-dashed ${palette.line}`}
-                            style={{ left: center }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    <div className="absolute left-0 right-0 top-[114px] h-[40px]">
-                      {propertyRequests.map((request) => {
-                        const anchor = dateKeyFrom(anchorAt(request));
-                        if (!anchor) return null;
-
-                        const center = centerForDateKey(anchor, units);
-                        if (center === null) return null;
-
-                        const mine = String(request.assigned_cleaner_id || "") === currentCleanerId;
-                        const cleaner = cleanersById[String(request.assigned_cleaner_id || "")] ?? null;
-                        const overdue = isOverdue(request, false);
-
-                        return null;
                       })}
                     </div>
 
@@ -1421,8 +1368,11 @@ export default async function CleanerPlanningPage({
               if (!el) return;
               const todayIndex = Number(el.getAttribute('data-today-index') || 0);
               const dayWidth = Number(el.getAttribute('data-day-width') || 52);
-              const target = Math.max(0, todayIndex * dayWidth - 120);
+              const target = Math.max(0, todayIndex * dayWidth - (el.clientWidth / 2) + (dayWidth / 2));
               el.scrollLeft = target;
+              setTimeout(() => {
+                el.scrollLeft = target;
+              }, 120);
             });
           `,
         }}
