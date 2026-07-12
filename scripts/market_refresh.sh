@@ -4,17 +4,25 @@ set -euo pipefail
 cd /opt/rental-intelligence
 mkdir -p logs
 
+OPS_SCRIPT_NAME="market_refresh"
+source scripts/lib/ops_event_log.sh
+
 exec 9>/tmp/rental_intelligence_market_refresh.lock
 if ! flock -n 9; then
   echo "===== $(date -Is) market_refresh already running; exiting ====="
+  ops_event_skipped "Another market_refresh run is already holding the lock."
   exit 0
 fi
+
+ops_event_start
+ops_event_install_trap
 
 run_optional() {
   echo
   echo "===== $(date -Is) running $* ====="
   if ! docker compose exec -T cockpit "$@"; then
     echo "WARNING: optional step failed: $*"
+    ops_event_step_failed "$*"
   fi
 }
 
@@ -50,3 +58,4 @@ done
 '
 
 echo "===== $(date -Is) market_refresh complete ====="
+ops_event_mark_complete

@@ -3,6 +3,9 @@ set -euo pipefail
 
 cd /opt/rental-intelligence
 
+OPS_SCRIPT_NAME="cleaning_sms_cron"
+source scripts/lib/ops_event_log.sh
+
 DEFAULT_PROPERTY_IDS="20000000-0000-0000-0000-000000000001,20000000-0000-0000-0000-000000000002"
 
 REQUEST_PROPERTY_IDS="${CLEANING_REQUEST_PROPERTY_IDS:-${CLEANING_SMS_PROPERTY_IDS:-$DEFAULT_PROPERTY_IDS}}"
@@ -15,7 +18,13 @@ LOCK_FILE="${CLEANING_SMS_LOCK_FILE:-/tmp/rental-cleaning-sms-cron.lock}"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 exec 9>"$LOCK_FILE"
-flock -n 9 || exit 0
+if ! flock -n 9; then
+  ops_event_skipped "Another cleaning_sms_cron run is already holding the lock."
+  exit 0
+fi
+
+ops_event_start
+ops_event_install_trap
 
 {
   echo
@@ -85,3 +94,5 @@ python -m rental_intel.cleaning.send_pending_outbound_messages'
 
   echo "===== $(date -Is) cleaning SMS cron end ====="
 } >> "$LOG_FILE" 2>&1
+
+ops_event_mark_complete

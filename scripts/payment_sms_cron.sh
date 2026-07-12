@@ -3,6 +3,9 @@ set -euo pipefail
 
 cd /opt/rental-intelligence
 
+OPS_SCRIPT_NAME="payment_sms_cron"
+source scripts/lib/ops_event_log.sh
+
 SMS_SEND_ENABLED="${SMS_SEND_ENABLED:-true}"
 LOG_FILE="${PAYMENT_SMS_LOG_FILE:-/opt/rental-intelligence/outputs/logs/payment_sms_cron.log}"
 LOCK_FILE="${PAYMENT_SMS_LOCK_FILE:-/tmp/rental-payment-sms-cron.lock}"
@@ -10,7 +13,13 @@ LOCK_FILE="${PAYMENT_SMS_LOCK_FILE:-/tmp/rental-payment-sms-cron.lock}"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 exec 9>"$LOCK_FILE"
-flock -n 9 || exit 0
+if ! flock -n 9; then
+  ops_event_skipped "Another payment_sms_cron run is already holding the lock."
+  exit 0
+fi
+
+ops_event_start
+ops_event_install_trap
 
 {
   echo
@@ -46,3 +55,5 @@ flock -n 9 || exit 0
 
   echo "===== $(date -Is) payment SMS cron end ====="
 } >> "$LOG_FILE" 2>&1
+
+ops_event_mark_complete
