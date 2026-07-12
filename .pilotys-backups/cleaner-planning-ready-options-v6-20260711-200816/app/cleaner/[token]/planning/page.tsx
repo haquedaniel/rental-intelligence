@@ -559,15 +559,6 @@ function groupReadyDayOptionsByRequestId(options: Row[]) {
   }, {});
 }
 
-function readyOptionShortLabel(option: Row) {
-  if (option.ready_by_date) return String(option.ready_by_date).slice(8, 10);
-
-  const value = option.ready_by_at ? String(option.ready_by_at) : "";
-  if (value.length >= 10) return value.slice(8, 10);
-
-  return option.label ? String(option.label).slice(0, 3) : "OK";
-}
-
 function KpiCard({
   label,
   value,
@@ -958,35 +949,6 @@ function PropertyPlanningTimeline({
                       })}
                     </div>
 
-                    <div className="absolute left-0 right-0 top-[86px] z-30 h-[30px]">
-                      {propertyRequests.flatMap((request) => {
-                        if (!["created", "sent"].includes(String(request.status))) return [];
-                        if (String(request.assigned_cleaner_id || "") !== currentCleanerId) return [];
-
-                        const options = readyOptionsByRequestId[String(request.id)] ?? [];
-
-                        return options.flatMap((option) => {
-                          const optionKey = dateKeyFrom(option.ready_by_at);
-                          if (!optionKey) return [];
-
-                          const center = centerForDateKey(optionKey, units);
-                          if (center === null) return [];
-
-                          return [
-                            <Link
-                              key={`${request.id}-ready-option-${option.id}`}
-                              href={`/mission/${request.public_token}/ready-day?option_id=${option.id}`}
-                              className="absolute top-0 flex h-[28px] min-w-[42px] -translate-x-1/2 items-center justify-center rounded-full bg-[#FFF5DD] px-2 text-[10px] font-black text-[#8A4D00] shadow-sm ring-2 ring-[#F4B044]/45"
-                              style={{ left: center }}
-                              title={`${option.label || copy.chooseDay} - ${copy.proposedWindow}`}
-                            >
-                              {readyOptionShortLabel(option)}
-                            </Link>,
-                          ];
-                        });
-                      })}
-                    </div>
-
                     <div className="absolute left-0 right-0 top-[106px] h-[40px]">
                       {propertyRequests.map((request) => {
                         const anchor = dateKeyFrom(anchorAt(request));
@@ -1205,7 +1167,6 @@ export default async function CleanerPlanningPage({
         .from("cleaning_request_ready_day_options")
         .select("*")
         .in("cleaning_request_id", readyOptionRequestIds)
-        .eq("is_available", true)
         .order("ready_by_at", { ascending: true })
     : { data: [] };
 
