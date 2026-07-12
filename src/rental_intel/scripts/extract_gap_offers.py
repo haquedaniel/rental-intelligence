@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -72,7 +72,64 @@ def find_available_runs(availability: pd.DataFrame, max_gap_days: int = 7) -> pd
     return pd.DataFrame(rows)
 
 
-def parse_best_offer(response: Dict[str, Any], room_id: int) -> Dict[str, Any]:
+def parse_date(value: str) -> date:
+    return pd.to_datetime(value).date()
+
+
+def build_gap_options(gap: pd.Series) -> list[dict[str, Any]]:
+    """
+    Convert a real empty gap into sellable products.
+
+    Example for a 2-night gap:
+      full_gap: first night + second night
+      first_1n: first night only
+      last_1n: second night only
+    """
+    gap_start = parse_date(str(gap["gap_start"]))
+    gap_end = parse_date(str(gap["gap_end"]))
+    gap_nights = int(gap["gap_nights"])
+
+    options: list[dict[str, Any]] = []
+
+    def add(option_type: str, start: date, nights: int, strategy: str) -> None:
+        end = start + timedelta(days=nights)
+        if start < gap_start or end > gap_end or nights <= 0:
+            return
+
+        options.append(
+            {
+                "option_type": option_type,
+                "offer_start": start.isoformat(),
+                "offer_end": end.isoformat(),
+                "offer_nights": nights,
+                "strategy": strategy,
+            }
+        )
+
+    add("full_gap", gap_start, gap_nights, "sell_full_gap")
+
+    if gap_nights >= 2:
+        add("first_1n", gap_start, 1, "one_night_rescue")
+        add("last_1n", gap_end - timedelta(days=1), 1, "one_night_rescue")
+
+    if gap_nights >= 3:
+        add("first_2n", gap_start, 2, "two_night_chunk")
+        add("last_2n", gap_end - timedelta(days=2), 2, "two_night_chunk")
+
+    # Deduplicate where a 2n/1n option could accidentally equal full_gap in future changes.
+    seen = set()
+    unique: list[dict[str, Any]] = []
+    for option in options:
+        key = (option["option_type"], option["offer_start"], option["offer_end"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(option)
+
+    return unique
+
+
+def parse_best_offer(response: Dict[str, Any], room_id: int, nights: int) -> Dict[str, Any]:
     for room_result in response.get("data", []):
         if int(room_result.get("roomId")) != int(room_id):
             continue
@@ -98,7 +155,7 @@ def parse_best_offer(response: Dict[str, Any], room_id: int) -> Dict[str, Any]:
             "offer_name": best_offer.get("offerName"),
             "offer_price": round(price, 2),
             "units_available": units_available,
-            "effective_price_per_night": round(price / response["_nights"], 2),
+            "effective_price_per_night": round(price / nights, 2) if nights else None,
         }
 
     return {
@@ -130,59 +187,70 @@ def main() -> None:
     rows: List[Dict[str, Any]] = []
     raw: List[Dict[str, Any]] = []
 
-    print(f"Found {len(target_gaps)} targeted gaps to check.")
+    option_count = sum(len(build_gap_options(gap)) for _, gap in target_gaps.iterrows())
+    print(f"Found {len(target_gaps)} targeted gaps; checking {option_count} gap offer options.")
 
     for _, gap in target_gaps.iterrows():
         property_id = int(gap["source_property_id"])
         room_id = int(gap["source_room_id"])
-        arrival = str(gap["gap_start"])
-        departure = str(gap["gap_end"])
-        nights = int(gap["gap_nights"])
 
-        print(f"Checking {gap['listing_id']} {arrival} → {departure} ({nights} nights)")
+        for option in build_gap_options(gap):
+            arrival = option["offer_start"]
+            departure = option["offer_end"]
+            nights = int(option["offer_nights"])
 
-        response = beds24.get_offers(
-            property_id=property_id,
-            arrival=arrival,
-            departure=departure,
-            num_adults=2,
-            num_children=0,
-        )
-        response["_nights"] = nights
+            print(
+                f"Checking {gap['listing_id']} gap {gap['gap_start']} → {gap['gap_end']} "
+                f"option={option['option_type']} {arrival} → {departure} ({nights} nights)"
+            )
 
-        raw.append(
-            {
-                "listing_id": gap["listing_id"],
-                "room_id": room_id,
-                "arrival": arrival,
-                "departure": departure,
-                "nights": nights,
-                "response": response,
-            }
-        )
+            response = beds24.get_offers(
+                property_id=property_id,
+                arrival=arrival,
+                departure=departure,
+                num_adults=2,
+                num_children=0,
+            )
 
-        parsed = parse_best_offer(response, room_id=room_id)
+            raw.append(
+                {
+                    "listing_id": gap["listing_id"],
+                    "room_id": room_id,
+                    "gap_start": gap["gap_start"],
+                    "gap_end": gap["gap_end"],
+                    "gap_nights": int(gap["gap_nights"]),
+                    "option": option,
+                    "response": response,
+                }
+            )
 
-        rows.append(
-            {
-                "client_id": gap["client_id"],
-                "portfolio_id": gap["portfolio_id"],
-                "portfolio_name": gap["portfolio_name"],
-                "listing_id": gap["listing_id"],
-                "listing_name": gap["listing_name"],
-                "source_property_id": property_id,
-                "source_room_id": room_id,
-                "gap_start": arrival,
-                "gap_end": departure,
-                "gap_nights": nights,
-                "num_adults": 2,
-                "num_children": 0,
-                **parsed,
-                "retrieved_at": retrieved_at,
-            }
-        )
+            parsed = parse_best_offer(response, room_id=room_id, nights=nights)
 
-        time.sleep(3.2)
+            rows.append(
+                {
+                    "client_id": gap["client_id"],
+                    "portfolio_id": gap["portfolio_id"],
+                    "portfolio_name": gap["portfolio_name"],
+                    "listing_id": gap["listing_id"],
+                    "listing_name": gap["listing_name"],
+                    "source_property_id": property_id,
+                    "source_room_id": room_id,
+                    "gap_start": gap["gap_start"],
+                    "gap_end": gap["gap_end"],
+                    "gap_nights": int(gap["gap_nights"]),
+                    "option_type": option["option_type"],
+                    "strategy": option["strategy"],
+                    "offer_start": arrival,
+                    "offer_end": departure,
+                    "offer_nights": nights,
+                    "num_adults": 2,
+                    "num_children": 0,
+                    **parsed,
+                    "retrieved_at": retrieved_at,
+                }
+            )
+
+            time.sleep(3.2)
 
     raw_path = ROOT / "outputs" / "raw" / "gap_offers_raw.json"
     raw_path.write_text(json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8")
