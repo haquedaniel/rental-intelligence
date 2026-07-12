@@ -568,17 +568,6 @@ function readyOptionShortLabel(option: Row) {
   return option.label ? String(option.label).slice(0, 3) : "OK";
 }
 
-function readyOptionRangePosition(options: Row[], units: string[]) {
-  const keys = options
-    .map((option) => dateKeyFrom(option.ready_by_at))
-    .filter((key): key is string => Boolean(key))
-    .sort();
-
-  if (keys.length === 0) return null;
-
-  return rangePosition(keys[0], keys[keys.length - 1], units);
-}
-
 function KpiCard({
   label,
   value,
@@ -970,46 +959,36 @@ function PropertyPlanningTimeline({
                     </div>
 
                     <div className="absolute left-0 right-0 top-[86px] z-30 h-[30px]">
-                      {propertyRequests.map((request) => {
-                        if (!["created", "sent"].includes(String(request.status))) return null;
-                        if (String(request.assigned_cleaner_id || "") !== currentCleanerId) return null;
+                      {propertyRequests.flatMap((request) => {
+                        if (!["created", "sent"].includes(String(request.status))) return [];
+                        if (String(request.assigned_cleaner_id || "") !== currentCleanerId) return [];
 
                         const options = readyOptionsByRequestId[String(request.id)] ?? [];
-                        if (options.length === 0) return null;
 
-                        const pos = readyOptionRangePosition(options, units);
-                        if (!pos) return null;
+                        return options.flatMap((option) => {
+                          const optionKey = dateKeyFrom(option.ready_by_at);
+                          if (!optionKey) return [];
 
-                        const first = options[0];
-                        const last = options[options.length - 1];
-                        const label =
-                          options.length === 1
-                            ? `${copy.chooseDay} · ${compactDateLabel(first.ready_by_at, locale)}`
-                            : `${copy.chooseDay} · ${compactDateLabel(first.ready_by_at, locale)} → ${compactDateLabel(last.ready_by_at, locale)}`;
+                          const center = centerForDateKey(optionKey, units);
+                          if (center === null) return [];
 
-                        return (
-                          <Link
-                            key={`${request.id}-ready-range`}
-                            href={`/mission/${request.public_token}/ready-day`}
-                            className="absolute top-0 flex h-[28px] items-center justify-center rounded-full bg-[#FFF5DD] px-3 text-[10px] font-black text-[#8A4D00] shadow-sm ring-2 ring-[#F4B044]/45"
-                            style={{ left: pos.left, width: pos.width }}
-                            title={`${copy.proposedWindow} · ${label}`}
-                          >
-                            <span className="truncate">{label}</span>
-                          </Link>
-                        );
+                          return [
+                            <Link
+                              key={`${request.id}-ready-option-${option.id}`}
+                              href={`/mission/${request.public_token}/ready-day?option_id=${option.id}`}
+                              className="absolute top-0 flex h-[28px] min-w-[42px] -translate-x-1/2 items-center justify-center rounded-full bg-[#FFF5DD] px-2 text-[10px] font-black text-[#8A4D00] shadow-sm ring-2 ring-[#F4B044]/45"
+                              style={{ left: center }}
+                              title={`${option.label || copy.chooseDay} - ${copy.proposedWindow}`}
+                            >
+                              {readyOptionShortLabel(option)}
+                            </Link>,
+                          ];
+                        });
                       })}
                     </div>
 
                     <div className="absolute left-0 right-0 top-[106px] h-[40px]">
                       {propertyRequests.map((request) => {
-                        if (
-                          ["created", "sent"].includes(String(request.status)) &&
-                          (readyOptionsByRequestId[String(request.id)] ?? []).length > 0
-                        ) {
-                          return null;
-                        }
-
                         const anchor = dateKeyFrom(anchorAt(request));
                         if (!anchor) return null;
                         const center = centerForDateKey(anchor, units);
