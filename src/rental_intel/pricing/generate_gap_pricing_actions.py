@@ -185,6 +185,47 @@ def is_rescue_window(days_until: int) -> bool:
     return days_until <= 7
 
 
+
+def json_safe(value: Any) -> Any:
+    """
+    Convert pandas/numpy NaN/NaT values into JSON-safe nulls before sending
+    payloads to Supabase/PostgREST.
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, dict):
+        return {str(k): json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, (str, int, bool)):
+        return value
+
+    if isinstance(value, float):
+        if pd.isna(value):
+            return None
+        return value
+
+    if hasattr(value, "item"):
+        try:
+            return json_safe(value.item())
+        except Exception:
+            pass
+
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+
+    return value
+
+
 def round_price(value: float) -> float:
     # Round to whole euros for now.
     return float(round(value))
@@ -454,7 +495,8 @@ def main() -> None:
             skipped += 1
 
     if actions:
-        supabase.table("pricing_actions").insert(actions).execute()
+        safe_actions = [json_safe(action) for action in actions]
+        supabase.table("pricing_actions").insert(safe_actions).execute()
 
     summary = f"Created {len(actions)} pricing action(s); skipped {skipped} gap(s)."
     print(summary)
