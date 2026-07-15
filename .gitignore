@@ -34,3 +34,4 @@ data/manual/*
 
 outputs/logs/apps/cleaner-web.zip
 outputs/logs/
+.DS_Store
