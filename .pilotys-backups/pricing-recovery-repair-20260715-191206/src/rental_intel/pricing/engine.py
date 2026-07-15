@@ -110,14 +110,7 @@ def calculate_property(*, setting: Setting, seasons: list[dict[str, Any]], overr
             if override.get("min_stay") is not None: min_stay = int(override["min_stay"])
             reasons.append("manual_override")
 
-        is_occupied = d in occupied
-        gap = gaps.get(d)
-        adjustment = Decimal("0")
-        decay_step = 0
-        # Strategy describes the active source/optimisation, not merely the default engine path.
-        strategy = "season_plan" if season else "base_plan"
-        if override:
-            strategy = "manual_override"
+        is_occupied = d in occupied; gap = gaps.get(d); adjustment = Decimal("0"); decay_step = 0; strategy = "base_plan"
         days_until = (d - today).days
         if not is_occupied and days_until <= setting.decay_starts_days_before_arrival and not (setting.protect_weekends and weekend):
             entered_window = datetime.combine(
@@ -147,163 +140,29 @@ def calculate_property(*, setting: Setting, seasons: list[dict[str, Any]], overr
     return rows
 
 
-def _same_target(action: dict[str, Any], row: dict[str, Any]) -> bool:
-    return (
-        money(action.get("target_price")) == money(row.get("final_price"))
-        and int(action.get("target_min_stay") or 0) == int(row.get("min_stay") or 0)
-    )
-
-
 def regenerate(property_id: str | None = None) -> int:
-    db = get_supabase_client()
-    query = db.table("pricing_property_settings").select("*")
-    if property_id:
-        query = query.eq("property_id", property_id)
-
-    settings = query.execute().data or []
-    total = 0
-
+    now = datetime.now(timezone.utc)
+    db = get_supabase_client(); query = db.table("pricing_property_settings").select("*")
+    if property_id: query = query.eq("property_id", property_id)
+    settings = query.execute().data or []; total = 0
     for raw in settings:
-        now = datetime.now(timezone.utc)
         setting = Setting.from_row(raw)
-        seasons = (
-            db.table("pricing_seasons")
-            .select("*")
-            .eq("property_id", setting.property_id)
-            .eq("active", True)
-            .execute()
-            .data
-            or []
-        )
-        overrides = (
-            db.table("pricing_date_overrides")
-            .select("*")
-            .eq("property_id", setting.property_id)
-            .eq("active", True)
-            .execute()
-            .data
-            or []
-        )
-        reservations = (
-            db.table("reservations")
-            .select("checkin_at,checkout_at,status")
-            .eq("property_id", setting.property_id)
-            .execute()
-            .data
-            or []
-        )
-
-        new_rows = calculate_property(
-            setting=setting,
-            seasons=seasons,
-            overrides=overrides,
-            reservations=reservations,
-        )
-
-        previous_rows = (
-            db.table("pricing_daily_prices")
-            .select(
-                "date,final_price,min_stay,published_price,published_min_stay,"
-                "published_at,publication_status"
-            )
-            .eq("property_id", setting.property_id)
-            .execute()
-            .data
-            or []
-        )
-        old = {str(row["date"]): row for row in previous_rows}
-
-        open_actions = (
-            db.table("pricing_publication_actions")
-            .select("id,date,status,target_price,target_min_stay")
-            .eq("property_id", setting.property_id)
-            .in_("status", ["proposed", "applying"])
-            .execute()
-            .data
-            or []
-        )
-        open_by_date = {str(row["date"]): row for row in open_actions}
-
-        actions: list[dict[str, Any]] = []
-        proposals_to_supersede: list[str] = []
-
+        seasons = db.table("pricing_seasons").select("*").eq("property_id", setting.property_id).eq("active", True).execute().data or []
+        overrides = db.table("pricing_date_overrides").select("*").eq("property_id", setting.property_id).eq("active", True).execute().data or []
+        reservations = db.table("reservations").select("checkin_at,checkout_at,status").eq("property_id", setting.property_id).execute().data or []
+        new_rows = calculate_property(setting=setting, seasons=seasons, overrides=overrides, reservations=reservations)
+        old = {r["date"]: r for r in (db.table("pricing_daily_prices").select("date,final_price,min_stay").eq("property_id", setting.property_id).execute().data or [])}
+        db.table("pricing_daily_prices").upsert(new_rows, on_conflict="property_id,date").execute()
+        actions=[]
         for row in new_rows:
-            prior = old.get(str(row["date"]))
-
-            # Preserve a successful publication when the published target still matches.
-            if row["publication_status"] == "pending" and prior:
-                published_price = prior.get("published_price")
-                published_min_stay = prior.get("published_min_stay")
-                if (
-                    published_price is not None
-                    and published_min_stay is not None
-                    and money(published_price) == money(row["final_price"])
-                    and int(published_min_stay) == int(row["min_stay"])
-                ):
-                    row["publication_status"] = "published"
-                    row["published_price"] = published_price
-                    row["published_min_stay"] = published_min_stay
-                    row["published_at"] = prior.get("published_at")
-
-            if row["publication_status"] != "pending":
-                continue
-
-            # A changed target is no longer represented by any previous successful
-            # publication, so clear stale publication metadata in the daily ledger.
-            row["published_price"] = None
-            row["published_min_stay"] = None
-            row["published_at"] = None
-
-            existing_action = open_by_date.get(str(row["date"]))
-            if existing_action:
-                if _same_target(existing_action, row):
-                    # An interrupted rerun may already have created the correct queue item.
-                    continue
-                if str(existing_action.get("status")) == "applying":
-                    # Do not race an in-flight publisher. A later run will reconcile it.
-                    continue
-                proposals_to_supersede.append(str(existing_action["id"]))
-
-            actions.append(
-                {
-                    "property_id": setting.property_id,
-                    "date": row["date"],
-                    "action_type": "set_price_and_min_stay",
-                    "status": "proposed",
-                    "mode": setting.mode,
-                    "old_price": prior.get("final_price") if prior else None,
-                    "target_price": row["final_price"],
-                    "old_min_stay": prior.get("min_stay") if prior else None,
-                    "target_min_stay": row["min_stay"],
-                    "reason_codes": row["reason_codes"],
-                    "reason": f"{row['strategy']}: {', '.join(row['reason_codes'])}",
-                    "generation_id": row["generation_id"],
-                    "payload": {
-                        "strategy": row["strategy"],
-                        "source_season_id": row.get("source_season_id"),
-                    },
-                }
-            )
-
-        # Upsert after publication-state reconciliation so an unchanged published row
-        # does not get reset to pending on every regeneration.
-        db.table("pricing_daily_prices").upsert(
-            new_rows, on_conflict="property_id,date"
-        ).execute()
-
-        for action_id in proposals_to_supersede:
-            (
-                db.table("pricing_publication_actions")
-                .update({"status": "superseded", "updated_at": now.isoformat()})
-                .eq("id", action_id)
-                .eq("status", "proposed")
-                .execute()
-            )
-
+            prior=old.get(row["date"])
+            if row["publication_status"] != "pending" or (prior and float(prior["final_price"]) == float(row["final_price"]) and int(prior["min_stay"]) == int(row["min_stay"])): continue
+            actions.append({"property_id":setting.property_id,"date":row["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,
+                "old_price":prior.get("final_price") if prior else None,"target_price":row["final_price"],"old_min_stay":prior.get("min_stay") if prior else None,"target_min_stay":row["min_stay"],
+                "reason_codes":row["reason_codes"],"reason":f"{row['strategy']}: {', '.join(row['reason_codes'])}","generation_id":row["generation_id"],"payload":{"strategy":row["strategy"]}})
         if actions:
+            # Supersede previous open proposals, then insert the latest deterministic decisions.
+            db.table("pricing_publication_actions").update({"status": "superseded", "updated_at": now.isoformat()}).eq("property_id", setting.property_id).eq("status", "proposed").execute()
             db.table("pricing_publication_actions").insert(actions).execute()
-
         total += len(new_rows)
-
     return total
-
