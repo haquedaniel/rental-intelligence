@@ -141,7 +141,6 @@ def calculate_property(*, setting: Setting, seasons: list[dict[str, Any]], overr
 
 
 def regenerate(property_id: str | None = None) -> int:
-    now = datetime.now(timezone.utc)
     db = get_supabase_client(); query = db.table("pricing_property_settings").select("*")
     if property_id: query = query.eq("property_id", property_id)
     settings = query.execute().data or []; total = 0
