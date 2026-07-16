@@ -380,6 +380,8 @@ def publish_pending(
             summary.applied += 1
             if reconciled:
                 summary.reconciled += 1
+            if already_written:
+                summary.reconciled += 1
         except Exception as exc:
             failed_at = datetime.now(timezone.utc)
             retry_at = failed_at + _retry_delay(attempt)
