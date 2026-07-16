@@ -28,8 +28,6 @@ export default function PricingSettingsForm({settings,hiddenFields,action}:{sett
  </div></div>
  <div style={group}><h3 style={heading}>Fonctionnement</h3><div style={grid}>
   <label style={field}>Calendrier généré (jours)<input name="planning_horizon_days" type="number" defaultValue={s.planning_horizon_days??540} style={input}/><small style={hint}>Nombre total de jours matérialisés dans Pilotys.</small></label>
-  <label style={field}>Arrondi de mise en ligne (€)<input name="publication_price_increment" type="number" min=".01" step=".01" defaultValue={s.publication_price_increment??1} style={input}/><small style={hint}>Ex. 1 € : 154,25 € est mis en ligne à 154 €.</small></label>
-  <label style={field}>Variation minimale à publier (€)<input name="publication_min_change_eur" type="number" min="0" step=".01" defaultValue={s.publication_min_change_eur??1} style={input}/><small style={hint}>Une variation plus faible reste visible dans Pilotys sans nouvelle mise en ligne.</small></label>
   <label style={{...field,display:"flex",alignItems:"center",gap:9}}><input name="enabled" type="checkbox" defaultChecked={s.enabled??false}/> Moteur actif</label>
  </div></div>
  <label style={field}>Résumé de la modification<input name="change_summary" placeholder="Ex. courbe été plus protectrice" style={input}/></label>

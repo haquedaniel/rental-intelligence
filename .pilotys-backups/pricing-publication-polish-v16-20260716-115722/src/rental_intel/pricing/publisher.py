@@ -220,11 +220,10 @@ def _is_current(action: dict[str, Any], daily: dict[str, Any]) -> bool:
     raw_payload = action.get("payload")
     payload_meta = raw_payload if isinstance(raw_payload, dict) else {}
     payload_calendar_version_id = payload_meta.get("calendar_version_id")
-    calculated_price = payload_meta.get("calculated_price", action.get("target_price"))
 
     return (
         bool(daily.get("available"))
-        and _money(daily.get("final_price")) == _money(calculated_price)
+        and _money(daily.get("final_price")) == _money(action.get("target_price"))
         and int(daily.get("min_stay") or 1) == int(action.get("target_min_stay") or 1)
         and (
             not payload_calendar_version_id
@@ -398,28 +397,12 @@ def publish_pending(
 
     finished = datetime.now(timezone.utc)
     for pid in touched_properties:
-        remaining = (
-            db.table("pricing_publication_actions")
-            .select("id", count="exact")
-            .eq("property_id", pid)
-            .in_("status", ["proposed", "applying", "failed"])
-            .execute()
-        )
-        remaining_count = int(remaining.count or 0)
-        update: dict[str, Any] = {
-            "publication_last_run_at": finished.isoformat(),
-            "publication_last_selected": summary.selected,
-            "publication_last_applied": summary.applied,
-            "publication_last_failed": summary.failed + summary.validation_failed,
-            "publication_last_reconciled": summary.reconciled,
-        }
+        update: dict[str, Any] = {"publication_last_run_at": finished.isoformat()}
         if summary.failed or summary.validation_failed:
             update["publication_last_error"] = f"{summary.failed + summary.validation_failed} publication error(s) in latest run."
         else:
             update["publication_last_success_at"] = finished.isoformat()
             update["publication_last_error"] = None
-        if remaining_count == 0:
-            update["publication_initial_sync_completed_at"] = finished.isoformat()
         db.table("pricing_property_settings").update(update).eq("property_id", pid).execute()
 
     return summary

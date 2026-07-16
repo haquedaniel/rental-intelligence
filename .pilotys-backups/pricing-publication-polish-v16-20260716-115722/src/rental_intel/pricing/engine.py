@@ -1,6 +1,5 @@
 from __future__ import annotations
 from dataclasses import dataclass
-import os
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
@@ -10,11 +9,6 @@ from rental_intel.pricing.market_signal import load_relative_market_signals
 
 MONEY=Decimal("0.01"); WEEKEND={4,5}
 def money(v:Any)->Decimal: return Decimal(str(v or 0)).quantize(MONEY,rounding=ROUND_HALF_UP)
-def round_to_increment(value:Any, increment:Any)->Decimal:
- inc=Decimal(str(increment or 1))
- if inc<=0: inc=Decimal("1")
- raw=Decimal(str(value or 0))
- return ((raw/inc).quantize(Decimal("1"),rounding=ROUND_HALF_UP)*inc).quantize(MONEY,rounding=ROUND_HALF_UP)
 def parse_date(v:str)->date:return date.fromisoformat(v[:10])
 def dates_between(a:date,b:date)->Iterable[date]:
  while a<=b: yield a; a+=timedelta(days=1)
@@ -60,10 +54,10 @@ def build_curve_from_preset(preset:str, horizon:int, max_discount:Any)->list[dic
 
 @dataclass(frozen=True)
 class Setting:
- property_id:str; enabled:bool; mode:str; default_price:Decimal; default_weekend_price:Decimal|None; floor_price:Decimal; ceiling_price:Decimal|None; default_min_stay:int; one_night_gap_multiplier:Decimal; one_night_release_days:int; protect_weekends:bool; planning_horizon_days:int; optimisation_curve:list[dict[str,Any]]; optimisation_preset:str; optimisation_horizon_days:int; optimisation_max_discount_pct:Decimal; market_signal_enabled:bool; market_signal_influence_pct:Decimal; market_signal_competitor_id:str; publication_price_increment:Decimal; publication_min_change_eur:Decimal
+ property_id:str; enabled:bool; mode:str; default_price:Decimal; default_weekend_price:Decimal|None; floor_price:Decimal; ceiling_price:Decimal|None; default_min_stay:int; one_night_gap_multiplier:Decimal; one_night_release_days:int; protect_weekends:bool; planning_horizon_days:int; optimisation_curve:list[dict[str,Any]]; optimisation_preset:str; optimisation_horizon_days:int; optimisation_max_discount_pct:Decimal; market_signal_enabled:bool; market_signal_influence_pct:Decimal; market_signal_competitor_id:str
  @classmethod
  def from_row(cls,r):
-  return cls(str(r["property_id"]),bool(r.get("enabled")),str(r.get("mode") or "shadow"),money(r.get("default_price")),money(r["default_weekend_price"]) if r.get("default_weekend_price") is not None else None,money(r.get("floor_price")),money(r["ceiling_price"]) if r.get("ceiling_price") is not None else None,int(r.get("default_min_stay") or 2),Decimal(str(r.get("one_night_gap_multiplier") or 1.5)),int(r.get("one_night_release_days") or 21),bool(r.get("protect_weekends",True)),int(r.get("planning_horizon_days") or 540),list(r.get("optimisation_curve") or []),str(r.get("optimisation_preset") or "progressive"),int(r.get("optimisation_horizon_days") or 120),Decimal(str(r.get("optimisation_max_discount_pct") or 30)),bool(r.get("market_signal_enabled",False)),Decimal(str(r.get("market_signal_influence_pct") or 0)),str(r.get("market_signal_competitor_id") or "le_goyen_hotel"),Decimal(str(r.get("publication_price_increment") or 1)),Decimal(str(r.get("publication_min_change_eur") or 1)))
+  return cls(str(r["property_id"]),bool(r.get("enabled")),str(r.get("mode") or "shadow"),money(r.get("default_price")),money(r["default_weekend_price"]) if r.get("default_weekend_price") is not None else None,money(r.get("floor_price")),money(r["ceiling_price"]) if r.get("ceiling_price") is not None else None,int(r.get("default_min_stay") or 2),Decimal(str(r.get("one_night_gap_multiplier") or 1.5)),int(r.get("one_night_release_days") or 21),bool(r.get("protect_weekends",True)),int(r.get("planning_horizon_days") or 540),list(r.get("optimisation_curve") or []),str(r.get("optimisation_preset") or "progressive"),int(r.get("optimisation_horizon_days") or 120),Decimal(str(r.get("optimisation_max_discount_pct") or 30)),bool(r.get("market_signal_enabled",False)),Decimal(str(r.get("market_signal_influence_pct") or 0)),str(r.get("market_signal_competitor_id") or "le_goyen_hotel"))
 
 def step(kind,label,before,after,explanation,details=None):
  return {"kind":kind,"label":label,"before_eur":float(money(before)),"after_eur":float(money(after)),"delta_eur":float(money(after-before)),"explanation":explanation,"details":details or {}}
@@ -132,35 +126,28 @@ def regenerate(property_id:str,created_by=None,change_summary=None,configuration
  db.table("pricing_calendar_versions").update({"status":"superseded"}).eq("property_id",property_id).eq("status","active").execute()
  cv=db.table("pricing_calendar_versions").insert({"property_id":property_id,"configuration_version_id":config["id"],"status":"active","date_from":today.isoformat(),"date_to":end.isoformat()}).execute().data[0]
  rows=calculate_property(setting=setting,seasons=seasons,overrides=overrides,reservations=reservations,configuration_version_id=config["id"],calendar_version_id=cv["id"])
- changed=sum(1 for r in rows if str(r["date"]) not in old or money(old[str(r["date"])].get("final_price"))!=money(r["final_price"]) or int(old[str(r["date"])].get("min_stay") or 0)!=int(r["min_stay"]))
-
- # Keep the exact explainable price in the calendar, but publish a stable rounded
- # target and ignore changes smaller than the owner's meaningful-change threshold.
+ # Preserve the last validated channel state and queue only genuinely changed or never-published dates.
  for r in rows:
-  prior=old.get(str(r["date"])) or {}
-  r["published_price"]=prior.get("published_price")
-  r["published_min_stay"]=prior.get("published_min_stay")
-  r["published_at"]=prior.get("published_at")
+  prior=old.get(str(r["date"]))
+  if prior:
+   r["published_price"]=prior.get("published_price")
+   r["published_min_stay"]=prior.get("published_min_stay")
+   r["published_at"]=prior.get("published_at")
   if r["publication_status"]=="not_required":
    continue
-  target=round_to_increment(r["final_price"],setting.publication_price_increment)
-  published=money(prior.get("published_price")) if prior.get("published_price") is not None else None
-  same_stay=published is not None and int(prior.get("published_min_stay") or 1)==int(r["min_stay"])
-  meaningful=published is None or abs(target-published)>=setting.publication_min_change_eur
-  r["publication_status"]="pending" if (not same_stay or meaningful) else "published"
-
+  already_live=bool(prior and prior.get("published_price") is not None and money(prior.get("published_price"))==money(r["final_price"]) and int(prior.get("published_min_stay") or 1)==int(r["min_stay"]))
+  r["publication_status"]="published" if already_live else "pending"
+ changed=sum(1 for r in rows if str(r["date"]) not in old or money(old[str(r["date"])].get("final_price"))!=money(r["final_price"]) or int(old[str(r["date"])].get("min_stay") or 0)!=int(r["min_stay"]))
+ # Supersede only unpublished proposals. Published channel state remains auditable.
  db.table("pricing_publication_actions").update({"status":"superseded","updated_at":datetime.now(timezone.utc).isoformat()}).eq("property_id",property_id).eq("status","proposed").execute()
  db.table("pricing_daily_prices").upsert(rows,on_conflict="property_id,date").execute()
-
  actions=[]
  for r in rows:
   if r["publication_status"]!="pending":continue
-  prior=old.get(str(r["date"])) or {}
-  target=round_to_increment(r["final_price"],setting.publication_price_increment)
-  actions.append({"property_id":property_id,"date":r["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,"old_price":prior.get("published_price"),"target_price":float(target),"old_min_stay":prior.get("published_min_stay"),"target_min_stay":r["min_stay"],"reason_codes":r["reason_codes"],"reason":" → ".join(s["label"] for s in r["explanation_steps"]),"generation_id":r["generation_id"],"payload":{"calendar_version_id":cv["id"],"configuration_version_id":config["id"],"calculated_price":r["final_price"],"publication_price_increment":float(setting.publication_price_increment),"publication_min_change_eur":float(setting.publication_min_change_eur),"explanation_steps":r["explanation_steps"]}})
+  prior=old.get(str(r["date"]));actions.append({"property_id":property_id,"date":r["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,"old_price":prior.get("published_price") if prior else None,"target_price":r["final_price"],"old_min_stay":prior.get("published_min_stay") if prior else None,"target_min_stay":r["min_stay"],"reason_codes":r["reason_codes"],"reason":" → ".join(s["label"] for s in r["explanation_steps"]),"generation_id":r["generation_id"],"payload":{"calendar_version_id":cv["id"],"configuration_version_id":config["id"],"explanation_steps":r["explanation_steps"]}})
  if actions:db.table("pricing_publication_actions").insert(actions).execute()
- db.table("pricing_calendar_versions").update({"changed_dates":changed,"summary":{"changed_dates":changed,"total_dates":len(rows),"publication_actions":len(actions)}}).eq("id",cv["id"]).execute()
- return {"property_id":property_id,"configuration_version_id":config["id"],"configuration_version_number":config["version_number"],"calendar_version_id":cv["id"],"changed_dates":changed,"publication_actions":len(actions),"total_dates":len(rows)}
+ db.table("pricing_calendar_versions").update({"changed_dates":changed,"summary":{"changed_dates":changed,"total_dates":len(rows)}}).eq("id",cv["id"]).execute()
+ return {"property_id":property_id,"configuration_version_id":config["id"],"configuration_version_number":config["version_number"],"calendar_version_id":cv["id"],"changed_dates":changed,"total_dates":len(rows)}
 
 def rollback(property_id:str,target_version_id:str,created_by=None):
  db=get_supabase_client(); target=db.table("pricing_configuration_versions").select("*").eq("id",target_version_id).eq("property_id",property_id).single().execute().data
