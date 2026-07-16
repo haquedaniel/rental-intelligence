@@ -44,20 +44,12 @@ def curve_discount(curve:list[dict[str,Any]], days_before:int)->Decimal:
    return p1+(p2-p1)*ratio
  return Decimal("0")
 
-def build_curve_from_preset(preset:str, horizon:int, max_discount:Any)->list[dict[str,Any]]:
- preset=str(preset or "progressive").lower(); h=max(7,int(horizon or 120)); m=Decimal(str(max_discount or 0))
- def point(days:int,pct:Decimal): return {"days_before":int(days),"discount_pct":float(pct)}
- if preset=="none": return [point(h,Decimal("0")),point(0,Decimal("0"))]
- if preset=="linear": return [point(h,Decimal("0")),point(0,m)]
- if preset=="early": return [point(h,Decimal("0")),point(round(h*.75),m*Decimal("0.4")),point(round(h*.5),m*Decimal("0.7")),point(round(h*.25),m*Decimal("0.9")),point(0,m)]
- return [point(h,Decimal("0")),point(round(h*.5),m*Decimal("0.12")),point(round(h*.25),m*Decimal("0.42")),point(min(7,round(h*.12)),m*Decimal("0.82")),point(0,m)]
-
 @dataclass(frozen=True)
 class Setting:
- property_id:str; enabled:bool; mode:str; default_price:Decimal; default_weekend_price:Decimal|None; floor_price:Decimal; ceiling_price:Decimal|None; default_min_stay:int; one_night_gap_multiplier:Decimal; one_night_release_days:int; protect_weekends:bool; planning_horizon_days:int; optimisation_curve:list[dict[str,Any]]; optimisation_preset:str; optimisation_horizon_days:int; optimisation_max_discount_pct:Decimal; market_signal_enabled:bool; market_signal_influence_pct:Decimal; market_signal_competitor_id:str
+ property_id:str; enabled:bool; mode:str; default_price:Decimal; default_weekend_price:Decimal|None; floor_price:Decimal; ceiling_price:Decimal|None; default_min_stay:int; one_night_gap_multiplier:Decimal; one_night_release_days:int; protect_weekends:bool; planning_horizon_days:int; optimisation_curve:list[dict[str,Any]]; market_signal_enabled:bool; market_signal_influence_pct:Decimal; market_signal_competitor_id:str
  @classmethod
  def from_row(cls,r):
-  return cls(str(r["property_id"]),bool(r.get("enabled")),str(r.get("mode") or "shadow"),money(r.get("default_price")),money(r["default_weekend_price"]) if r.get("default_weekend_price") is not None else None,money(r.get("floor_price")),money(r["ceiling_price"]) if r.get("ceiling_price") is not None else None,int(r.get("default_min_stay") or 2),Decimal(str(r.get("one_night_gap_multiplier") or 1.5)),int(r.get("one_night_release_days") or 21),bool(r.get("protect_weekends",True)),int(r.get("planning_horizon_days") or 540),list(r.get("optimisation_curve") or []),str(r.get("optimisation_preset") or "progressive"),int(r.get("optimisation_horizon_days") or 120),Decimal(str(r.get("optimisation_max_discount_pct") or 30)),bool(r.get("market_signal_enabled",False)),Decimal(str(r.get("market_signal_influence_pct") or 0)),str(r.get("market_signal_competitor_id") or "le_goyen_hotel"))
+  return cls(str(r["property_id"]),bool(r.get("enabled")),str(r.get("mode") or "shadow"),money(r.get("default_price")),money(r["default_weekend_price"]) if r.get("default_weekend_price") is not None else None,money(r.get("floor_price")),money(r["ceiling_price"]) if r.get("ceiling_price") is not None else None,int(r.get("default_min_stay") or 2),Decimal(str(r.get("one_night_gap_multiplier") or 1.5)),int(r.get("one_night_release_days") or 21),bool(r.get("protect_weekends",True)),int(r.get("planning_horizon_days") or 540),list(r.get("optimisation_curve") or []),bool(r.get("market_signal_enabled",False)),Decimal(str(r.get("market_signal_influence_pct") or 0)),str(r.get("market_signal_competitor_id") or "le_goyen_hotel"))
 
 def step(kind,label,before,after,explanation,details=None):
  return {"kind":kind,"label":label,"before_eur":float(money(before)),"after_eur":float(money(after)),"delta_eur":float(money(after-before)),"explanation":explanation,"details":details or {}}
@@ -70,18 +62,14 @@ def calculate_property(*,setting:Setting,seasons,overrides,reservations,today=No
   season=choose_period(seasons,d); override=choose_period(overrides,d); weekend=d.weekday() in WEEKEND
   default=setting.default_weekend_price if weekend and setting.default_weekend_price is not None else setting.default_price
   price=default; floor=setting.floor_price; ceiling=setting.ceiling_price; min_stay=setting.default_min_stay; steps=[step("base_plan","Plan général",default,default,"Tarif général du logement, selon le jour de la semaine.")]; reasons=["default_plan"]
-  curve=build_curve_from_preset(setting.optimisation_preset,setting.optimisation_horizon_days,setting.optimisation_max_discount_pct); curve_label="Courbe générale"; market_influence=setting.market_signal_influence_pct; protected=False; strategy="base_plan"
+  curve=setting.optimisation_curve; curve_label="Courbe générale"; market_influence=setting.market_signal_influence_pct; protected=False; strategy="base_plan"
   if season:
    season_price=money(season.get("weekend_price") if weekend and season.get("weekend_price") is not None else season.get("weekday_price")); steps.append(step("season_plan",str(season.get("name") or "Saison"),price,season_price,"Cette date appartient à la saison configurée.",{"season_id":season.get("id")})); price=season_price; floor=money(season["floor_price"]) if season.get("floor_price") is not None else floor; ceiling=money(season["ceiling_price"]) if season.get("ceiling_price") is not None else ceiling; min_stay=int(season.get("min_stay") or min_stay)
-   optimisation_mode=str(season.get("optimisation_mode") or ("custom" if season.get("optimisation_preset") or season.get("optimisation_curve") else "inherit"))
-   # Legacy `none` seasons are migrated logically to a custom flat curve.
+   optimisation_mode=str(season.get("optimisation_mode") or ("none" if season.get("protect_from_automatic_reductions") else ("custom" if season.get("optimisation_curve") else "inherit")))
    if optimisation_mode=="none":
-    optimisation_mode="custom"; season_preset="none"
-   else:
-    season_preset=str(season.get("optimisation_preset") or "progressive")
-   if optimisation_mode=="custom":
-    curve=build_curve_from_preset(season_preset,int(season.get("optimisation_horizon_days") or setting.optimisation_horizon_days),season.get("optimisation_max_discount_pct") if season.get("optimisation_max_discount_pct") is not None else setting.optimisation_max_discount_pct)
-    curve_label=f"Courbe {season.get('name') or 'saison'} · {season_preset}"
+    protected=True; curve_label=f"{season.get('name') or 'Saison'} · sans baisse temporelle"
+   elif optimisation_mode=="custom":
+    curve=list(season.get("optimisation_curve") or curve); curve_label=f"Courbe {season.get('name') or 'saison'}"
    else:
     curve_label="Courbe générale héritée"
    market_influence=Decimal(str(season.get("market_signal_influence_pct") if season.get("market_signal_influence_pct") is not None else market_influence)); strategy="season_plan"; reasons=["season_plan"]
