@@ -305,12 +305,3 @@ def retry_failed(property_id: str) -> int:
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }).in_("id", ids).execute()
     return len(rows)
-
-
-def publish(
-    property_id: str | None = None,
-    limit: int | None = None,
-    dry_run: bool = False,
-) -> PublicationSummary:
-    """Backward-compatible alias for older pricing package imports."""
-    return publish_pending(property_id=property_id, limit=limit, dry_run=dry_run)
