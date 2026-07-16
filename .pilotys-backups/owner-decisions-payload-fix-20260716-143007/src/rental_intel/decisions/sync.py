@@ -64,54 +64,14 @@ def sync_cleaning(db, props, since):
         n+=insert(db,{'owner_id':p['owner_id'],'property_id':p['id'],'occurred_at':rep['submitted_at'],'category':'cleaning','decision_type':'cleaning_completed','severity':'attention' if issue else 'info','title':'Mission terminée','summary':f"{p['name']} · {len(photos)} photo(s)",'what_happened':'Le compte rendu de mission a été transmis.','why':'La mission prévue a été réalisée.','action_taken':'Les photos et éventuels problèmes sont disponibles dans Pilotys.','requires_owner_action':issue,'cleaning_request_id':rep['cleaning_request_id'],'related_object_type':'cleaning_report','related_object_id':rep['id'],'event_key':f"cleaning:completed:{rep['id']}",'metadata':{**rep,'photo_count':len(photos)}})
     return n
 
-def payload_calendar_version_id(payload: Any) -> str | None:
-    """Return the embedded calendar version when publication metadata is preserved.
-
-    Historical/published actions may contain the raw Beds24 request list instead
-    of the original metadata object. Those rows are associated by creation-time
-    window in sync_pricing() rather than causing the whole decision sync to fail.
-    """
-    if isinstance(payload, dict):
-        value=payload.get('calendar_version_id')
-        return str(value) if value else None
-    return None
-
 def sync_pricing(db, props, since):
     versions=db.table('pricing_calendar_versions').select('id,property_id,configuration_version_id,changed_dates,summary,created_at').gte('created_at',since).order('created_at').execute().data or []
     n=0
-    for index,v in enumerate(versions):
+    for v in versions:
         p=props.get(str(v.get('property_id')))
         if not p: continue
-
-        # A publication action initially carries calendar_version_id in its JSON
-        # metadata, but after sending it may carry the raw channel request list.
-        # Restrict the fallback to the period between this calendar version and
-        # the next version for the same property.
-        next_created_at=None
-        for later in versions[index+1:]:
-            if str(later.get('property_id'))==str(v.get('property_id')):
-                next_created_at=later.get('created_at')
-                break
-
-        query=(
-            db.table('pricing_publication_actions')
-            .select('date,old_price,target_price,old_min_stay,target_min_stay,reason_codes,payload,status,created_at')
-            .eq('property_id',p['id'])
-            .gte('created_at',v['created_at'])
-            .order('created_at')
-            .limit(5000)
-        )
-        if next_created_at:
-            query=query.lt('created_at',next_created_at)
-        candidates=query.execute().data or []
-
-        actions=[]
-        for action in candidates:
-            embedded_version=payload_calendar_version_id(action.get('payload'))
-            if embedded_version and embedded_version!=str(v['id']):
-                continue
-            actions.append(action)
-
+        actions=db.table('pricing_publication_actions').select('date,old_price,target_price,old_min_stay,target_min_stay,reason_codes,payload,status').eq('property_id',p['id']).gte('created_at',v['created_at']).limit(2000).execute().data or []
+        actions=[a for a in actions if str((a.get('payload') or {}).get('calendar_version_id'))==str(v['id'])]
         changes=[a for a in actions if a.get('old_price') is not None and a.get('target_price') is not None and float(a['old_price'])!=float(a['target_price'])]
         min_changes=[a for a in actions if a.get('old_min_stay') is not None and a.get('target_min_stay') is not None and a['old_min_stay']!=a['target_min_stay']]
         if changes:
