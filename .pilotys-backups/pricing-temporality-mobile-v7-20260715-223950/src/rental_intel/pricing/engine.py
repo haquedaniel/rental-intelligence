@@ -97,10 +97,10 @@ def calculate_property(*,setting:Setting,seasons,overrides,reservations,today=No
   if sig and market_influence:
    market_pct=Decimal(str(sig["deviation_pct"]))*market_influence/Decimal("100"); before=price; price=price*(Decimal("1")+market_pct/Decimal("100")); steps.append(step("market_signal","Signal marché Le Goyen",before,price,f"Le Goyen est {sig['deviation_pct']:+.1f}% par rapport à son niveau normal comparable; {float(market_influence):.0f}% de ce mouvement est appliqué.",sig));reasons.append("goyen_relative_market_signal")
   time_pct=Decimal("0")
-  if not protected and not (setting.protect_weekends and weekend):
+  if not is_occupied and not protected and not (setting.protect_weekends and weekend):
    time_pct=curve_discount(curve,days_until)
    if time_pct>0:
-    before=price;price=price*(Decimal("1")-time_pct/Decimal("100"));steps.append(step("time_optimisation",curve_label,before,price,f"{curve_label} prévoit une remise de {float(time_pct):.1f}% à J-{days_until}." + (" Cette date est déjà occupée : le prix est affiché à titre théorique et ne sera pas publié." if is_occupied else ""),{"days_before":days_until,"discount_pct":float(time_pct),"curve":curve,"curve_source":curve_label,"theoretical_only":is_occupied}));reasons.append("time_curve");strategy="time_optimisation"
+    before=price;price=price*(Decimal("1")-time_pct/Decimal("100"));steps.append(step("time_optimisation",curve_label,before,price,f"{curve_label} prévoit une remise de {float(time_pct):.1f}% à J-{days_until}.",{"days_before":days_until,"discount_pct":float(time_pct),"curve":curve,"curve_source":curve_label}));reasons.append("time_curve");strategy="time_optimisation"
   unclamped=price; price=max(floor,price); price=min(price,ceiling) if ceiling is not None else price
   if money(price)!=money(unclamped):steps.append(step("guardrail","Plancher / plafond",unclamped,price,"Le prix est ramené dans les limites autorisées.",{"floor":float(floor),"ceiling":float(ceiling) if ceiling is not None else None}));reasons.append("guardrail")
   gap=gaps.get(d)
