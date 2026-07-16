@@ -114,12 +114,7 @@ def _is_current(action: dict[str, Any], daily: dict[str, Any]) -> bool:
     )
 
 
-def publish_pending(
-    property_id: str | None = None,
-    limit: int | None = None,
-    dry_run: bool = False,
-    target_date: str | None = None,
-) -> PublicationSummary:
+def publish_pending(property_id: str | None = None, limit: int | None = None, dry_run: bool = False) -> PublicationSummary:
     db = get_supabase_client()
     now = datetime.now(timezone.utc)
     max_attempts = int(os.getenv("PRICING_PUBLICATION_MAX_ATTEMPTS", "5"))
@@ -131,28 +126,17 @@ def publish_pending(
         .select("*")
         .in_("status", ["proposed", "failed"])
         .eq("mode", "apply")
-        .order("date")
         .order("created_at")
         .limit(batch_limit * 3)
     )
     if property_id:
         q = q.eq("property_id", property_id)
-    if target_date:
-        # Validate early so a typo cannot silently select unrelated dates.
-        date.fromisoformat(target_date)
-        q = q.eq("date", target_date)
     candidates = q.execute().data or []
     actions = [
         a for a in candidates
         if int(a.get("attempt_count") or 0) < max_attempts
         and (not a.get("next_attempt_at") or datetime.fromisoformat(str(a["next_attempt_at"]).replace("Z", "+00:00")) <= now)
     ][:batch_limit]
-
-    if target_date and not actions:
-        raise RuntimeError(
-            f"No eligible current publication action for {target_date}. "
-            "The night may be occupied, already published, paused, stale, or not queued."
-        )
 
     summary = PublicationSummary(selected=len(actions))
     client = None if dry_run else Beds24Client()
@@ -327,12 +311,6 @@ def publish(
     property_id: str | None = None,
     limit: int | None = None,
     dry_run: bool = False,
-    target_date: str | None = None,
 ) -> PublicationSummary:
     """Backward-compatible alias for older pricing package imports."""
-    return publish_pending(
-        property_id=property_id,
-        limit=limit,
-        dry_run=dry_run,
-        target_date=target_date,
-    )
+    return publish_pending(property_id=property_id, limit=limit, dry_run=dry_run)

@@ -8,10 +8,6 @@ const field={display:"grid",gap:6,fontWeight:600} as const;
 const hint={fontWeight:400,color:"#64748b",fontSize:12} as const;
 export default function PricingSettingsForm({settings,hiddenFields,action}:{settings:Row|null;hiddenFields:ReactNode;action:(f:FormData)=>void}){const s=settings||{};return <form action={action} style={{display:"grid",gap:22}}>
  {hiddenFields}
- <div style={{...group,border:"2px solid #bfdbfe",background:"linear-gradient(135deg,#eff6ff,#fff)"}}><div style={{fontSize:11,fontWeight:900,letterSpacing:".08em",color:"#2563eb",marginBottom:4}}>MISE EN LIGNE</div><h3 style={heading}>État de diffusion</h3><p style={intro}>Ce choix contrôle ce que les voyageurs voient. Le calendrier Pilotys continue à être recalculé dans les deux modes.</p><div style={grid}>
-  <label style={field}>Mode<select name="mode" defaultValue={s.mode??"shadow"} style={input}><option value="shadow">Aperçu Pilotys — aucun changement voyageur</option><option value="apply">En direct — mise en ligne automatique et contrôlée</option></select><small style={hint}>En direct, chaque changement réel est publié puis vérifié automatiquement.</small></label>
-  <label style={{...field,display:"flex",alignItems:"center",gap:9,alignSelf:"center"}}><input name="publication_paused" type="checkbox" defaultChecked={s.publication_paused??false}/> Suspendre temporairement la mise en ligne</label>
- </div></div>
  <div style={group}><h3 style={heading}>Tarifs de référence</h3><div style={grid}>
   <label style={field}>Prix semaine<input name="default_price" type="number" step=".01" defaultValue={s.default_price??100} style={input}/></label>
   <label style={field}>Prix vendredi / samedi<input name="default_weekend_price" type="number" step=".01" defaultValue={s.default_weekend_price??""} style={input}/></label>
@@ -28,7 +24,9 @@ export default function PricingSettingsForm({settings,hiddenFields,action}:{sett
  </div></div>
  <div style={group}><h3 style={heading}>Fonctionnement</h3><div style={grid}>
   <label style={field}>Calendrier généré (jours)<input name="planning_horizon_days" type="number" defaultValue={s.planning_horizon_days??540} style={input}/><small style={hint}>Nombre total de jours matérialisés dans Pilotys.</small></label>
+  <label style={field}>Diffusion<select name="mode" defaultValue={s.mode??"shadow"} style={input}><option value="shadow">Aperçu Pilotys — rien n’est mis en ligne</option><option value="apply">En direct — publication automatique</option></select><small style={hint}>En direct, toute modification du calendrier est publiée automatiquement puis validée.</small></label>
   <label style={{...field,display:"flex",alignItems:"center",gap:9}}><input name="enabled" type="checkbox" defaultChecked={s.enabled??false}/> Moteur actif</label>
+  <label style={{...field,display:"flex",alignItems:"center",gap:9}}><input name="publication_paused" type="checkbox" defaultChecked={s.publication_paused??false}/> Mettre temporairement la diffusion en pause</label>
  </div></div>
  <label style={field}>Résumé de la modification<input name="change_summary" placeholder="Ex. courbe été plus protectrice" style={input}/></label>
  <div style={{display:"flex",justifyContent:"flex-end",gap:10,flexWrap:"wrap",position:"sticky",bottom:10,background:"rgba(255,255,255,.96)",padding:"12px 0",borderTop:"1px solid #e2e8f0"}}><button type="reset" style={{...button,background:"white",color:"#0f172a",border:"1px solid #cbd5e1"}}>Annuler les modifications</button><SubmitStatusButton/></div>
