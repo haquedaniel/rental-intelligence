@@ -152,49 +152,15 @@ def regenerate(property_id:str,created_by=None,change_summary=None,configuration
  db.table("pricing_publication_actions").update({"status":"superseded","updated_at":datetime.now(timezone.utc).isoformat()}).eq("property_id",property_id).eq("status","proposed").execute()
  db.table("pricing_daily_prices").upsert(rows,on_conflict="property_id,date").execute()
 
- # A publication run may already be sending one of these dates. Never replace an
- # in-flight action: the publisher will either complete it or mark it stale after
- # comparing it with the current daily target. A later regeneration can then queue
- # any still-required successor action.
- in_flight_rows=(
-  db.table("pricing_publication_actions")
-  .select("date,action_type")
-  .eq("property_id",property_id)
-  .eq("status","applying")
-  .execute().data or []
- )
- in_flight={(str(x["date"]),str(x.get("action_type") or "")) for x in in_flight_rows}
-
  actions=[]
- deferred_actions=0
- duplicate_actions=0
  for r in rows:
   if r["publication_status"]!="pending":continue
-  action_key=(str(r["date"]),"set_price_and_min_stay")
-  if action_key in in_flight:
-   deferred_actions+=1
-   continue
   prior=old.get(str(r["date"])) or {}
   target=round_to_increment(r["final_price"],setting.publication_price_increment)
   actions.append({"property_id":property_id,"date":r["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,"old_price":prior.get("published_price"),"target_price":float(target),"old_min_stay":prior.get("published_min_stay"),"target_min_stay":r["min_stay"],"reason_codes":r["reason_codes"],"reason":" → ".join(s["label"] for s in r["explanation_steps"]),"generation_id":r["generation_id"],"payload":{"calendar_version_id":cv["id"],"configuration_version_id":config["id"],"calculated_price":r["final_price"],"publication_price_increment":float(setting.publication_price_increment),"publication_min_change_eur":float(setting.publication_min_change_eur),"explanation_steps":r["explanation_steps"]}})
-
- # Insert separately so a publication worker winning a race on one date does not
- # roll back the complete calendar regeneration.
- inserted_actions=0
- for action in actions:
-  try:
-   db.table("pricing_publication_actions").insert(action).execute()
-   inserted_actions+=1
-  except Exception as exc:
-   message=str(exc)
-   if "23505" in message or "pricing_publication_actions_open_unique" in message:
-    duplicate_actions+=1
-    continue
-   raise
-
- summary={"changed_dates":changed,"total_dates":len(rows),"publication_actions":inserted_actions,"publication_actions_deferred":deferred_actions,"publication_action_conflicts":duplicate_actions}
- db.table("pricing_calendar_versions").update({"changed_dates":changed,"summary":summary}).eq("id",cv["id"]).execute()
- return {"property_id":property_id,"configuration_version_id":config["id"],"configuration_version_number":config["version_number"],"calendar_version_id":cv["id"],"changed_dates":changed,"publication_actions":inserted_actions,"publication_actions_deferred":deferred_actions,"publication_action_conflicts":duplicate_actions,"total_dates":len(rows)}
+ if actions:db.table("pricing_publication_actions").insert(actions).execute()
+ db.table("pricing_calendar_versions").update({"changed_dates":changed,"summary":{"changed_dates":changed,"total_dates":len(rows),"publication_actions":len(actions)}}).eq("id",cv["id"]).execute()
+ return {"property_id":property_id,"configuration_version_id":config["id"],"configuration_version_number":config["version_number"],"calendar_version_id":cv["id"],"changed_dates":changed,"publication_actions":len(actions),"total_dates":len(rows)}
 
 def rollback(property_id:str,target_version_id:str,created_by=None):
  db=get_supabase_client(); target=db.table("pricing_configuration_versions").select("*").eq("id",target_version_id).eq("property_id",property_id).single().execute().data
