@@ -9,8 +9,7 @@ type OwnerNavActive =
   | "missions"
   | "reports"
   | "payments"
-  | "settings"
-  | "activity";
+  | "settings";
 
 type NavItem = {
   key: OwnerNavActive;
@@ -22,7 +21,7 @@ type NavItem = {
 
 function ownerCockpitBase(pathname: string | null) {
   const path = pathname || "";
-  const tokenMatch = path.match(/^\/owner\/([^/]+)(?:\/|$)/);
+  const tokenMatch = path.match(/^\/owner\/([^/]+)\/cockpit/);
   if (tokenMatch?.[1]) return `/owner/${tokenMatch[1]}/cockpit`;
   return "/owner/cockpit";
 }
@@ -35,7 +34,7 @@ function itemsFor(pathname: string | null): NavItem[] {
     { key: "reservations", label: "Réservations", short: "Séjours", href: `${cockpit}?view=planning`, icon: "▦" },
     { key: "missions", label: "Missions", short: "Missions", href: `${cockpit}?view=alerts`, icon: "✓" },
     { key: "payments", label: "Paiements", short: "€", href: "/owner/payments", icon: "€" },
-    { key: "activity", label: "Activité", short: "Activité", href: `${cockpit.replace(/\/cockpit$/, "")}/activity`, icon: "●" },
+    { key: "settings", label: "Réglages", short: "Réglages", href: "/admin/settings", icon: "⚙" },
   ];
 }
 
@@ -56,7 +55,6 @@ function inferActive(pathname: string | null): OwnerNavActive {
     return "reservations";
   }
 
-  if (path.includes("/owner/") && path.includes("/activity")) return "activity";
   if (path.includes("/admin/settings")) return "settings";
 
   return "cockpit";
