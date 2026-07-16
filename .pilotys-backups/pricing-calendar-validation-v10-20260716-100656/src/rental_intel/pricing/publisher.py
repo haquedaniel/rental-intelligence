@@ -18,7 +18,6 @@ class PublicationSummary:
     failed: int = 0
     validation_failed: int = 0
     skipped: int = 0
-    reconciled: int = 0
 
     def as_dict(self) -> dict[str, int]:
         return self.__dict__.copy()
@@ -71,74 +70,6 @@ def _extract_total(response: Any) -> float | None:
         return None
 
     return walk(response)
-
-
-
-
-def _extract_calendar_override(response: Any, target_date: str) -> tuple[float | None, int | None]:
-    """Find the explicit calendar override written for one date.
-
-    Beds24 calendar responses can be wrapped in data/room/calendar objects and
-    have varied slightly across API versions.  We deliberately search only rows
-    that cover target_date and only return explicit price1/minStay values.
-    """
-    target = date.fromisoformat(target_date)
-    matches: list[dict[str, Any]] = []
-
-    def covers(row: dict[str, Any]) -> bool:
-        raw_from = row.get("from") or row.get("date")
-        raw_to = row.get("to") or raw_from
-        if not raw_from:
-            return False
-        try:
-            start = date.fromisoformat(str(raw_from)[:10])
-            end = date.fromisoformat(str(raw_to)[:10])
-        except ValueError:
-            return False
-        return start <= target <= end
-
-    def walk(value: Any) -> None:
-        if isinstance(value, dict):
-            if covers(value) and ("price1" in value or "minStay" in value):
-                matches.append(value)
-            for nested in value.values():
-                walk(nested)
-        elif isinstance(value, list):
-            for nested in value:
-                walk(nested)
-
-    walk(response)
-    if not matches:
-        return None, None
-    # Prefer the most specific row (single date) when ranges overlap.
-    row = matches[-1]
-    price = row.get("price1")
-    min_stay = row.get("minStay")
-    return (float(price) if isinstance(price, (int, float)) else None,
-            int(min_stay) if isinstance(min_stay, (int, float)) else None)
-
-
-def _get_calendar_override(client: Beds24Client, room_id: int, day: date) -> tuple[dict[str, Any], float | None, int | None]:
-    response = client.get(
-        "/inventory/rooms/calendar",
-        params={"roomId": room_id, "from": day.isoformat(), "to": day.isoformat()},
-    )
-    price, min_stay = _extract_calendar_override(response, day.isoformat())
-    return response, price, min_stay
-
-
-def _offer_for_minimum_stay(
-    client: Beds24Client, *, property_id: int, room_id: int, day: date, min_stay: int
-) -> dict[str, Any]:
-    departure = day + timedelta(days=max(1, min_stay))
-    return client.get_offers(
-        property_id=property_id,
-        room_id=room_id,
-        arrival=day.isoformat(),
-        departure=departure.isoformat(),
-        num_adults=2,
-        num_children=0,
-    )
 
 
 def _retry_delay(attempt: int) -> timedelta:
@@ -195,16 +126,10 @@ def publish_pending(
     tolerance = Decimal(os.getenv("PRICING_PUBLICATION_VALIDATION_TOLERANCE_EUR", "0.01"))
     batch_limit = limit or int(os.getenv("PRICING_PUBLICATION_LIMIT", "30"))
 
-    eligible_statuses = ["proposed", "failed"]
-    # An explicitly requested date may be reconciled after a previous validation
-    # failure. Automatic runs still leave validation_failed actions for review.
-    if target_date:
-        eligible_statuses.append("validation_failed")
-
     q = (
         db.table("pricing_publication_actions")
         .select("*")
-        .in_("status", eligible_statuses)
+        .in_("status", ["proposed", "failed"])
         .eq("mode", "apply")
         .order("date")
         .order("created_at")
@@ -219,8 +144,8 @@ def publish_pending(
     candidates = q.execute().data or []
     actions = [
         a for a in candidates
-        if (target_date or int(a.get("attempt_count") or 0) < max_attempts)
-        and (target_date or not a.get("next_attempt_at") or datetime.fromisoformat(str(a["next_attempt_at"]).replace("Z", "+00:00")) <= now)
+        if int(a.get("attempt_count") or 0) < max_attempts
+        and (not a.get("next_attempt_at") or datetime.fromisoformat(str(a["next_attempt_at"]).replace("Z", "+00:00")) <= now)
     ][:batch_limit]
 
     if target_date and not actions:
@@ -254,6 +179,7 @@ def publish_pending(
 
             source_property_id, room_id = _source_link(db, property_key)
             day = date.fromisoformat(str(action["date"]))
+            departure = (day + timedelta(days=1)).isoformat()
             target_price = _money(action["target_price"])
             target_min_stay = int(action["target_min_stay"])
             payload = [{
@@ -278,12 +204,15 @@ def publish_pending(
                 "error": None,
             }).eq("id", action_id).execute()
 
-            calendar_before, existing_price, existing_min_stay = _get_calendar_override(client, room_id, day)
-            already_written = (
-                existing_price is not None
-                and abs(_money(existing_price) - target_price) <= tolerance
-                and existing_min_stay == target_min_stay
+            before_response = client.get_offers(
+                property_id=source_property_id,
+                room_id=room_id,
+                arrival=day.isoformat(),
+                departure=departure,
+                num_adults=2,
+                num_children=0,
             )
+            before_total = _extract_total(before_response)
 
             # A user may save a newer Pilotys version while this run is in progress.
             # Re-check immediately before the external write and fail closed if stale.
@@ -297,38 +226,25 @@ def publish_pending(
                 summary.stale += 1
                 continue
 
-            write_response: Any = {"success": True, "reconciled_existing_override": True}
-            if not already_written:
-                write_response = client.post("/inventory/rooms/calendar", json_data=payload)
-
-            calendar_after, after_price, after_min_stay = _get_calendar_override(client, room_id, day)
-            offer_after = _offer_for_minimum_stay(
-                client, property_id=source_property_id, room_id=room_id, day=day, min_stay=target_min_stay
+            write_response = client.post("/inventory/rooms/calendar", json_data=payload)
+            after_response = client.get_offers(
+                property_id=source_property_id,
+                room_id=room_id,
+                arrival=day.isoformat(),
+                departure=departure,
+                num_adults=2,
+                num_children=0,
             )
-            offer_total = _extract_total(offer_after)
-            calendar_matches = (
-                after_price is not None
-                and abs(_money(after_price) - target_price) <= tolerance
-                and after_min_stay == target_min_stay
-            )
-            response_payload = {
-                "calendar_before": calendar_before,
-                "write": write_response,
-                "calendar_after": calendar_after,
-                "offer_after_minimum_stay": offer_after,
-            }
-            if not calendar_matches:
+            after_total = _extract_total(after_response)
+            if after_total is None or abs(_money(after_total) - target_price) > tolerance:
                 db.table("pricing_publication_actions").update({
                     "status": "validation_failed",
                     "payload": payload,
-                    "response": response_payload,
-                    "effective_price_before": existing_price,
-                    "effective_price_after": after_price,
-                    "validation_status": "calendar_mismatch",
-                    "error": (
-                        f"Expected calendar override price={target_price}, minStay={target_min_stay}; "
-                        f"read back price={after_price}, minStay={after_min_stay}."
-                    ),
+                    "response": {"offer_before": before_response, "write": write_response, "offer_after": after_response},
+                    "effective_price_before": before_total,
+                    "effective_price_after": after_total,
+                    "validation_status": "mismatch",
+                    "error": f"Expected {target_price}; effective one-night quote was {after_total}.",
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }).eq("id", action_id).execute()
                 db.table("pricing_daily_prices").update({"publication_status": "failed"}).eq("property_id", property_key).eq("date", day.isoformat()).execute()
@@ -339,10 +255,10 @@ def publish_pending(
             db.table("pricing_publication_actions").update({
                 "status": "applied",
                 "payload": payload,
-                "response": response_payload,
-                "effective_price_before": existing_price,
-                "effective_price_after": after_price,
-                "validation_status": "validated_calendar",
+                "response": {"offer_before": before_response, "write": write_response, "offer_after": after_response},
+                "effective_price_before": before_total,
+                "effective_price_after": after_total,
+                "validation_status": "validated",
                 "applied_at": completed.isoformat(),
                 "updated_at": completed.isoformat(),
                 "next_attempt_at": None,
@@ -355,8 +271,6 @@ def publish_pending(
                 "publication_status": "published",
             }).eq("property_id", property_key).eq("date", day.isoformat()).execute()
             summary.applied += 1
-            if already_written:
-                summary.reconciled += 1
         except Exception as exc:
             failed_at = datetime.now(timezone.utc)
             retry_at = failed_at + _retry_delay(attempt)
