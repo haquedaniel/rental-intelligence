@@ -11,9 +11,7 @@ ops_event_log() {
   local summary="${4:-}"
   local reason_code="${5:-}"
 
-  # Operational logging must never block the actual cron job.
-  # Close stdin explicitly and cap the whole docker invocation at 5 seconds.
-  timeout --signal=KILL 5s docker compose exec -T cockpit \
+  timeout 20s docker compose exec -T cockpit \
     python -m rental_intel.ops.log_event \
       --event-type "$event_type" \
       --severity "$severity" \
@@ -23,7 +21,7 @@ ops_event_log() {
       --title "$title" \
       --summary "$summary" \
       --reason-code "$reason_code" \
-    </dev/null >/dev/null 2>&1 || true
+    >/dev/null 2>&1 || true
 }
 
 ops_event_start() {
