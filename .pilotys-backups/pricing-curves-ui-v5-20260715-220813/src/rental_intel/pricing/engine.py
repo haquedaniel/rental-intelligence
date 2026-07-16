@@ -62,17 +62,9 @@ def calculate_property(*,setting:Setting,seasons,overrides,reservations,today=No
   season=choose_period(seasons,d); override=choose_period(overrides,d); weekend=d.weekday() in WEEKEND
   default=setting.default_weekend_price if weekend and setting.default_weekend_price is not None else setting.default_price
   price=default; floor=setting.floor_price; ceiling=setting.ceiling_price; min_stay=setting.default_min_stay; steps=[step("base_plan","Plan général",default,default,"Tarif général du logement, selon le jour de la semaine.")]; reasons=["default_plan"]
-  curve=setting.optimisation_curve; curve_label="Courbe générale"; market_influence=setting.market_signal_influence_pct; protected=False; strategy="base_plan"
+  curve=setting.optimisation_curve; market_influence=setting.market_signal_influence_pct; protected=False; strategy="base_plan"
   if season:
-   season_price=money(season.get("weekend_price") if weekend and season.get("weekend_price") is not None else season.get("weekday_price")); steps.append(step("season_plan",str(season.get("name") or "Saison"),price,season_price,"Cette date appartient à la saison configurée.",{"season_id":season.get("id")})); price=season_price; floor=money(season["floor_price"]) if season.get("floor_price") is not None else floor; ceiling=money(season["ceiling_price"]) if season.get("ceiling_price") is not None else ceiling; min_stay=int(season.get("min_stay") or min_stay)
-   optimisation_mode=str(season.get("optimisation_mode") or ("none" if season.get("protect_from_automatic_reductions") else ("custom" if season.get("optimisation_curve") else "inherit")))
-   if optimisation_mode=="none":
-    protected=True; curve_label=f"{season.get('name') or 'Saison'} · sans baisse temporelle"
-   elif optimisation_mode=="custom":
-    curve=list(season.get("optimisation_curve") or curve); curve_label=f"Courbe {season.get('name') or 'saison'}"
-   else:
-    curve_label="Courbe générale héritée"
-   market_influence=Decimal(str(season.get("market_signal_influence_pct") if season.get("market_signal_influence_pct") is not None else market_influence)); strategy="season_plan"; reasons=["season_plan"]
+   season_price=money(season.get("weekend_price") if weekend and season.get("weekend_price") is not None else season.get("weekday_price")); steps.append(step("season_plan",str(season.get("name") or "Saison"),price,season_price,"Cette date appartient à la saison configurée.",{"season_id":season.get("id")})); price=season_price; floor=money(season["floor_price"]) if season.get("floor_price") is not None else floor; ceiling=money(season["ceiling_price"]) if season.get("ceiling_price") is not None else ceiling; min_stay=int(season.get("min_stay") or min_stay); curve=list(season.get("optimisation_curve") or curve); market_influence=Decimal(str(season.get("market_signal_influence_pct") if season.get("market_signal_influence_pct") is not None else market_influence)); protected=bool(season.get("protect_from_automatic_reductions",False)); strategy="season_plan"; reasons=["season_plan"]
   if override and (not override.get("hold_until") or datetime.fromisoformat(str(override["hold_until"]).replace("Z","+00:00"))>=now):
    before=price
    if override.get("price") is not None:price=money(override["price"])
@@ -88,7 +80,7 @@ def calculate_property(*,setting:Setting,seasons,overrides,reservations,today=No
   if not is_occupied and not protected and not (setting.protect_weekends and weekend):
    time_pct=curve_discount(curve,days_until)
    if time_pct>0:
-    before=price;price=price*(Decimal("1")-time_pct/Decimal("100"));steps.append(step("time_optimisation",curve_label,before,price,f"{curve_label} prévoit une remise de {float(time_pct):.1f}% à J-{days_until}.",{"days_before":days_until,"discount_pct":float(time_pct),"curve":curve,"curve_source":curve_label}));reasons.append("time_curve");strategy="time_optimisation"
+    before=price;price=price*(Decimal("1")-time_pct/Decimal("100"));steps.append(step("time_optimisation","Optimisation temporelle",before,price,f"La courbe prévoit une remise de {float(time_pct):.1f}% à J-{days_until}.",{"days_before":days_until,"discount_pct":float(time_pct),"curve":curve}));reasons.append("time_curve");strategy="time_optimisation"
   unclamped=price; price=max(floor,price); price=min(price,ceiling) if ceiling is not None else price
   if money(price)!=money(unclamped):steps.append(step("guardrail","Plancher / plafond",unclamped,price,"Le prix est ramené dans les limites autorisées.",{"floor":float(floor),"ceiling":float(ceiling) if ceiling is not None else None}));reasons.append("guardrail")
   gap=gaps.get(d)
