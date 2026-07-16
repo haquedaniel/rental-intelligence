@@ -171,21 +171,14 @@ def _load_action_context(db, action: dict[str, Any]) -> tuple[dict[str, Any], di
 
 
 def _is_current(action: dict[str, Any], daily: dict[str, Any]) -> bool:
-    # Publication payloads are normally Beds24 request arrays. Some earlier
-    # engine versions also stored metadata dictionaries. Only dictionaries can
-    # carry calendar_version_id; list payloads remain valid and are checked
-    # against the current daily target through price, minimum stay and availability.
-    raw_payload = action.get("payload")
-    payload_meta = raw_payload if isinstance(raw_payload, dict) else {}
-    payload_calendar_version_id = payload_meta.get("calendar_version_id")
-
+    payload = action.get("payload") or {}
     return (
         bool(daily.get("available"))
         and _money(daily.get("final_price")) == _money(action.get("target_price"))
         and int(daily.get("min_stay") or 1) == int(action.get("target_min_stay") or 1)
         and (
-            not payload_calendar_version_id
-            or str(payload_calendar_version_id) == str(daily.get("calendar_version_id"))
+            not payload.get("calendar_version_id")
+            or str(payload.get("calendar_version_id")) == str(daily.get("calendar_version_id"))
         )
     )
 
