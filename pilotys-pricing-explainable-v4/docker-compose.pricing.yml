@@ -1,0 +1,19 @@
+services:
+  pricing-api:
+    extends:
+      file: docker-compose.yml
+      service: cockpit
+    container_name: rental-intelligence-pricing-api
+    ports: !reset []
+    command: ["python", "-m", "rental_intel.pricing.api"]
+    environment:
+      PRICING_API_PORT: "8010"
+      PRICING_INTERNAL_SECRET: "${PRICING_INTERNAL_SECRET}"
+    restart: unless-stopped
+
+  cleaner-web:
+    environment:
+      PRICING_API_URL: "http://pricing-api:8010"
+      PRICING_INTERNAL_SECRET: "${PRICING_INTERNAL_SECRET}"
+    depends_on:
+      - pricing-api
