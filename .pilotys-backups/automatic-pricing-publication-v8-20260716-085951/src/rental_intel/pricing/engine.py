@@ -126,17 +126,6 @@ def regenerate(property_id:str,created_by=None,change_summary=None,configuration
  db.table("pricing_calendar_versions").update({"status":"superseded"}).eq("property_id",property_id).eq("status","active").execute()
  cv=db.table("pricing_calendar_versions").insert({"property_id":property_id,"configuration_version_id":config["id"],"status":"active","date_from":today.isoformat(),"date_to":end.isoformat()}).execute().data[0]
  rows=calculate_property(setting=setting,seasons=seasons,overrides=overrides,reservations=reservations,configuration_version_id=config["id"],calendar_version_id=cv["id"])
- # Preserve the last validated channel state and queue only genuinely changed or never-published dates.
- for r in rows:
-  prior=old.get(str(r["date"]))
-  if prior:
-   r["published_price"]=prior.get("published_price")
-   r["published_min_stay"]=prior.get("published_min_stay")
-   r["published_at"]=prior.get("published_at")
-  if r["publication_status"]=="not_required":
-   continue
-  already_live=bool(prior and prior.get("published_price") is not None and money(prior.get("published_price"))==money(r["final_price"]) and int(prior.get("published_min_stay") or 1)==int(r["min_stay"]))
-  r["publication_status"]="published" if already_live else "pending"
  changed=sum(1 for r in rows if str(r["date"]) not in old or money(old[str(r["date"])].get("final_price"))!=money(r["final_price"]) or int(old[str(r["date"])].get("min_stay") or 0)!=int(r["min_stay"]))
  # Supersede only unpublished proposals. Published channel state remains auditable.
  db.table("pricing_publication_actions").update({"status":"superseded","updated_at":datetime.now(timezone.utc).isoformat()}).eq("property_id",property_id).eq("status","proposed").execute()
@@ -144,7 +133,7 @@ def regenerate(property_id:str,created_by=None,change_summary=None,configuration
  actions=[]
  for r in rows:
   if r["publication_status"]!="pending":continue
-  prior=old.get(str(r["date"]));actions.append({"property_id":property_id,"date":r["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,"old_price":prior.get("published_price") if prior else None,"target_price":r["final_price"],"old_min_stay":prior.get("published_min_stay") if prior else None,"target_min_stay":r["min_stay"],"reason_codes":r["reason_codes"],"reason":" → ".join(s["label"] for s in r["explanation_steps"]),"generation_id":r["generation_id"],"payload":{"calendar_version_id":cv["id"],"configuration_version_id":config["id"],"explanation_steps":r["explanation_steps"]}})
+  prior=old.get(str(r["date"]));actions.append({"property_id":property_id,"date":r["date"],"action_type":"set_price_and_min_stay","status":"proposed","mode":setting.mode,"old_price":prior.get("final_price") if prior else None,"target_price":r["final_price"],"old_min_stay":prior.get("min_stay") if prior else None,"target_min_stay":r["min_stay"],"reason_codes":r["reason_codes"],"reason":" → ".join(s["label"] for s in r["explanation_steps"]),"generation_id":r["generation_id"],"payload":{"calendar_version_id":cv["id"],"explanation_steps":r["explanation_steps"]}})
  if actions:db.table("pricing_publication_actions").insert(actions).execute()
  db.table("pricing_calendar_versions").update({"changed_dates":changed,"summary":{"changed_dates":changed,"total_dates":len(rows)}}).eq("id",cv["id"]).execute()
  return {"property_id":property_id,"configuration_version_id":config["id"],"configuration_version_number":config["version_number"],"calendar_version_id":cv["id"],"changed_dates":changed,"total_dates":len(rows)}

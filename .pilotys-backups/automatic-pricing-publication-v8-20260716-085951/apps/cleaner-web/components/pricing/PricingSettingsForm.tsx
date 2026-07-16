@@ -24,9 +24,7 @@ export default function PricingSettingsForm({settings,hiddenFields,action}:{sett
  </div></div>
  <div style={group}><h3 style={heading}>Fonctionnement</h3><div style={grid}>
   <label style={field}>Calendrier généré (jours)<input name="planning_horizon_days" type="number" defaultValue={s.planning_horizon_days??540} style={input}/><small style={hint}>Nombre total de jours matérialisés dans Pilotys.</small></label>
-  <label style={field}>Diffusion<select name="mode" defaultValue={s.mode??"shadow"} style={input}><option value="shadow">Aperçu Pilotys — rien n’est mis en ligne</option><option value="apply">En direct — publication automatique</option></select><small style={hint}>En direct, toute modification du calendrier est publiée automatiquement puis validée.</small></label>
   <label style={{...field,display:"flex",alignItems:"center",gap:9}}><input name="enabled" type="checkbox" defaultChecked={s.enabled??false}/> Moteur actif</label>
-  <label style={{...field,display:"flex",alignItems:"center",gap:9}}><input name="publication_paused" type="checkbox" defaultChecked={s.publication_paused??false}/> Mettre temporairement la diffusion en pause</label>
  </div></div>
  <label style={field}>Résumé de la modification<input name="change_summary" placeholder="Ex. courbe été plus protectrice" style={input}/></label>
  <div style={{display:"flex",justifyContent:"flex-end",gap:10,flexWrap:"wrap",position:"sticky",bottom:10,background:"rgba(255,255,255,.96)",padding:"12px 0",borderTop:"1px solid #e2e8f0"}}><button type="reset" style={{...button,background:"white",color:"#0f172a",border:"1px solid #cbd5e1"}}>Annuler les modifications</button><SubmitStatusButton/></div>
