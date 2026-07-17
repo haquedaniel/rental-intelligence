@@ -164,17 +164,6 @@ export function OwnerPricingCalendar({
       reservation.start < addDays(last, 1) &&
       reservation.end > first,
   );
-  // A reservation occupies the nights from check-in through the day before
-  // checkout. The checkout date itself remains sellable and must retain its
-  // price even though the visual reservation bar ends at midday on that date.
-  const occupiedNightDates = new Set<string>();
-  reservations.forEach((reservation) => {
-    let date = reservation.start;
-    while (date < reservation.end) {
-      occupiedNightDates.add(date);
-      date = addDays(date, 1);
-    }
-  });
   const missingCount = data.listings.filter(
     (item) => !data.pricingCalendar.some((row) => row.listingId === item.id),
   ).length;
@@ -272,7 +261,7 @@ export function OwnerPricingCalendar({
             });
             return (
               <div
-                className="relative grid h-[84px] grid-cols-7 border-t border-[#112532]/8"
+                className="relative grid h-[78px] grid-cols-7 border-t border-[#112532]/8"
                 key={weekIndex}
               >
                 {week.map((date) => {
@@ -282,7 +271,6 @@ export function OwnerPricingCalendar({
                     Number(row?.marketSignalPct || 0),
                     marketScale,
                   );
-                  const occupiedNight = occupiedNightDates.has(date);
                   return (
                     <button
                       type="button"
@@ -315,12 +303,12 @@ export function OwnerPricingCalendar({
                             />
                           )}
                       </div>
-                      {row && !occupiedNight && (
+                      {row && (
                         <strong className="mt-1 block text-[13px] leading-4">
                           {money(row.finalPrice)}
                         </strong>
                       )}
-                      {row && !occupiedNight && (
+                      {row && (
                         <span
                           className="absolute bottom-[4px] left-[5px] right-[5px] h-[5px] rounded-full"
                           style={{ backgroundColor: MARKET_COLORS[level] }}
@@ -329,11 +317,11 @@ export function OwnerPricingCalendar({
                     </button>
                   );
                 })}
-                <div className="pointer-events-none absolute inset-x-0 top-[43px] z-10 h-[17px]">
+                <div className="pointer-events-none absolute inset-x-0 top-[47px] z-10 h-[18px]">
                   {segments.map((segment, index) => (
                     <div
                       key={`${segment.id}-${index}`}
-                      className="absolute h-[15px] overflow-hidden rounded-full bg-[#173d50]/92 px-2 text-[9px] font-black leading-[15px] text-white shadow-sm"
+                      className="absolute h-[16px] overflow-hidden rounded-full bg-[#173d50]/92 px-2 text-[9px] font-black leading-[16px] text-white shadow-sm"
                       style={{
                         left: `${segment.left}%`,
                         right: `${segment.right}%`,
