@@ -20,6 +20,9 @@ import type {
   FinancialSummary,
   MonthlyRevenuePoint,
   Opportunity,
+  OwnerBriefing,
+  PricingCalendarDay,
+  PricingCalendarReservation,
   OwnerCockpitData,
   OwnerCockpitListing,
   PlanningDay,
@@ -1068,12 +1071,11 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       planningReservations: [],
       planningMarkers: [],
       dailyPrices: [],
+      pricingCalendar: [],
+      pricingReservations: [],
+      briefings: [],
       timelineEvents: [],
       opportunities: [],
-      pricingCalendar: [],
-      pricingSeasons: [],
-      pricingReservations: [],
-      journalHeadlines: [],
     };
   }
 
@@ -1099,8 +1101,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     analyticsExpensesResult,
     propertyPhotosResult,
     pricingCalendarResult,
-    pricingSeasonsResult,
-    journalSituationsResult,
+    briefingsResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1162,25 +1163,18 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from("pricing_daily_prices")
-      .select("property_id,date,final_price,market_signal_pct,source_season_id,explanation_steps")
+      .select("*")
       .in("property_id", propertyIds)
-      .gte("date", planningStart)
-      .lte("date", planningEnd)
+      .gte("date", today)
+      .lte("date", addMonths(today, 12))
       .order("date", { ascending: true }),
     supabase
-      .from("pricing_seasons")
-      .select("id,property_id,name,start_date,end_date,active")
-      .in("property_id", propertyIds)
-      .eq("active", true)
-      .lte("start_date", planningEnd)
-      .gte("end_date", planningStart),
-    supabase
-      .from("ops_situations")
-      .select("id,headline,situation_text,last_observed_at,status")
+      .from("ops_briefings")
+      .select("id,title,body,frequency,status,generated_at,decision_count,requires_owner_action")
       .eq("owner_id", owner.id)
-      .not("status", "in", "(suppressed,superseded)")
-      .order("last_observed_at", { ascending: false })
-      .limit(12),
+      .neq("frequency", "preview")
+      .order("generated_at", { ascending: false })
+      .limit(8),
   ]);
 
   for (const [label, result] of [
@@ -1194,8 +1188,7 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     ["dépenses", analyticsExpensesResult],
     ["photos logements", propertyPhotosResult],
     ["calendrier tarifaire", pricingCalendarResult],
-    ["saisons tarifaires", pricingSeasonsResult],
-    ["journal propriétaire", journalSituationsResult],
+    ["briefings", briefingsResult],
   ] as const) {
     if ("error" in result && result.error) {
       throw new Error(`Impossible de charger ${label} : ${result.error.message}`);
@@ -1281,29 +1274,18 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const dailyPrices = buildDailyPrices({ listings, days: planningDays, monthlyRows: analyticsMonthly, targets });
   const timelineEvents = buildTimeline({ reservations, requests, cleanersById, ownerToken });
   const opportunities = buildOpportunities({ listings });
-  const pricingCalendar = (pricingCalendarResult.data ?? []).map((row: Row) => ({
-    listingId: String(row.property_id),
-    date: String(row.date),
-    finalPrice: Number(row.final_price || 0),
-    marketSignalPct: Number(row.market_signal_pct || 0),
-    sourceSeasonId: row.source_season_id ? String(row.source_season_id) : null,
-    explanationSteps: Array.isArray(row.explanation_steps) ? row.explanation_steps : [],
-  }));
-  const pricingSeasons = (pricingSeasonsResult.data ?? []).map((row: Row) => ({
-    id: String(row.id), listingId: String(row.property_id), name: String(row.name || "Saison"),
-    startDate: String(row.start_date), endDate: String(row.end_date),
-  }));
-  const pricingReservations = reservations.map((row: Row) => ({
-    id: String(row.id), listingId: String(row.property_id),
-    guest: String(row.guest_name || row.guest_full_name || row.name || "Réservation"),
-    start: parisDateKey(row.checkin_at), end: parisDateKey(row.checkout_at),
-    total: reservationRevenue(row),
-  })).filter((row) => row.start && row.end);
-  const journalHeadlines = (journalSituationsResult.data ?? []).map((row: Row) => ({
-    id: String(row.id), headline: String(row.headline || "Mise à jour Pilotys"),
-    detail: row.situation_text ? String(row.situation_text) : null,
-    occurredAt: String(row.last_observed_at),
-  }));
+  const pricingCalendar = (pricingCalendarResult.data ?? []) as PricingCalendarDay[];
+  const pricingReservations = reservations.map((reservation: Row) => ({
+    id: String(reservation.id),
+    property_id: String(reservation.property_id),
+    guest_name: reservation.guest_name ?? null,
+    guest_first_name: reservation.guest_first_name ?? null,
+    checkin_at: String(reservation.checkin_at),
+    checkout_at: String(reservation.checkout_at),
+    status: reservation.status ?? null,
+    channel: reservation.channel ?? null,
+  })) as PricingCalendarReservation[];
+  const briefings = (briefingsResult.data ?? []) as OwnerBriefing[];
 
   return {
     owner: {
@@ -1322,11 +1304,10 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     planningReservations,
     planningMarkers,
     dailyPrices,
+    pricingCalendar,
+    pricingReservations,
+    briefings,
     timelineEvents,
     opportunities,
-    pricingCalendar,
-    pricingSeasons,
-    pricingReservations,
-    journalHeadlines,
   };
 }

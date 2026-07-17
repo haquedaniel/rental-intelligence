@@ -1,5 +1,7 @@
 "use client";
 
+import ExplainablePricingCalendar from "@/components/pricing/ExplainablePricingCalendar";
+
 
 function calendarDayIsBookable(day: Record<string, any> | null | undefined): boolean {
   if (!day) return false;
@@ -107,7 +109,6 @@ import type {
   TimelineEvent,
 } from "./types";
 import { usePathname } from "next/navigation";
-import { OwnerJournalHeadlines, OwnerPricingCalendar } from "./OwnerPricingCalendar";
 
 const MONTH_TARGET_FALLBACK = 4000;
 const PLANNING_DAY_GAP_PX = 4; // Tailwind gap-1 between day cells.
@@ -889,6 +890,91 @@ function Planning({ data, selected }: { data: OwnerCockpitData; selected: string
   );
 }
 
+function PricingCalendarSection({ data, selected }: { data: OwnerCockpitData; selected: string[] }) {
+  const selectedListings = data.listings.filter((listing) => selected.includes(listing.id));
+
+  return (
+    <ShellCard className="overflow-hidden p-5 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">Tarification</p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Calendrier des prix</h2>
+          <p className="mt-2 max-w-3xl text-sm font-bold text-[#112532]/55">
+            Les réservations commencent et se terminent à mi-journée. Touchez un prix pour comprendre son calcul.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-6">
+        {selectedListings.map((listing) => {
+          const rows = data.pricingCalendar.filter((row) => row.property_id === listing.id);
+          const reservations = data.pricingReservations.filter((reservation) => reservation.property_id === listing.id);
+          return (
+            <div key={listing.id} className="rounded-[1.4rem] bg-[#FBFCFC] p-3 ring-1 ring-[#112532]/7 sm:p-4">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: listing.dot }} />
+                <h3 className="text-lg font-black text-[#112532]">{listing.name}</h3>
+              </div>
+              <ExplainablePricingCalendar rows={rows} reservations={reservations} />
+            </div>
+          );
+        })}
+      </div>
+    </ShellCard>
+  );
+}
+
+function BriefingHistory({ data }: { data: OwnerCockpitData }) {
+  return (
+    <ShellCard className="overflow-hidden p-5 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Suivi Pilotys</p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Vos derniers briefings</h2>
+          <p className="mt-2 text-sm font-bold text-[#112532]/55">
+            Les décisions et actions importantes, regroupées sans le bruit opérationnel.
+          </p>
+        </div>
+        <a
+          href={`/owner/${encodeURIComponent(data.owner.token)}/activity`}
+          className="rounded-full bg-[#112532] px-4 py-2.5 text-sm font-black text-white"
+        >
+          Voir tout le journal
+        </a>
+      </div>
+
+      {data.briefings.length === 0 ? (
+        <div className="mt-5 rounded-[1.35rem] bg-[#F4F8FA] p-5 ring-1 ring-[#112532]/6">
+          <p className="font-black text-[#112532]">Aucun briefing envoyé pour le moment.</p>
+          <p className="mt-1 text-sm font-bold text-[#112532]/50">Les prochains résumés apparaîtront ici.</p>
+        </div>
+      ) : (
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          {data.briefings.map((briefing) => (
+            <article key={briefing.id} className="rounded-[1.35rem] bg-white p-4 ring-1 ring-[#112532]/8">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[#E0680E]">
+                    {new Date(briefing.generated_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                  <h3 className="mt-1 text-lg font-black text-[#112532]">{briefing.title}</h3>
+                </div>
+                {briefing.requires_owner_action ? (
+                  <span className="shrink-0 rounded-full bg-[#FFF1E8] px-2.5 py-1 text-[10px] font-black uppercase text-[#E0680E]">Action</span>
+                ) : null}
+              </div>
+              <p className="mt-3 whitespace-pre-line text-sm font-bold leading-6 text-[#112532]/66">{briefing.body}</p>
+              <p className="mt-3 text-xs font-black text-[#112532]/38">
+                {briefing.decision_count} élément{briefing.decision_count > 1 ? "s" : ""} · {briefing.status === "sent" ? "envoyé" : briefing.status}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+    </ShellCard>
+  );
+}
+
 function TimelineBrowser({ data }: { data: OwnerCockpitData }) {
   const past = data.timelineEvents.filter((event) => event.side === "past");
   const future = data.timelineEvents.filter((event) => event.side === "future");
@@ -1076,8 +1162,8 @@ export function OwnerCockpit({ data }: { data: OwnerCockpitData }) {
         <SmartBrief data={data} />
         <PropertySelector data={data} selected={selected} setSelected={setSelected} />
         <Planning data={data} selected={selected} />
-        <OwnerPricingCalendar data={data} selectedListingIds={selected} />
-        <OwnerJournalHeadlines data={data} />
+        <PricingCalendarSection data={data} selected={selected} />
+        <BriefingHistory data={data} />
       </div>
 
       <BottomNav />

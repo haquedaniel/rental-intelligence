@@ -92,6 +92,39 @@ export type DailyPrice = {
   price: number;
 };
 
+
+export type PricingCalendarDay = {
+  property_id: string;
+  date: string;
+  final_price: number | null;
+  min_stay: number | null;
+  occupied?: boolean | null;
+  explanation_steps?: Array<Record<string, any>> | null;
+  [key: string]: any;
+};
+
+export type PricingCalendarReservation = {
+  id: string;
+  property_id: string;
+  guest_name?: string | null;
+  guest_first_name?: string | null;
+  checkin_at: string;
+  checkout_at: string;
+  status?: string | null;
+  channel?: string | null;
+};
+
+export type OwnerBriefing = {
+  id: string;
+  title: string;
+  body: string;
+  frequency: string;
+  status: string;
+  generated_at: string;
+  decision_count: number;
+  requires_owner_action: boolean;
+};
+
 export type TimelineKind = "arrival" | "departure" | "cleaning" | "intervention";
 
 export type TimelineEvent = {
@@ -120,40 +153,6 @@ export type Opportunity = {
   tone: Tone;
 };
 
-
-export type PricingCalendarDay = {
-  listingId: string;
-  date: string;
-  finalPrice: number;
-  marketSignalPct: number;
-  sourceSeasonId?: string | null;
-  explanationSteps: Record<string, any>[];
-};
-
-export type PricingSeason = {
-  id: string;
-  listingId: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-};
-
-export type PricingReservation = {
-  id: string;
-  listingId: string;
-  guest: string;
-  start: string;
-  end: string;
-  total: number;
-};
-
-export type JournalHeadline = {
-  id: string;
-  headline: string;
-  detail?: string | null;
-  occurredAt: string;
-};
-
 export type OwnerCockpitData = {
   owner: OwnerCockpitOwner;
   listings: OwnerCockpitListing[];
@@ -166,10 +165,9 @@ export type OwnerCockpitData = {
   planningReservations: PlanningReservation[];
   planningMarkers: PlanningMarker[];
   dailyPrices: DailyPrice[];
+  pricingCalendar: PricingCalendarDay[];
+  pricingReservations: PricingCalendarReservation[];
+  briefings: OwnerBriefing[];
   timelineEvents: TimelineEvent[];
   opportunities: Opportunity[];
-  pricingCalendar: PricingCalendarDay[];
-  pricingSeasons: PricingSeason[];
-  pricingReservations: PricingReservation[];
-  journalHeadlines: JournalHeadline[];
 };
