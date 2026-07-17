@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from rental_intel.cleaning.db import get_supabase_client
-from rental_intel.decisions.situations import build_situations
 
 
 def _parse_dt(value: str | None) -> datetime | None:
@@ -35,121 +35,150 @@ def due(pref: dict[str, Any], now: datetime) -> bool:
     )
 
 
+def allowed(decision: dict[str, Any], pref: dict[str, Any]) -> bool:
+    decision_type = decision.get("decision_type", "")
+    mapping = {
+        "reservation_created": "include_reservations",
+        "reservation_modified": "include_reservations",
+        "reservation_cancelled": "include_reservations",
+        "cleaning_completed": "include_cleaning_completed",
+        "cleaner_accepted": "include_cleaner_accepted",
+        "cleaner_refused": "include_cleaner_refused",
+        "cleaning_rescheduled": "include_cleaning_rescheduled",
+        "pricing_session": "include_pricing",
+        "minimum_stay_session": "include_min_stay",
+    }
+    preference_field = mapping.get(decision_type)
+    if preference_field and not pref.get(preference_field, True):
+        return False
+
+    included_property_ids = pref.get("included_property_ids") or []
+    if included_property_ids and decision.get("property_id") not in included_property_ids:
+        return False
+
+    if decision_type == "pricing_session":
+        metadata = decision.get("metadata") or {}
+        threshold_type = pref.get("pricing_threshold_type") or "pct"
+        threshold = float(pref.get("pricing_threshold_value") or 0)
+        metric = (
+            abs(float(metadata.get("average_change_pct") or 0))
+            if threshold_type == "pct"
+            else abs(float(metadata.get("average_change_eur") or 0))
+        )
+        temporal = int(metadata.get("temporal_change_count") or 0) > 0
+        if metric < threshold and not (pref.get("include_temporal_daily") and temporal):
+            return False
+
+    return True
+
+
 def _owner_label(owner: dict[str, Any]) -> str:
-    return owner.get("display_name") or owner.get("name") or "vous"
+    return owner.get("display_name") or owner.get("name") or "Propriétaire"
 
 
-def _opening(pref: dict[str, Any], now: datetime) -> str:
-    tz = ZoneInfo(pref.get("timezone") or "Europe/Paris")
-    hour = now.astimezone(tz).hour
-    if hour < 12:
-        return "Bonjour"
-    if hour < 18:
-        return "Bonjour"
-    return "Bonsoir"
+def _property_name(decision: dict[str, Any]) -> str:
+    summary = str(decision.get("summary") or "")
+    # Pricing summaries start with the property name followed by " · ".
+    return summary.split(" · ", 1)[0] if " · " in summary else "Logement"
 
 
-def _plain_story(situation: dict[str, Any]) -> str:
-    """Turn one structured situation into natural property-manager prose."""
-    headline = str(situation.get("headline") or "").strip()
-    situation_text = str(situation.get("situation_text") or "").strip()
-    action = str(situation.get("action_text") or "").strip()
-    next_step = str(situation.get("next_step_text") or "").strip()
+def _render_pricing(lines: list[str], pricing: list[dict[str, Any]]) -> None:
+    """Collapse repeated recalculations to the latest state per property.
 
-    parts = []
-    if headline:
-        parts.append(headline.rstrip(".") + ".")
-    if situation_text and situation_text.lower() not in headline.lower():
-        parts.append(situation_text)
-    if action:
-        # First-person voice is intentional: the owner experiences Pilotys as
-        # the manager keeping them informed, not as a reporting database.
-        action = action.replace("Pilotys a ", "J’ai ").replace("Pilotys continuera", "Je continuerai")
-        action = action.replace("Pilotys vérifiera", "Je vérifierai").replace(
-            "Pilotys poursuivra", "Je poursuivrai"
-        )
-        parts.append(action)
-    if next_step:
-        next_step = next_step.replace("Pilotys continuera", "Je continuerai")
-        next_step = next_step.replace("Pilotys surveillera", "Je surveillerai")
-        next_step = next_step.replace("Pilotys vérifiera", "Je vérifierai")
-        if next_step not in parts:
-            parts.append(next_step)
-    return " ".join(part.strip() for part in parts if part.strip())
+    A day can contain several recalculations (manual tuning, reservation refresh,
+    cron). Earlier versions are superseded by later versions and should not be
+    repeated as separate SMS bullets.
+    """
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    minimum_stay_count = 0
 
+    for decision in pricing:
+        if decision.get("decision_type") == "minimum_stay_session":
+            metadata = decision.get("metadata") or {}
+            minimum_stay_count += int(metadata.get("change_count") or 0)
+            continue
+        if decision.get("decision_type") == "pricing_session":
+            groups[str(decision.get("property_id") or _property_name(decision))].append(decision)
 
-def render(owner: dict[str, Any], pref: dict[str, Any], situations: list[dict[str, Any]], now: datetime) -> str:
-    name = _owner_label(owner)
-    lines = [f"{_opening(pref, now)} {name},", ""]
+    for sessions in groups.values():
+        sessions.sort(key=lambda row: str(row.get("occurred_at") or ""))
+        latest = sessions[-1]
+        metadata = latest.get("metadata") or {}
+        changed_dates = int(metadata.get("changed_dates") or 0)
+        avg_pct = float(metadata.get("average_change_pct") or 0)
+        temporal_count = int(metadata.get("temporal_change_count") or 0)
+        property_name = _property_name(latest)
 
-    if not situations:
-        lines.extend(
-            [
-                "Rien de notable ne nécessite votre attention depuis mon dernier point.",
-                "",
-                "Je continue de surveiller les réservations, les prix et les opérations.",
-                "",
-                "— Pilotys",
-            ]
-        )
-        return "\n".join(lines)
+        detail_bits = [f"{changed_dates} date(s)", f"moyenne {avg_pct:+.1f}%"]
+        if temporal_count:
+            detail_bits.append(f"{temporal_count} liée(s) à l’approche des séjours")
+        if len(sessions) > 1:
+            detail_bits.append(f"{len(sessions)} recalculs regroupés")
 
-    attention = [s for s in situations if s.get("requires_owner_action")]
-    ordinary = [s for s in situations if not s.get("requires_owner_action")]
+        lines.append(f"• Tarification — {property_name} : " + ", ".join(detail_bits) + ".")
 
-    selected = attention[:2] + ordinary[:3]
-    for index, situation in enumerate(selected):
-        if index:
-            lines.append("")
-        lines.append(_plain_story(situation))
-
-    remaining = len(situations) - len(selected)
-    if remaining > 0:
-        lines.extend(
-            [
-                "",
-                f"J’ai regroupé {remaining} autre(s) évolution(s) moins importante(s) dans le journal Pilotys.",
-            ]
+    if minimum_stay_count:
+        lines.append(
+            f"• Séjours minimums : {minimum_stay_count} date(s) ajustée(s), "
+            "notamment pour mieux utiliser les disponibilités courtes."
         )
 
-    lines.append("")
+
+def render(owner: dict[str, Any], decisions: list[dict[str, Any]]) -> str:
+    lines = [f"Pilotys — {_owner_label(owner)}"]
+
+    reservations = [d for d in decisions if d.get("category") == "reservation"]
+    cleaning = [d for d in decisions if d.get("category") == "cleaning"]
+    pricing = [d for d in decisions if d.get("category") == "pricing"]
+
+    if reservations:
+        counts: dict[str, int] = defaultdict(int)
+        for decision in reservations:
+            counts[str(decision.get("decision_type"))] += 1
+        bits = []
+        if counts["reservation_created"]:
+            bits.append(f"{counts['reservation_created']} nouvelle(s)")
+        if counts["reservation_modified"]:
+            bits.append(f"{counts['reservation_modified']} modifiée(s)")
+        if counts["reservation_cancelled"]:
+            bits.append(f"{counts['reservation_cancelled']} annulée(s)")
+        if bits:
+            lines.append("• Réservations : " + ", ".join(bits) + ".")
+
+    _render_pricing(lines, pricing)
+
+    completed = sum(1 for d in cleaning if d.get("decision_type") == "cleaning_completed")
+    accepted = sum(1 for d in cleaning if d.get("decision_type") == "cleaner_accepted")
+    refused = sum(1 for d in cleaning if d.get("decision_type") == "cleaner_refused")
+    rescheduled = sum(1 for d in cleaning if d.get("decision_type") == "cleaning_rescheduled")
+    operation_bits = []
+    if completed:
+        operation_bits.append(f"{completed} mission(s) terminée(s)")
+    if accepted:
+        operation_bits.append(f"{accepted} acceptée(s)")
+    if refused:
+        operation_bits.append(f"{refused} refusée(s)")
+    if rescheduled:
+        operation_bits.append(f"{rescheduled} replanifiée(s)")
+    if operation_bits:
+        lines.append("• Opérations : " + ", ".join(operation_bits) + ".")
+
+    requires_action = any(d.get("requires_owner_action") for d in decisions)
     lines.append(
-        "Une action est nécessaire : consultez Pilotys."
-        if attention
-        else "Rien ne nécessite votre intervention pour le moment."
+        "Action requise : consultez Pilotys."
+        if requires_action
+        else "Aucune action requise."
     )
-    lines.extend(["", "— Pilotys"])
     return "\n".join(lines)
 
 
 def _first_period_start(pref: dict[str, Any], now: datetime) -> datetime:
+    """Avoid dumping the decision backfill into a newly-enabled owner's first SMS."""
     updated = _parse_dt(pref.get("updated_at"))
     recent_floor = now - timedelta(hours=6)
     if updated and updated > recent_floor:
         return updated
     return recent_floor
-
-
-def _allowed_situation(situation: dict[str, Any], pref: dict[str, Any]) -> bool:
-    included = pref.get("included_property_ids") or []
-    if included and situation.get("property_id") not in included:
-        return False
-
-    situation_type = str(situation.get("situation_type") or "")
-    if situation_type.startswith("pricing_") and not pref.get("include_pricing", True):
-        return False
-    if situation_type.startswith("reservation_") and not pref.get("include_reservations", True):
-        return False
-    if situation_type.startswith("cleaning_"):
-        if situation_type == "cleaning_completed" and not pref.get("include_cleaning_completed", True):
-            return False
-        if situation_type == "cleaning_confirmed" and not pref.get("include_cleaner_accepted", True):
-            return False
-        if situation_type == "cleaning_needs_reassignment" and not pref.get("include_cleaner_refused", True):
-            return False
-        if situation_type == "cleaning_rescheduled" and not pref.get("include_cleaning_rescheduled", True):
-            return False
-    return True
 
 
 def _create_briefing(
@@ -163,22 +192,29 @@ def _create_briefing(
     update_cursor: bool,
     frequency: str,
 ) -> dict[str, Any]:
-    rows = (
-        db.table("ops_situations")
+    decisions = (
+        db.table("ops_decisions")
         .select("*")
         .eq("owner_id", pref["owner_id"])
-        .gt("last_observed_at", period_start.isoformat())
-        .lte("last_observed_at", now.isoformat())
-        .order("requires_owner_action", desc=True)
-        .order("last_observed_at", desc=True)
+        .gt("occurred_at", period_start.isoformat())
+        .lte("occurred_at", now.isoformat())
+        .order("occurred_at")
         .execute()
         .data
         or []
     )
-    situations = [row for row in rows if _allowed_situation(row, pref)]
-    body = render(owner, pref, situations, now)
-    status = "queued" if queue_sms else "generated"
+    decisions = [decision for decision in decisions if allowed(decision, pref)]
 
+    body = (
+        render(owner, decisions)
+        if decisions
+        else (
+            f"Pilotys — {_owner_label(owner)}\n"
+            "Aucun événement notable depuis le dernier briefing.\n"
+            "Aucune action requise."
+        )
+    )
+    status = "queued" if queue_sms else "generated"
     briefing = (
         db.table("ops_briefings")
         .insert(
@@ -189,11 +225,10 @@ def _create_briefing(
                 "frequency": frequency,
                 "title": "Briefing Pilotys",
                 "body": body,
-                "decision_ids": [],
-                "situation_ids": [row["id"] for row in situations],
-                "decision_count": len(situations),
+                "decision_ids": [decision["id"] for decision in decisions],
+                "decision_count": len(decisions),
                 "requires_owner_action": any(
-                    row.get("requires_owner_action") for row in situations
+                    decision.get("requires_owner_action") for decision in decisions
                 ),
                 "status": status,
             }
@@ -248,7 +283,7 @@ def _create_briefing(
     return {
         "owner_id": pref["owner_id"],
         "briefing_id": briefing["id"],
-        "situations": len(situations),
+        "decisions": len(decisions),
         "recipients": len(recipients),
         "queued_sms": queue_sms,
     }
@@ -257,11 +292,6 @@ def _create_briefing(
 def generate_due_briefings(force_owner_id: str | None = None) -> list[dict[str, Any]]:
     db = get_supabase_client()
     now = datetime.now(timezone.utc)
-
-    # Refresh the communication layer before every briefing. The pricing,
-    # reservation and cleaning engines remain unchanged.
-    build_situations(lookback_days=7, owner_id=force_owner_id)
-
     query = db.table("ops_briefing_preferences").select("*").eq("enabled", True)
     if force_owner_id:
         query = query.eq("owner_id", force_owner_id)
@@ -296,6 +326,7 @@ def generate_due_briefings(force_owner_id: str | None = None) -> list[dict[str, 
 
 
 def process_preview_requests() -> list[dict[str, Any]]:
+    """Generate owner-requested previews without sending SMS or advancing the cursor."""
     db = get_supabase_client()
     now = datetime.now(timezone.utc)
     requests = (
@@ -315,7 +346,6 @@ def process_preview_requests() -> list[dict[str, Any]]:
             {"status": "processing", "started_at": now.isoformat()}
         ).eq("id", request["id"]).execute()
         try:
-            build_situations(lookback_days=7, owner_id=request["owner_id"])
             pref = (
                 db.table("ops_briefing_preferences")
                 .select("*")
@@ -334,12 +364,13 @@ def process_preview_requests() -> list[dict[str, Any]]:
                 .execute()
                 .data
             )
+            period_start = now - timedelta(hours=int(request.get("lookback_hours") or 24))
             generated = _create_briefing(
                 db,
                 pref=pref,
                 owner=owner,
                 now=now,
-                period_start=now - timedelta(hours=int(request.get("lookback_hours") or 24)),
+                period_start=period_start,
                 queue_sms=False,
                 update_cursor=False,
                 frequency="preview",
