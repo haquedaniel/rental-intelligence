@@ -44,7 +44,6 @@ export default async function Page({
         .from("ops_situations")
         .select("*")
         .eq("owner_id", owner.id)
-        .neq("status", "dismissed")
         .order("requires_owner_action", { ascending: false })
         .order("last_observed_at", { ascending: false })
         .limit(100),
@@ -151,36 +150,17 @@ export default async function Page({
 
                       <details className="mt-4 rounded-2xl bg-[#f7f4ee] px-4 py-3">
                         <summary className="cursor-pointer text-sm font-black">
-                          Voir pourquoi et les dates
+                          Voir pourquoi
                         </summary>
                         <p className="mt-3 text-sm leading-6 text-[#112532]/70">
                           {situation.explanation_text || "Pilotys a regroupé les faits disponibles pour vous présenter l’essentiel."}
                         </p>
-                        {situation.metadata?.date_range && (
-                          <p className="mt-3 text-sm font-black">
-                            Période : {situation.metadata.date_range}
-                          </p>
-                        )}
-                        {Array.isArray(situation.metadata?.dates) && situation.metadata.dates.length > 0 && (
-                          <div className="mt-3">
-                            <div className="text-xs font-black uppercase tracking-wide text-[#112532]/45">
-                              {situation.metadata.dates.length} date(s) concernée(s)
-                            </div>
-                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                              {situation.metadata.dates.map((date: string) => {
-                                const detail = Array.isArray(situation.metadata?.date_details)
-                                  ? situation.metadata.date_details.find((row: any) => row.date === date)
-                                  : null;
-                                return (
-                                  <div key={date} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
-                                    <span>{new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
-                                    {detail?.final_price != null && <strong>{Number(detail.final_price).toFixed(0)} €</strong>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+                        {Array.isArray(situation.metadata?.dates) &&
+                          situation.metadata.dates.length > 0 && (
+                            <p className="mt-2 text-xs text-[#112532]/45">
+                              {situation.metadata.dates.length} date(s) concernée(s).
+                            </p>
+                          )}
                       </details>
                     </div>
                   </div>

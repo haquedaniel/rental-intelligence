@@ -78,13 +78,6 @@ def payload_calendar_version_id(payload: Any) -> str | None:
 
 def sync_pricing(db, props, since):
     versions=db.table('pricing_calendar_versions').select('id,property_id,configuration_version_id,changed_dates,summary,created_at').gte('created_at',since).order('created_at').execute().data or []
-    configuration_ids=[v.get('configuration_version_id') for v in versions if v.get('configuration_version_id')]
-    configurations={}
-    if configuration_ids:
-        rows=(db.table('pricing_configuration_versions')
-              .select('id,created_by,change_summary,rolled_back_from_version_id')
-              .in_('id',configuration_ids).execute().data or [])
-        configurations={str(row['id']):row for row in rows}
     n=0
     for index,v in enumerate(versions):
         p=props.get(str(v.get('property_id')))
@@ -122,17 +115,12 @@ def sync_pricing(db, props, since):
         changes=[a for a in actions if a.get('old_price') is not None and a.get('target_price') is not None and float(a['old_price'])!=float(a['target_price'])]
         min_changes=[a for a in actions if a.get('old_min_stay') is not None and a.get('target_min_stay') is not None and a['old_min_stay']!=a['target_min_stay']]
         if changes:
-            config=configurations.get(str(v.get('configuration_version_id'))) or {}
-            created_by=text(config.get('created_by'))
-            trigger=('owner_configuration' if created_by.startswith('owner:')
-                     else 'admin_configuration' if created_by == 'admin'
-                     else 'automatic_pricing')
             deltas=[float(a['target_price'])-float(a['old_price']) for a in changes]
             pcts=[100*d/float(a['old_price']) for a,d in zip(changes,deltas) if float(a['old_price'])]
             temporal=sum(1 for a in changes if 'time_curve' in (a.get('reason_codes') or []))
             avg_pct=sum(pcts)/len(pcts) if pcts else 0
             direction='réduit' if avg_pct<0 else 'augmenté'
-            n+=insert(db,{'owner_id':p['owner_id'],'property_id':p['id'],'occurred_at':v['created_at'],'category':'pricing','decision_type':'pricing_session','title':'Prix recalculés','summary':f"{p['name']} · {len(changes)} date(s) · moyenne {avg_pct:+.1f}%",'what_happened':f"{len(changes)} prix ont changé, avec une variation moyenne de {avg_pct:+.1f}%.",'why':f"Les règles de saison, de marché et de proximité de l’arrivée ont été réévaluées. {temporal} changement(s) incluent la courbe temporelle.",'action_taken':f"Pilotys a {direction} les prix concernés et préparé leur mise en ligne.",'event_key':f"pricing:session:{v['id']}",'pricing_calendar_version_id':v['id'],'related_object_type':'pricing_calendar_version','related_object_id':v['id'],'metadata':{'changed_dates':len(changes),'average_change_pct':round(avg_pct,2),'average_change_eur':round(sum(deltas)/len(deltas),2),'largest_increase_eur':round(max(deltas),2),'largest_decrease_eur':round(min(deltas),2),'temporal_change_count':temporal,'min_stay_change_count':len(min_changes),'dates':[a['date'] for a in changes[:100]],'trigger':trigger,'created_by':created_by or None,'change_summary':config.get('change_summary'),'configuration_version_id':v.get('configuration_version_id'),'rolled_back_from_version_id':config.get('rolled_back_from_version_id')}})
+            n+=insert(db,{'owner_id':p['owner_id'],'property_id':p['id'],'occurred_at':v['created_at'],'category':'pricing','decision_type':'pricing_session','title':'Prix recalculés','summary':f"{p['name']} · {len(changes)} date(s) · moyenne {avg_pct:+.1f}%",'what_happened':f"{len(changes)} prix ont changé, avec une variation moyenne de {avg_pct:+.1f}%.",'why':f"Les règles de saison, de marché et de proximité de l’arrivée ont été réévaluées. {temporal} changement(s) incluent la courbe temporelle.",'action_taken':f"Pilotys a {direction} les prix concernés et préparé leur mise en ligne.",'event_key':f"pricing:session:{v['id']}",'pricing_calendar_version_id':v['id'],'related_object_type':'pricing_calendar_version','related_object_id':v['id'],'metadata':{'changed_dates':len(changes),'average_change_pct':round(avg_pct,2),'average_change_eur':round(sum(deltas)/len(deltas),2),'largest_increase_eur':round(max(deltas),2),'largest_decrease_eur':round(min(deltas),2),'temporal_change_count':temporal,'min_stay_change_count':len(min_changes),'dates':[a['date'] for a in changes[:100]]}})
         if min_changes:
             n+=insert(db,{'owner_id':p['owner_id'],'property_id':p['id'],'occurred_at':v['created_at'],'category':'pricing','decision_type':'minimum_stay_session','title':'Séjours minimums ajustés','summary':f"{p['name']} · {len(min_changes)} date(s)",'what_happened':f"Le séjour minimum a changé sur {len(min_changes)} date(s).",'why':'Pilotys a réévalué la forme des disponibilités et les nuits isolées.','action_taken':'Les changements ont été regroupés en une seule décision.','event_key':f"pricing:minstay:{v['id']}",'pricing_calendar_version_id':v['id'],'related_object_type':'pricing_calendar_version','related_object_id':v['id'],'metadata':{'change_count':len(min_changes),'dates':[a['date'] for a in min_changes[:100]]}})
     return n

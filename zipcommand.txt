@@ -1,0 +1,10 @@
+zip -r rental-intelligence-current.zip . \            
+  -x '.git/*' \
+     '.venv/*' \   
+     'node_modules/*' \                    
+     'apps/cleaner-web/.next/*' \
+     'apps/cleaner-web/node_modules/*' \
+     'outputs/*' \
+     '.pilotys-backups/*' \
+     '*.pyc' \
+     '*/__pycache__/*'

@@ -63,110 +63,80 @@ def _upsert(db: Any, payload: dict[str, Any]) -> int:
         return 0
 
 
-
-def _to_date(value: str | None):
-    if not value:
-        return None
-    try:
-        return datetime.fromisoformat(str(value)[:10]).date()
-    except ValueError:
-        return None
-
-
-def _date_range_label(dates: list[str]) -> str | None:
-    parsed = sorted(value for value in (_to_date(item) for item in dates) if value)
-    if not parsed:
-        return None
-    months = {1: "janv.", 2: "févr.", 3: "mars", 4: "avr.", 5: "mai", 6: "juin", 7: "juil.", 8: "août", 9: "sept.", 10: "oct.", 11: "nov.", 12: "déc."}
-    first, last = parsed[0], parsed[-1]
-    if first == last:
-        return f"{first.day} {months[first.month]} {first.year}"
-    if first.year == last.year:
-        return f"du {first.day} {months[first.month]} au {last.day} {months[last.month]} {last.year}"
-    return f"du {first.day} {months[first.month]} {first.year} au {last.day} {months[last.month]} {last.year}"
-
-
-
-def _pricing_trigger(db: Any, decision: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    metadata = decision.get("metadata") or {}
-    explicit = str(metadata.get("trigger") or "")
-    if explicit:
-        return explicit, metadata
-    calendar_version_id = decision.get("pricing_calendar_version_id")
-    if not calendar_version_id:
-        return "automatic_pricing", metadata
-    try:
-        calendar = (db.table("pricing_calendar_versions")
-                    .select("configuration_version_id")
-                    .eq("id", calendar_version_id)
-                    .maybe_single().execute().data)
-        configuration_id = calendar.get("configuration_version_id") if calendar else None
-        if not configuration_id:
-            return "automatic_pricing", metadata
-        config = (db.table("pricing_configuration_versions")
-                  .select("id,created_by,change_summary,rolled_back_from_version_id")
-                  .eq("id", configuration_id)
-                  .maybe_single().execute().data or {})
-        created_by = str(config.get("created_by") or "")
-        trigger = ("owner_configuration" if created_by.startswith("owner:")
-                   else "admin_configuration" if created_by == "admin"
-                   else "automatic_pricing")
-        return trigger, {**metadata, "trigger": trigger, "created_by": created_by or None, "change_summary": config.get("change_summary"), "configuration_version_id": configuration_id, "rolled_back_from_version_id": config.get("rolled_back_from_version_id")}
-    except Exception as exc:
-        print(f"WARN pricing provenance {calendar_version_id}: {exc}")
-        return "automatic_pricing", metadata
-
-def _pricing_date_evidence(db: Any, *, calendar_version_id: str | None, dates: list[str]) -> list[dict[str, Any]]:
-    if not calendar_version_id or not dates:
-        return []
-    try:
-        rows = (db.table("pricing_daily_prices")
-                .select("date,base_price,final_price,strategy_adjustment,source_season_id,market_signal_pct,time_discount_pct,calendar_version_id")
-                .eq("calendar_version_id", calendar_version_id)
-                .in_("date", dates)
-                .order("date")
-                .execute().data or [])
-    except Exception as exc:
-        print(f"WARN pricing evidence {calendar_version_id}: {exc}")
-        return []
-    return [{k: row.get(k) for k in ("date", "base_price", "final_price", "strategy_adjustment", "source_season_id", "market_signal_pct", "time_discount_pct")} for row in rows]
-
-def _pricing_story(*, property_name: str, latest: dict[str, Any], evidence: list[dict[str, Any]]) -> dict[str, Any]:
+def _pricing_story(
+    *,
+    property_name: str,
+    latest: dict[str, Any],
+    sessions: list[dict[str, Any]],
+) -> dict[str, Any]:
     metadata = latest.get("metadata") or {}
     count = int(metadata.get("changed_dates") or 0)
     avg_pct = float(metadata.get("average_change_pct") or 0)
     avg_eur = float(metadata.get("average_change_eur") or 0)
     temporal_count = int(metadata.get("temporal_change_count") or 0)
-    dates = sorted({str(value) for value in metadata.get("dates") or []})
-    period = _date_range_label(dates)
-    market_count = sum(1 for row in evidence if abs(float(row.get("market_signal_pct") or 0)) >= 0.01)
+    dates = [str(value) for value in metadata.get("dates") or []]
+    month = _month_label(dates)
+    period = f" pour {month}" if month else ""
 
     if avg_pct <= -0.5:
         situation_type = "pricing_more_competitive"
-        headline = f"J’ai rendu certaines dates plus attractives pour {property_name}"
-        action = f"J’ai réduit les prix concernés d’environ {abs(avg_pct):.1f}% en moyenne" + (f" ({abs(avg_eur):.0f} €)." if abs(avg_eur) >= 1 else ".")
-        next_step = "Je continuerai de suivre les réservations avant toute nouvelle baisse."
+        headline = f"Pilotys rend certaines dates{period} plus attractives"
+        situation = (
+            f"Les derniers calculs indiquent qu’un prix un peu plus compétitif "
+            f"est préférable sur {count} nuit(s) encore disponibles."
+        )
+        action = (
+            f"Pilotys a réduit ces prix d’environ {abs(avg_pct):.1f}% en moyenne"
+            f"{f' ({abs(avg_eur):.0f} €)' if abs(avg_eur) >= 1 else ''}."
+        )
+        next_step = (
+            "Pilotys continuera de surveiller les réservations et les signaux du marché. "
+            "Les prix ne baisseront de nouveau que si le prochain calcul le justifie."
+        )
     elif avg_pct >= 0.5:
         situation_type = "pricing_value_protected"
-        headline = f"J’ai relevé certains prix pour {property_name}"
-        action = f"J’ai augmenté les prix concernés d’environ {avg_pct:.1f}% en moyenne" + (f" ({avg_eur:.0f} €)." if abs(avg_eur) >= 1 else ".")
-        next_step = "Je vérifierai si les réservations confirment ce niveau."
+        headline = f"Pilotys protège la valeur de certaines dates{period}"
+        situation = (
+            f"Les derniers signaux permettent de demander un peu plus sur "
+            f"{count} nuit(s) encore disponibles."
+        )
+        action = (
+            f"Pilotys a augmenté ces prix d’environ {avg_pct:.1f}% en moyenne"
+            f"{f' ({avg_eur:.0f} €)' if abs(avg_eur) >= 1 else ''}."
+        )
+        next_step = (
+            "Pilotys vérifiera si la demande confirme ce niveau avant toute nouvelle hausse."
+        )
     else:
         situation_type = "pricing_fine_tuned"
-        headline = f"J’ai affiné certains prix pour {property_name}"
-        action = "Les variations restent faibles."
-        next_step = "Je poursuivrai cette surveillance automatiquement."
+        headline = f"Pilotys affine les prix{period}"
+        situation = (
+            f"Les prix de {count} nuit(s) ont été légèrement ajustés pour rester cohérents "
+            "avec la saison, le marché et l’approche des séjours."
+        )
+        action = "Les variations restent faibles et aucun changement important n’a été nécessaire."
+        next_step = "Pilotys poursuivra cette surveillance automatiquement."
 
-    situation = f"{count} date(s)" + (f" {period}" if period else "") + " ont été ajustées automatiquement."
     reasons = []
     if temporal_count:
-        reasons.append(f"{temporal_count} date(s) ont évolué avec l’approche de leur arrivée")
-    if market_count:
-        reasons.append(f"le signal de marché a influencé {market_count} date(s)")
+        reasons.append(
+            f"{temporal_count} nuit(s) se rapprochent de leur date d’arrivée"
+        )
+    reason_codes = {
+        code
+        for session in sessions
+        for code in ((session.get("metadata") or {}).get("reason_codes") or [])
+    }
+    # Current pricing decisions do not always copy reason_codes into metadata.
+    # The conservative fallback is deliberately generic and truthful.
     if not reasons:
-        reasons.append("le calcul automatique a réévalué les prix à partir des paramètres en vigueur")
-    explanation = "; ".join(reasons)
-    explanation = explanation[0].upper() + explanation[1:] + "."
+        reasons.append("la saison, les prix du marché et le calendrier ont été réévalués")
+
+    explanation = (
+        reasons[0][0].upper() + reasons[0][1:] + "."
+        if len(reasons) == 1
+        else "; ".join(reasons) + "."
+    )
 
     return {
         "situation_type": situation_type,
@@ -179,16 +149,17 @@ def _pricing_story(*, property_name: str, latest: dict[str, Any], evidence: list
         "priority": "info",
         "requires_owner_action": False,
         "metadata": {
-            **metadata,
             "latest_decision_id": latest["id"],
-            "pricing_calendar_version_id": latest.get("pricing_calendar_version_id"),
-            "market_change_count": market_count,
-            "date_range": period,
+            "grouped_session_count": len(sessions),
+            "changed_dates": count,
+            "average_change_pct": round(avg_pct, 2),
+            "average_change_eur": round(avg_eur, 2),
+            "temporal_change_count": temporal_count,
+            "dominant_month": month,
             "dates": dates,
-            "date_details": evidence,
-            "trigger": "automatic_pricing",
         },
     }
+
 
 def _reservation_story(decision: dict[str, Any], property_name: str) -> dict[str, Any]:
     decision_type = str(decision.get("decision_type") or "")
@@ -318,52 +289,52 @@ def build_situations(lookback_days: int = 7, owner_id: str | None = None) -> dic
     db = get_supabase_client()
     since = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
-    legacy = (db.table("ops_situations")
-              .update({"status": "dismissed", "resolved_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()})
-              .like("situation_key", "pricing:%:latest"))
-    if owner_id:
-        legacy = legacy.eq("owner_id", owner_id)
-    try:
-        legacy.execute()
-    except Exception as exc:
-        print(f"WARN archive legacy pricing situations: {exc}")
-
-    query = db.table("ops_decisions").select("*").gte("occurred_at", since.isoformat()).order("occurred_at")
+    query = (
+        db.table("ops_decisions")
+        .select("*")
+        .gte("occurred_at", since.isoformat())
+        .order("occurred_at")
+    )
     if owner_id:
         query = query.eq("owner_id", owner_id)
     decisions = query.execute().data or []
     names = _property_names(db)
-    counts = {"pricing": 0, "pricing_suppressed_configuration": 0, "reservation": 0, "cleaning": 0, "total": 0}
+
+    pricing_groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    other: list[dict[str, Any]] = []
 
     for decision in decisions:
         property_id = str(decision.get("property_id") or "")
+        if decision.get("decision_type") == "pricing_session":
+            pricing_groups[(str(decision["owner_id"]), property_id)].append(decision)
+        elif decision.get("decision_type") != "minimum_stay_session":
+            other.append(decision)
+
+    counts = {"pricing": 0, "reservation": 0, "cleaning": 0, "total": 0}
+
+    for (current_owner_id, property_id), sessions in pricing_groups.items():
+        sessions.sort(key=lambda row: str(row.get("occurred_at") or ""))
+        latest = sessions[-1]
+        story = _pricing_story(
+            property_name=names.get(property_id, "ce logement"),
+            latest=latest,
+            sessions=sessions,
+        )
+        payload = {
+            "owner_id": current_owner_id,
+            "property_id": property_id or None,
+            "situation_key": f"pricing:{property_id}:latest",
+            "first_observed_at": sessions[0]["occurred_at"],
+            "last_observed_at": latest["occurred_at"],
+            "source_decision_ids": [row["id"] for row in sessions],
+            **story,
+        }
+        counts["pricing"] += _upsert(db, payload)
+
+    for decision in other:
+        property_id = str(decision.get("property_id") or "")
         property_name = names.get(property_id, "ce logement")
-        decision_type = str(decision.get("decision_type") or "")
         category = str(decision.get("category") or "")
-
-        if decision_type == "pricing_session":
-            trigger, metadata = _pricing_trigger(db, decision)
-            if trigger in {"owner_configuration", "admin_configuration"}:
-                counts["pricing_suppressed_configuration"] += 1
-                continue
-            decision = {**decision, "metadata": metadata}
-            dates = sorted({str(value) for value in metadata.get("dates") or []})
-            evidence = _pricing_date_evidence(db, calendar_version_id=decision.get("pricing_calendar_version_id"), dates=dates)
-            story = _pricing_story(property_name=property_name, latest=decision, evidence=evidence)
-            payload = {
-                "owner_id": decision["owner_id"],
-                "property_id": decision.get("property_id"),
-                "situation_key": f"pricing:{decision.get('pricing_calendar_version_id') or decision['id']}",
-                "first_observed_at": decision["occurred_at"],
-                "last_observed_at": decision["occurred_at"],
-                "source_decision_ids": [decision["id"]],
-                **story,
-            }
-            counts["pricing"] += _upsert(db, payload)
-            continue
-
-        if decision_type == "minimum_stay_session":
-            continue
         if category == "reservation":
             story = _reservation_story(decision, property_name)
             counts["reservation"] += 1
@@ -386,4 +357,3 @@ def build_situations(lookback_days: int = 7, owner_id: str | None = None) -> dic
 
     counts["total"] = counts["pricing"] + counts["reservation"] + counts["cleaning"]
     return counts
-

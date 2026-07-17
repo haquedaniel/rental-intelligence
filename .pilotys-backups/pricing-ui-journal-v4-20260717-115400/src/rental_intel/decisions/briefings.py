@@ -152,33 +152,6 @@ def _allowed_situation(situation: dict[str, Any], pref: dict[str, Any]) -> bool:
     return True
 
 
-
-def _communicated_situation_ids(db: Any, owner_id: str) -> set[str]:
-    rows = (db.table("ops_briefings")
-            .select("situation_ids,frequency,status")
-            .eq("owner_id", owner_id)
-            .neq("frequency", "preview")
-            .in_("status", ["queued", "sent", "delivered"])
-            .execute().data or [])
-    return {str(situation_id) for row in rows for situation_id in (row.get("situation_ids") or [])}
-
-
-def _briefing_situations(db: Any, *, owner_id: str, period_start: datetime, now: datetime, recover_unsent: bool) -> list[dict[str, Any]]:
-    recovery_floor = min(period_start, now - timedelta(days=14))
-    rows = (db.table("ops_situations")
-            .select("*")
-            .eq("owner_id", owner_id)
-            .gte("created_at", recovery_floor.isoformat())
-            .lte("last_observed_at", now.isoformat())
-            .neq("status", "dismissed")
-            .order("requires_owner_action", desc=True)
-            .order("last_observed_at", desc=True)
-            .execute().data or [])
-    if not recover_unsent:
-        return [row for row in rows if (_parse_dt(row.get("last_observed_at")) or recovery_floor) > period_start]
-    communicated = _communicated_situation_ids(db, owner_id)
-    return [row for row in rows if ((_parse_dt(row.get("last_observed_at")) or recovery_floor) > period_start or str(row["id"]) not in communicated)]
-
 def _create_briefing(
     db: Any,
     *,
@@ -190,12 +163,17 @@ def _create_briefing(
     update_cursor: bool,
     frequency: str,
 ) -> dict[str, Any]:
-    rows = _briefing_situations(
-        db,
-        owner_id=pref["owner_id"],
-        period_start=period_start,
-        now=now,
-        recover_unsent=queue_sms,
+    rows = (
+        db.table("ops_situations")
+        .select("*")
+        .eq("owner_id", pref["owner_id"])
+        .gt("last_observed_at", period_start.isoformat())
+        .lte("last_observed_at", now.isoformat())
+        .order("requires_owner_action", desc=True)
+        .order("last_observed_at", desc=True)
+        .execute()
+        .data
+        or []
     )
     situations = [row for row in rows if _allowed_situation(row, pref)]
     body = render(owner, pref, situations, now)
