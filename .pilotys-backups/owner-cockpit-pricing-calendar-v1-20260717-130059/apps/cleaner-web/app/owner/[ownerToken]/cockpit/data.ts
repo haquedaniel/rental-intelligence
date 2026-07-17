@@ -20,9 +20,6 @@ import type {
   FinancialSummary,
   MonthlyRevenuePoint,
   Opportunity,
-  OwnerBriefing,
-  PricingCalendarDay,
-  PricingCalendarReservation,
   OwnerCockpitData,
   OwnerCockpitListing,
   PlanningDay,
@@ -1071,9 +1068,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
       planningReservations: [],
       planningMarkers: [],
       dailyPrices: [],
-      pricingCalendar: [],
-      pricingReservations: [],
-      briefings: [],
       timelineEvents: [],
       opportunities: [],
     };
@@ -1100,8 +1094,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     analyticsTargetsResult,
     analyticsExpensesResult,
     propertyPhotosResult,
-    pricingCalendarResult,
-    briefingsResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1161,20 +1153,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
           .order("is_cover", { ascending: false })
           .order("display_order", { ascending: true })
       : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from("pricing_daily_prices")
-      .select("*")
-      .in("property_id", propertyIds)
-      .gte("date", today)
-      .lte("date", addMonths(today, 12))
-      .order("date", { ascending: true }),
-    supabase
-      .from("ops_briefings")
-      .select("id,title,body,frequency,status,generated_at,decision_count,requires_owner_action")
-      .eq("owner_id", owner.id)
-      .neq("frequency", "preview")
-      .order("generated_at", { ascending: false })
-      .limit(8),
   ]);
 
   for (const [label, result] of [
@@ -1187,8 +1165,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     ["objectifs", analyticsTargetsResult],
     ["dépenses", analyticsExpensesResult],
     ["photos logements", propertyPhotosResult],
-    ["calendrier tarifaire", pricingCalendarResult],
-    ["briefings", briefingsResult],
   ] as const) {
     if ("error" in result && result.error) {
       throw new Error(`Impossible de charger ${label} : ${result.error.message}`);
@@ -1274,18 +1250,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
   const dailyPrices = buildDailyPrices({ listings, days: planningDays, monthlyRows: analyticsMonthly, targets });
   const timelineEvents = buildTimeline({ reservations, requests, cleanersById, ownerToken });
   const opportunities = buildOpportunities({ listings });
-  const pricingCalendar = (pricingCalendarResult.data ?? []) as PricingCalendarDay[];
-  const pricingReservations = reservations.map((reservation: Row) => ({
-    id: String(reservation.id),
-    property_id: String(reservation.property_id),
-    guest_name: reservation.guest_name ?? null,
-    guest_first_name: reservation.guest_first_name ?? null,
-    checkin_at: String(reservation.checkin_at),
-    checkout_at: String(reservation.checkout_at),
-    status: reservation.status ?? null,
-    channel: reservation.channel ?? null,
-  })) as PricingCalendarReservation[];
-  const briefings = (briefingsResult.data ?? []) as OwnerBriefing[];
 
   return {
     owner: {
@@ -1304,9 +1268,6 @@ export async function getOwnerCockpitData(ownerTokenParam: string): Promise<Owne
     planningReservations,
     planningMarkers,
     dailyPrices,
-    pricingCalendar,
-    pricingReservations,
-    briefings,
     timelineEvents,
     opportunities,
   };

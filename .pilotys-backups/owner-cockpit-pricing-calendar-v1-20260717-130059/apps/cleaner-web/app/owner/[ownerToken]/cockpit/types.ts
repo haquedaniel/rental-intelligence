@@ -92,39 +92,6 @@ export type DailyPrice = {
   price: number;
 };
 
-
-export type PricingCalendarDay = {
-  property_id: string;
-  date: string;
-  final_price: number | null;
-  min_stay: number | null;
-  occupied?: boolean | null;
-  explanation_steps?: Array<Record<string, any>> | null;
-  [key: string]: any;
-};
-
-export type PricingCalendarReservation = {
-  id: string;
-  property_id: string;
-  guest_name?: string | null;
-  guest_first_name?: string | null;
-  checkin_at: string;
-  checkout_at: string;
-  status?: string | null;
-  channel?: string | null;
-};
-
-export type OwnerBriefing = {
-  id: string;
-  title: string;
-  body: string;
-  frequency: string;
-  status: string;
-  generated_at: string;
-  decision_count: number;
-  requires_owner_action: boolean;
-};
-
 export type TimelineKind = "arrival" | "departure" | "cleaning" | "intervention";
 
 export type TimelineEvent = {
@@ -165,9 +132,6 @@ export type OwnerCockpitData = {
   planningReservations: PlanningReservation[];
   planningMarkers: PlanningMarker[];
   dailyPrices: DailyPrice[];
-  pricingCalendar: PricingCalendarDay[];
-  pricingReservations: PricingCalendarReservation[];
-  briefings: OwnerBriefing[];
   timelineEvents: TimelineEvent[];
   opportunities: Opportunity[];
 };

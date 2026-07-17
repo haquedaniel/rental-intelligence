@@ -11,6 +11,16 @@ type CalendarDate = {
 };
 
 const eur = (value: any) => value == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(value));
+const badges: Record<string, { short: string; className: string }> = {
+  base_plan: { short: "Base", className: "base" },
+  season_plan: { short: "Saison", className: "season" },
+  market_signal: { short: "Marché", className: "market" },
+  time_optimisation: { short: "Temps", className: "time" },
+  guardrail: { short: "Limite", className: "guard" },
+  premium_single_night: { short: "1 nuit", className: "gap" },
+  manual_override: { short: "Manuel", className: "manual" },
+};
+
 function isoDate(value: any) {
   return String(value || "").slice(0, 10);
 }
@@ -82,13 +92,9 @@ export default function ExplainablePricingCalendar({ rows, reservations = [] }: 
           const segmentStart = compare(stayStart, weekStart) > 0 ? stayStart : weekStart;
           const segmentEnd = compare(stayEnd, weekEndExclusive) < 0 ? stayEnd : weekEndExclusive;
           if (compare(segmentStart, segmentEnd) >= 0) return [];
-          const startDays = Math.round((new Date(`${segmentStart}T12:00:00`).getTime() - new Date(`${weekStart}T12:00:00`).getTime()) / 86400000);
-          const endDays = Math.round((new Date(`${segmentEnd}T12:00:00`).getTime() - new Date(`${weekStart}T12:00:00`).getTime()) / 86400000);
-          // Check-in and checkout are shown at midday. Continuations clipped by
-          // the week boundary still run flush to that boundary.
-          const startOffset = startDays + (segmentStart === stayStart ? 0.5 : 0);
-          const endOffset = endDays + (segmentEnd === stayEnd ? 0.5 : 0);
-          return [{ reservation, stayStart, stayEnd, segmentStart, segmentEnd, startOffset, endOffset }];
+          const columnStart = Math.round((new Date(`${segmentStart}T12:00:00`).getTime() - new Date(`${weekStart}T12:00:00`).getTime()) / 86400000) + 1;
+          const columnEnd = Math.round((new Date(`${segmentEnd}T12:00:00`).getTime() - new Date(`${weekStart}T12:00:00`).getTime()) / 86400000) + 1;
+          return [{ reservation, stayStart, stayEnd, segmentStart, segmentEnd, columnStart, columnEnd }];
         });
         return <div className="calendarWeek" key={weekIndex}>
           <div className="reservationLayer">
@@ -98,10 +104,7 @@ export default function ExplainablePricingCalendar({ rows, reservations = [] }: 
               const endsHere = segment.segmentEnd === segment.stayEnd;
               return <div
                 className={`reservationBar ${startsHere ? "starts" : "continuesLeft"} ${endsHere ? "ends" : "continuesRight"}`}
-                style={{
-                  left: `${(segment.startOffset / 7) * 100}%`,
-                  width: `${Math.max(3, ((segment.endOffset - segment.startOffset) / 7) * 100)}%`,
-                }}
+                style={{ gridColumn: `${segment.columnStart} / ${segment.columnEnd}` }}
                 title={`${label} · ${segment.stayStart} → ${segment.stayEnd}`}
                 key={`${segment.reservation.id || label}-${index}`}
               ><span>●</span><strong>{label}</strong></div>;
@@ -119,9 +122,10 @@ export default function ExplainablePricingCalendar({ rows, reservations = [] }: 
               return <button type="button" key={date} className={`day ${row.occupied || reservation ? "occupied" : ""}`} onClick={() => setSelected({ ...row, reservation })}>
                 <span className="date">{Number(date.slice(8))}</span>
                 <strong>{eur(row.final_price)}</strong>
-                {active.length > 0 ? (
-                  <span className="whyPrice"><span>?</span> Pourquoi ce prix&nbsp;?</span>
-                ) : null}
+                <span className="badges">{active.slice(-3).map((step: Row, index: number) => {
+                  const badge = badges[step.kind] || { short: step.label, className: "base" };
+                  return <i key={index} className={badge.className}>{badge.short}</i>;
+                })}</span>
               </button>;
             })}
           </div>
@@ -144,8 +148,8 @@ export default function ExplainablePricingCalendar({ rows, reservations = [] }: 
     </div>}
 
     <style jsx>{`
-      .calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.calHead h3{margin:0;text-transform:capitalize}.calHead button{width:38px;height:38px;border:1px solid #cbd5e1;border-radius:10px;background:white}.weekLabels,.daysGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.weekLabels b{text-align:center;font-size:12px;padding:6px}.monthGrid{display:grid;gap:6px}.calendarWeek{position:relative;padding-top:34px}.reservationLayer{position:absolute;inset:0 0 auto 0;height:30px;pointer-events:none;z-index:3}.reservationBar{position:absolute;top:1px;min-width:0;height:27px;margin:1px 2px;background:linear-gradient(90deg,#172554,#1d4ed8);color:white;display:flex;align-items:center;gap:6px;padding:0 9px;box-shadow:0 3px 8px #1e3a8a33;font-size:11px;overflow:hidden}.reservationBar strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.reservationBar span{font-size:7px;opacity:.8}.starts{border-radius:12px 3px 3px 12px}.ends{border-radius:3px 12px 12px 3px}.starts.ends{border-radius:12px}.continuesLeft{border-left:3px solid #93c5fd}.continuesRight{border-right:3px solid #93c5fd}.day,.emptyDay{min-height:92px}.day{position:relative;background:white;color:#0f172a;text-align:left;padding:8px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}.emptyDay{background:#fafafa;border-radius:10px}.date{color:#64748b}.day strong{display:block;margin-top:7px;font-size:18px}.whyPrice{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:10px;font-weight:800;color:#477084}.whyPrice span{display:grid;width:16px;height:16px;place-items:center;border-radius:999px;background:#edf4f7;color:#112532;font-size:10px}.season{background:#ffedd5;color:#9a3412}.market{background:#dbeafe;color:#1d4ed8}.time{background:#dcfce7;color:#166534}.guard{background:#fef3c7;color:#92400e}.gap{background:#f3e8ff;color:#7e22ce}.manual{background:#fee2e2;color:#991b1b}.base{background:#f1f5f9;color:#475569}.occupied{background:#f8fafc}.shade{position:fixed;inset:0;background:#0f172a55;z-index:70}.drawer{position:absolute;right:0;top:0;height:100%;width:min(500px,96vw);background:white;padding:26px;box-shadow:-12px 0 30px #0002;overflow:auto}.close{float:right;border:0;background:#f1f5f9;border-radius:50%;width:36px;height:36px;font-size:24px}.occupiedNote,.reservationNote{padding:10px;border-radius:10px;color:#475569;margin:8px 0}.occupiedNote{background:#f1f5f9}.reservationNote{display:flex;justify-content:space-between;gap:10px;background:#eff6ff;color:#1e3a8a}.final{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px;background:#eff6ff;border-radius:12px;margin:16px 0}.final strong{font-size:24px}.step{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #e2e8f0}.step p{margin:5px 0;color:#475569;font-size:13px}.numbers{text-align:right;white-space:nowrap}.numbers small{display:block;color:#64748b}
-      @media(max-width:700px){.weekLabels,.daysGrid{gap:3px}.calendarWeek{padding-top:27px}.reservationLayer{height:24px}.reservationBar{height:22px;padding:0 5px;font-size:9px}.reservationBar span{display:none}.day,.emptyDay{min-height:70px}.day{padding:5px;border-radius:7px}.day strong{font-size:14px;margin-top:5px}.whyPrice{margin-top:5px;font-size:8px;gap:3px}.whyPrice span{width:14px;height:14px;font-size:8px}.drawer{top:auto;bottom:0;right:0;width:100%;height:min(82vh,720px);border-radius:20px 20px 0 0;padding:18px}.step{display:grid}.numbers{text-align:left}.final{padding:12px}.reservationNote{display:grid}}
+      .calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.calHead h3{margin:0;text-transform:capitalize}.calHead button{width:38px;height:38px;border:1px solid #cbd5e1;border-radius:10px;background:white}.weekLabels,.daysGrid,.reservationLayer{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.weekLabels b{text-align:center;font-size:12px;padding:6px}.monthGrid{display:grid;gap:6px}.calendarWeek{position:relative;padding-top:34px}.reservationLayer{position:absolute;inset:0 0 auto 0;height:30px;pointer-events:none;z-index:3}.reservationBar{min-width:0;height:27px;margin:1px 2px;background:linear-gradient(90deg,#172554,#1d4ed8);color:white;display:flex;align-items:center;gap:6px;padding:0 9px;box-shadow:0 3px 8px #1e3a8a33;font-size:11px;overflow:hidden}.reservationBar strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.reservationBar span{font-size:7px;opacity:.8}.starts{border-radius:12px 3px 3px 12px}.ends{border-radius:3px 12px 12px 3px}.starts.ends{border-radius:12px}.continuesLeft{border-left:3px solid #93c5fd}.continuesRight{border-right:3px solid #93c5fd}.day,.emptyDay{min-height:92px}.day{position:relative;background:white;color:#0f172a;text-align:left;padding:8px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}.emptyDay{background:#fafafa;border-radius:10px}.date{color:#64748b}.day strong{display:block;margin-top:7px;font-size:18px}.badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px}.badges i{font-style:normal;font-size:9px;font-weight:700;padding:2px 5px;border-radius:999px}.season{background:#ffedd5;color:#9a3412}.market{background:#dbeafe;color:#1d4ed8}.time{background:#dcfce7;color:#166534}.guard{background:#fef3c7;color:#92400e}.gap{background:#f3e8ff;color:#7e22ce}.manual{background:#fee2e2;color:#991b1b}.base{background:#f1f5f9;color:#475569}.occupied{background:#f8fafc}.shade{position:fixed;inset:0;background:#0f172a55;z-index:70}.drawer{position:absolute;right:0;top:0;height:100%;width:min(500px,96vw);background:white;padding:26px;box-shadow:-12px 0 30px #0002;overflow:auto}.close{float:right;border:0;background:#f1f5f9;border-radius:50%;width:36px;height:36px;font-size:24px}.occupiedNote,.reservationNote{padding:10px;border-radius:10px;color:#475569;margin:8px 0}.occupiedNote{background:#f1f5f9}.reservationNote{display:flex;justify-content:space-between;gap:10px;background:#eff6ff;color:#1e3a8a}.final{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px;background:#eff6ff;border-radius:12px;margin:16px 0}.final strong{font-size:24px}.step{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #e2e8f0}.step p{margin:5px 0;color:#475569;font-size:13px}.numbers{text-align:right;white-space:nowrap}.numbers small{display:block;color:#64748b}
+      @media(max-width:700px){.weekLabels,.daysGrid,.reservationLayer{gap:3px}.calendarWeek{padding-top:27px}.reservationLayer{height:24px}.reservationBar{height:22px;padding:0 5px;font-size:9px}.reservationBar span{display:none}.day,.emptyDay{min-height:70px}.day{padding:5px;border-radius:7px}.day strong{font-size:14px;margin-top:5px}.badges{margin-top:5px;gap:2px}.badges i{font-size:7px;padding:1px 3px}.drawer{top:auto;bottom:0;right:0;width:100%;height:min(82vh,720px);border-radius:20px 20px 0 0;padding:18px}.step{display:grid}.numbers{text-align:left}.final{padding:12px}.reservationNote{display:grid}}
     `}</style>
   </>;
 }
