@@ -272,7 +272,7 @@ export function OwnerPricingCalendar({
             });
             return (
               <div
-                className="relative grid h-[78px] grid-cols-7 border-t border-[#112532]/8"
+                className="relative grid h-[84px] grid-cols-7 border-t border-[#112532]/8"
                 key={weekIndex}
               >
                 {week.map((date) => {
@@ -298,7 +298,7 @@ export function OwnerPricingCalendar({
                       key={date}
                       className={`relative min-w-0 border-r border-[#112532]/6 px-1 pt-1 text-center last:border-r-0 ${inMonth ? "bg-white" : "bg-[#F8FAFB] text-[#112532]/25"}`}
                     >
-                      <div className="absolute inset-x-0 top-[4px] flex h-4 items-center justify-center gap-1 text-[11px] font-black">
+                      <div className="flex h-4 items-center justify-center gap-1 text-[11px] font-black">
                         <span>{Number(date.slice(8))}</span>
                         {row?.sourceSeasonId &&
                           seasonById.has(row.sourceSeasonId) && (
@@ -316,21 +316,20 @@ export function OwnerPricingCalendar({
                           )}
                       </div>
                       {row && !occupiedNight && (
-                        <strong className="absolute inset-x-0 top-[44px] block text-[13px] leading-4">
+                        <strong className="mt-1 block text-[13px] leading-4">
                           {money(row.finalPrice)}
                         </strong>
                       )}
-                      {row && (
+                      {row && !occupiedNight && (
                         <span
                           className="absolute bottom-[4px] left-[5px] right-[5px] h-[5px] rounded-full"
                           style={{ backgroundColor: MARKET_COLORS[level] }}
-                          title={`Signal marché : ${Number(row.marketSignalPct || 0).toFixed(1)} %`}
                         />
                       )}
                     </button>
                   );
                 })}
-                <div className="pointer-events-none absolute inset-x-0 top-[23px] z-10 h-[16px]">
+                <div className="pointer-events-none absolute inset-x-0 top-[43px] z-10 h-[17px]">
                   {segments.map((segment, index) => (
                     <div
                       key={`${segment.id}-${index}`}
