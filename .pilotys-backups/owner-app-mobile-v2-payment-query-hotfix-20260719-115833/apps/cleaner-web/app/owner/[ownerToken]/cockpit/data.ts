@@ -1381,7 +1381,7 @@ export async function getOwnerCockpitData(
       .limit(12),
     supabase
       .from("monthly_payment_requests")
-      .select("id,public_token,status,period_start,period_end,total_eur,created_at")
+      .select("id,public_token,status,period_label,month,total_eur,created_at")
       .eq("owner_id", owner.id)
       .in("status", ["sent_to_owner", "overdue"])
       .order("created_at", { ascending: false })
@@ -1579,20 +1579,11 @@ export async function getOwnerCockpitData(
     ? {
         id: String(pendingPaymentRow.id),
         token: String(pendingPaymentRow.public_token || pendingPaymentRow.id),
-        label:
-          pendingPaymentRow.period_start && pendingPaymentRow.period_end
-            ? `${new Intl.DateTimeFormat("fr-FR", {
-                day: "numeric",
-                month: "short",
-              }).format(new Date(String(pendingPaymentRow.period_start)))} – ${new Intl.DateTimeFormat(
-                "fr-FR",
-                {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                },
-              ).format(new Date(String(pendingPaymentRow.period_end)))}`
-            : "Demande de paiement",
+        label: String(
+          pendingPaymentRow.period_label ||
+            pendingPaymentRow.month ||
+            "Demande de paiement",
+        ),
         total: Number(pendingPaymentRow.total_eur ?? 0),
         status: String(pendingPaymentRow.status ?? ""),
       }
