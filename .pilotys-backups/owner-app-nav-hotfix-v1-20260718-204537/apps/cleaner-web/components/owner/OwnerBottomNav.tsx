@@ -8,19 +8,10 @@ export type OwnerNavActive =
   | "operations"
   | "pricing"
   | "admin"
-  | "activity"
-  // Legacy values retained while older owner/admin pages are migrated.
-  | "cockpit"
-  | "missions"
-  | "payments"
-  | "reports"
-  | "reservations"
-  | "settings";
-
-type PrimaryOwnerSection = "dashboard" | "operations" | "pricing" | "admin";
+  | "activity";
 
 type NavItem = {
-  key: PrimaryOwnerSection;
+  key: Exclude<OwnerNavActive, "activity">;
   label: string;
   short: string;
   href: string;
@@ -42,22 +33,6 @@ function itemsFor(pathname: string | null): NavItem[] {
   ];
 }
 
-function normalizeActive(active: OwnerNavActive): OwnerNavActive {
-  switch (active) {
-    case "cockpit":
-    case "reports":
-    case "reservations":
-      return "dashboard";
-    case "missions":
-    case "payments":
-      return "operations";
-    case "settings":
-      return "admin";
-    default:
-      return active;
-  }
-}
-
 function inferActive(pathname: string | null): OwnerNavActive {
   const path = pathname || "";
   if (path.includes("/activity")) return "activity";
@@ -69,7 +44,7 @@ function inferActive(pathname: string | null): OwnerNavActive {
 
 export function OwnerTopNav({ active }: { active?: OwnerNavActive }) {
   const pathname = usePathname();
-  const current = normalizeActive(active || inferActive(pathname));
+  const current = active || inferActive(pathname);
   const base = ownerBase(pathname);
   const navItems = itemsFor(pathname);
 
@@ -96,7 +71,7 @@ export function OwnerTopNav({ active }: { active?: OwnerNavActive }) {
 
 export default function OwnerBottomNav({ active }: { active?: OwnerNavActive }) {
   const pathname = usePathname();
-  const current = normalizeActive(active || inferActive(pathname));
+  const current = active || inferActive(pathname);
   const navItems = itemsFor(pathname);
 
   return (
