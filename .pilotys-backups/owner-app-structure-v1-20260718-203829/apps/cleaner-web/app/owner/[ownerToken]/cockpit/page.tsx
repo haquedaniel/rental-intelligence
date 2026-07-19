@@ -21,5 +21,5 @@ export default async function OwnerTokenCockpitPage({ params }: PageProps) {
   const { ownerToken } = await params;
   const data = await getOwnerCockpitData(ownerToken);
 
-  return <OwnerCockpit data={data} view="dashboard" />;
+  return <OwnerCockpit data={data} />;
 }

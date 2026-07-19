@@ -201,39 +201,21 @@ function PilotysMark() {
   );
 }
 
-function TopNav({
-  notificationCount,
-  ownerBase,
-}: {
-  notificationCount: number;
-  ownerBase: string;
-}) {
+function TopNav({ notificationCount }: { notificationCount: number }) {
   return (
     <header className="sticky top-0 z-50 border-b border-[#112532]/8 bg-white/92 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <a href={`${ownerBase}/cockpit`} aria-label="Tableau de bord Pilotys">
-          <PilotysMark />
-        </a>
+        <PilotysMark />
         <div className="flex items-center gap-2">
-          <a
-            href={`${ownerBase}/activity`}
-            aria-label="Ouvrir le journal et les notifications"
-            className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F8FA] text-[#112532] ring-1 ring-[#112532]/8"
-          >
+          <button className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[#F4F8FA] text-[#112532] ring-1 ring-[#112532]/8">
             ◴
             {notificationCount > 0 ? (
               <span className="absolute -right-0.5 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#E0680E] px-1 text-xs font-black text-white">
                 {Math.min(9, notificationCount)}
               </span>
             ) : null}
-          </a>
-          <a
-            href={`${ownerBase}/admin`}
-            aria-label="Ouvrir les réglages"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl font-black text-[#112532] ring-1 ring-[#112532]/10"
-          >
-            ≡
-          </a>
+          </button>
+          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl font-black text-[#112532] ring-1 ring-[#112532]/10">≡</button>
         </div>
       </div>
     </header>
@@ -733,7 +715,7 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
   );
 }
 
-function Planning({ data, selected, operations = true }: { data: OwnerCockpitData; selected: string[]; operations?: boolean }) {
+function Planning({ data, selected }: { data: OwnerCockpitData; selected: string[] }) {
   const selectedListings = data.listings.filter((listing) => selected.includes(listing.id));
   const dayWidthPx = 76;
   const dayWidth = `${dayWidthPx}px`;
@@ -839,7 +821,6 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                         })}
                       </div>
 
-                      {operations ? (
                       <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
                         {rowReservations
                           .filter((reservation) => reservation.cleaningDay)
@@ -858,7 +839,6 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                             );
                           })}
                       </div>
-                      ) : null}
 
                       <div className="absolute inset-0 z-20 pointer-events-auto">
                         {rowReservations.map((reservation) => (
@@ -881,24 +861,22 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                         ))}
                       </div>
 
-                      {operations ? (
-                        <div className="absolute inset-0 z-30 pointer-events-none">
-                          {data.planningDays.map((_, index) => {
-                            const day = index + 1;
-                            const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
-                            if (markers.length === 0) return null;
-                            return (
-                              <div
-                                key={`${listing.id}-mission-${day}`}
-                                className="pointer-events-auto absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                style={{ left: dayCenterLeftPx(day, dayWidthPx) }}
-                              >
-                                <MissionGroupPopover markers={markers} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
+                      <div className="absolute inset-0 z-30 pointer-events-none">
+                        {data.planningDays.map((_, index) => {
+                          const day = index + 1;
+                          const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
+                          if (markers.length === 0) return null;
+                          return (
+                            <div
+                              key={`${listing.id}-mission-${day}`}
+                              className="pointer-events-auto absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                              style={{ left: dayCenterLeftPx(day, dayWidthPx) }}
+                            >
+                              <MissionGroupPopover markers={markers} />
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1011,117 +989,62 @@ function Opportunities({ data }: { data: OwnerCockpitData }) {
 }
 
 
-function ownerBaseFromPath(pathname: string | null) {
+function cockpitNavBase(pathname: string | null) {
   const path = pathname || "";
-  const match = path.match(/^\/owner\/([^/]+)/);
-  return match?.[1] ? `/owner/${match[1]}` : "/owner";
+  const tokenMatch = path.match(/^\/owner\/([^/]+)\/cockpit/);
+  if (tokenMatch?.[1]) return `/owner/${tokenMatch[1]}/cockpit`;
+  return "/owner/cockpit";
 }
 
-type OwnerAppView = "dashboard" | "operations" | "pricing" | "admin";
-
-function BottomNav({ active }: { active: OwnerAppView }) {
+function BottomNav() {
   const pathname = usePathname();
-  const ownerBase = ownerBaseFromPath(pathname);
+  const cockpit = cockpitNavBase(pathname);
 
   const items = [
-    { key: "dashboard" as const, label: "Tableau de bord", short: "Dashboard", icon: "✦", href: `${ownerBase}/cockpit` },
-    { key: "operations" as const, label: "Opérations", short: "Opérations", icon: "✓", href: `${ownerBase}/operations` },
-    { key: "pricing" as const, label: "Tarification", short: "Prix", icon: "€", href: `${ownerBase}/pricing` },
-    { key: "admin" as const, label: "Réglages", short: "Réglages", icon: "⚙", href: `${ownerBase}/admin` },
+    { label: "Cockpit", short: "Cockpit", icon: "✦", href: cockpit, active: true },
+    { label: "Réservations", short: "Séjours", icon: "▦", href: `${cockpit}?view=planning` },
+    { label: "Missions", short: "Missions", icon: "✓", href: `${cockpit}?view=alerts` },
+    { label: "Paiements", short: "€", icon: "€", href: "/owner/payments" },
+    { label: "Réglages", short: "Réglages", icon: "⚙", href: "/admin/settings" },
   ];
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-3 xl:hidden">
       <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-[1.7rem] bg-white/90 p-1.5 shadow-2xl shadow-[#112532]/18 ring-1 ring-[#112532]/10 backdrop-blur-xl">
         <div className="absolute inset-x-8 top-0 h-0.5 rounded-full bg-gradient-to-r from-[#E0680E] via-[#F4B044] to-[#80A5B7]" />
-        <div className="grid grid-cols-4 gap-1">
-          {items.map((item) => {
-            const selected = item.key === active;
-            return (
-              <a
-                key={item.key}
-                href={item.href}
-                aria-label={item.label}
+
+        <div className="grid grid-cols-5 gap-1">
+          {items.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className={[
+                "relative flex min-h-[3.55rem] flex-col items-center justify-center rounded-[1.25rem] px-1 text-center transition",
+                item.active
+                  ? "bg-[#112532] text-white shadow-lg shadow-[#112532]/18 ring-[#112532]/10"
+                  : "bg-white/78 text-[#112532]/62 ring-[#112532]/8 hover:bg-white hover:text-[#112532]",
+              ].join(" ")}
+            >
+              <span
                 className={[
-                  "relative flex min-h-[3.55rem] flex-col items-center justify-center rounded-[1.25rem] px-1 text-center transition",
-                  selected
-                    ? "bg-[#112532] text-white shadow-lg shadow-[#112532]/18"
-                    : "bg-white/78 text-[#112532]/62 hover:bg-white hover:text-[#112532]",
+                  "grid h-6 w-6 place-items-center rounded-full text-[11px] font-black",
+                  item.active ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50",
                 ].join(" ")}
               >
-                <span className={["grid h-6 w-6 place-items-center rounded-full text-[11px] font-black", selected ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50"].join(" ")}>
-                  {item.icon}
-                </span>
-                <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">{item.short}</span>
-              </a>
-            );
-          })}
+                {item.icon}
+              </span>
+              <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">
+                {item.short}
+              </span>
+            </a>
+          ))}
         </div>
       </nav>
     </div>
   );
 }
 
-function SectionIntro({
-  eyebrow,
-  title,
-  description,
-  action,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">{eyebrow}</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-[#112532]/55">{description}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-function ImportantActions({ data }: { data: OwnerCockpitData }) {
-  const urgent = data.timelineEvents
-    .filter((event) => event.tone === "orange" || event.status)
-    .slice(0, 6);
-
-  return (
-    <ShellCard className="p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">À traiter</p>
-          <h2 className="mt-1 text-2xl font-black text-[#112532]">Actions importantes</h2>
-        </div>
-        <span className="rounded-full bg-[#E0680E]/10 px-3 py-1 text-sm font-black text-[#B6520A]">{urgent.length}</span>
-      </div>
-      <div className="mt-4 divide-y divide-[#112532]/8">
-        {urgent.length ? urgent.map((event) => (
-          <TimelineRow key={event.id} event={event} listings={data.listings} />
-        )) : (
-          <p className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-bold text-emerald-800">
-            Rien d’urgent pour le moment.
-          </p>
-        )}
-      </div>
-    </ShellCard>
-  );
-}
-
-
-export function OwnerCockpit({
-  data,
-  view = "dashboard",
-}: {
-  data: OwnerCockpitData;
-  view?: OwnerAppView;
-}) {
-  const pathname = usePathname();
-  const ownerBase = ownerBaseFromPath(pathname);
+export function OwnerCockpit({ data }: { data: OwnerCockpitData }) {
   const [selected, setSelected] = useState<string[]>(data.selectedListingIds);
 
   useEffect(() => {
@@ -1131,7 +1054,7 @@ export function OwnerCockpit({
   if (data.listings.length === 0) {
     return (
       <main className="min-h-screen bg-[#F4F8FA] pb-28 text-[#112532] xl:pb-10">
-        <TopNav notificationCount={0} ownerBase={ownerBase} />
+        <TopNav notificationCount={0} />
         <div className="mx-auto max-w-3xl px-4 py-10">
           <ShellCard className="p-6">
             <h1 className="text-3xl font-black">Aucun logement lié</h1>
@@ -1140,86 +1063,24 @@ export function OwnerCockpit({
             </p>
           </ShellCard>
         </div>
-        <BottomNav active={view} />
       </main>
     );
   }
 
-  const notificationCount = data.timelineEvents.filter(
-    (event) => event.tone === "orange" || Boolean(event.status),
-  ).length;
-
   return (
     <main className="min-h-screen bg-[#F4F8FA] pb-28 text-[#112532] xl:pb-10">
-      <TopNav notificationCount={notificationCount} ownerBase={ownerBase} />
+      <TopNav notificationCount={data.timelineEvents.filter((event) => event.tone === "orange").length} />
 
       <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-        {view === "dashboard" ? (
-          <>
-            <SectionIntro
-              eyebrow="Tableau de bord"
-              title="Votre activité en un coup d’œil"
-              description="Revenus, occupation et dernières évolutions utiles, sans détails opérationnels inutiles."
-            />
-            <MoneyHero data={data} />
-            <SmartBrief data={data} />
-            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
-            <Planning data={data} selected={selected} operations={false} />
-            <OwnerJournalHeadlines data={data} />
-          </>
-        ) : null}
-
-        {view === "operations" ? (
-          <>
-            <SectionIntro
-              eyebrow="Opérations"
-              title="Ce qui doit être fait et suivi"
-              description="Ménages, interventions, incidents, demandes de paiement et actions nécessitant votre attention."
-              action={
-                <a href={`${ownerBase}/operations/payments`} className="rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white">
-                  Paiements →
-                </a>
-              }
-            />
-            <ImportantActions data={data} />
-            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
-            <Planning data={data} selected={selected} operations />
-            <ShellCard className="grid gap-3 p-5 sm:grid-cols-2">
-              <a href={`${ownerBase}/operations/payments`} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8">
-                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E0680E]">Paiements</p>
-                <h2 className="mt-1 text-xl font-black">À payer et historique</h2>
-                <p className="mt-2 text-sm font-bold text-[#112532]/55">Consulter les demandes des intervenantes, les échéances et les paiements passés.</p>
-              </a>
-              <a href={`${ownerBase}/activity`} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8">
-                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#80A5B7]">Historique</p>
-                <h2 className="mt-1 text-xl font-black">Journal opérationnel</h2>
-                <p className="mt-2 text-sm font-bold text-[#112532]/55">Retrouver les incidents, changements, décisions et événements importants.</p>
-              </a>
-            </ShellCard>
-          </>
-        ) : null}
-
-        {view === "pricing" ? (
-          <>
-            <SectionIntro
-              eyebrow="Tarification"
-              title="Vos prix, leur logique et leur évolution"
-              description="Le calendrier montre les prix disponibles, les réservations, les saisons et la tension du marché."
-              action={
-                <a href={`${ownerBase}/pricing/settings`} className="rounded-full bg-white px-5 py-3 text-sm font-black text-[#112532] ring-1 ring-[#112532]/12">
-                  Modifier la stratégie
-                </a>
-              }
-            />
-            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
-            <OwnerPricingCalendar data={data} selectedListingIds={selected} />
-            <OwnerJournalHeadlines data={data} />
-          </>
-        ) : null}
+        <MoneyHero data={data} />
+        <SmartBrief data={data} />
+        <PropertySelector data={data} selected={selected} setSelected={setSelected} />
+        <Planning data={data} selected={selected} />
+        <OwnerPricingCalendar data={data} selectedListingIds={selected} />
+        <OwnerJournalHeadlines data={data} />
       </div>
 
-      <BottomNav active={view} />
+      <BottomNav />
     </main>
   );
 }
-
