@@ -154,14 +154,6 @@ export type JournalHeadline = {
   occurredAt: string;
 };
 
-export type PendingPaymentRequest = {
-  id: string;
-  token: string;
-  label: string;
-  total: number;
-  status: string;
-};
-
 export type OwnerCockpitData = {
   owner: OwnerCockpitOwner;
   listings: OwnerCockpitListing[];
@@ -180,5 +172,4 @@ export type OwnerCockpitData = {
   pricingSeasons: PricingSeason[];
   pricingReservations: PricingReservation[];
   journalHeadlines: JournalHeadline[];
-  pendingPaymentRequest?: PendingPaymentRequest | null;
 };

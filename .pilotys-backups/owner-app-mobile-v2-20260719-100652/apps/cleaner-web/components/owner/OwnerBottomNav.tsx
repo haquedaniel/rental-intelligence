@@ -38,7 +38,7 @@ function itemsFor(pathname: string | null): NavItem[] {
     { key: "dashboard", label: "Tableau de bord", short: "Dashboard", href: `${base}/cockpit`, icon: "✦" },
     { key: "operations", label: "Opérations", short: "Opérations", href: `${base}/operations`, icon: "✓" },
     { key: "pricing", label: "Tarification", short: "Prix", href: `${base}/pricing`, icon: "€" },
-    { key: "admin", label: "Compte", short: "Compte", href: `${base}/admin`, icon: "●" },
+    { key: "admin", label: "Réglages", short: "Réglages", href: `${base}/admin`, icon: "⚙" },
   ];
 }
 
@@ -75,12 +75,9 @@ export function OwnerTopNav({ active }: { active?: OwnerNavActive }) {
 
   return (
     <nav className="flex items-center justify-between gap-3">
-      <Link href={`${base}/cockpit`} className="group flex items-center gap-3 text-[#112532]">
-        <img src="/pilotys-assets/pilotys-logo-mark.svg" alt="" className="h-10 w-10 shrink-0" />
-        <span className="leading-tight">
-          <span className="block text-sm font-black tracking-[0.28em]">PILOTYS</span>
-          <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#112532]/42">espace propriétaire</span>
-        </span>
+      <Link href={`${base}/cockpit`} className="group flex items-center gap-3 rounded-2xl bg-white/86 px-3 py-2 text-[#112532] shadow-sm ring-1 ring-white/55 backdrop-blur">
+        <span className="relative grid h-9 w-9 place-items-center rounded-2xl bg-[#112532] text-sm font-black text-white shadow-sm">P<span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#E0680E]" /></span>
+        <span className="leading-tight"><span className="block text-sm font-black tracking-[0.28em]">PILOTYS</span><span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#112532]/42">espace propriétaire</span></span>
       </Link>
 
       <div className="flex items-center gap-2">
@@ -103,29 +100,16 @@ export default function OwnerBottomNav({ active }: { active?: OwnerNavActive }) 
   const navItems = itemsFor(pathname);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 md:hidden">
-      <nav
-        className="pointer-events-auto mx-auto max-w-md rounded-t-[1.65rem] border-x border-t border-[#112532]/10 bg-white/96 px-2 pt-2 shadow-[0_-10px_30px_rgba(17,37,50,0.10)] backdrop-blur-xl"
-        style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
-      >
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-3 md:hidden">
+      <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-[1.7rem] bg-white/90 p-1.5 shadow-2xl shadow-[#112532]/18 ring-1 ring-[#112532]/10 backdrop-blur-xl">
+        <div className="absolute inset-x-8 top-0 h-0.5 rounded-full bg-gradient-to-r from-[#E0680E] via-[#F4B044] to-[#80A5B7]" />
         <div className="grid grid-cols-4 gap-1">
           {navItems.map((item) => {
             const selected = current === item.key;
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={[
-                  "relative flex min-h-[3.65rem] flex-col items-center justify-center rounded-[1.15rem] px-1 text-center transition",
-                  selected
-                    ? "bg-[#112532] text-white shadow-md"
-                    : "text-[#112532]/58 hover:bg-[#F4F8FA] hover:text-[#112532]",
-                ].join(" ")}
-              >
-                <span className={["grid h-7 w-7 place-items-center rounded-full text-xs font-black", selected ? "bg-white/14 text-white" : "bg-[#112532]/6 text-[#112532]/55"].join(" ")}>
-                  {item.icon}
-                </span>
-                <span className="mt-1 text-[10px] font-black leading-none">{item.short}</span>
+              <Link key={item.key} href={item.href} className={["relative flex min-h-[3.55rem] flex-col items-center justify-center rounded-[1.25rem] px-1 text-center transition", selected ? "bg-[#112532] text-white shadow-lg shadow-[#112532]/18" : "bg-white/78 text-[#112532]/62 hover:bg-white hover:text-[#112532]"].join(" ")}>
+                <span className={["grid h-6 w-6 place-items-center rounded-full text-[11px] font-black", selected ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50"].join(" ")}>{item.icon}</span>
+                <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">{item.short}</span>
               </Link>
             );
           })}

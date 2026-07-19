@@ -73,11 +73,9 @@ function marketLevel(value: number, scale: number) {
 export function OwnerPricingCalendar({
   data,
   selectedListingIds,
-  showPropertySelector = true,
 }: {
   data: OwnerCockpitData;
   selectedListingIds: string[];
-  showPropertySelector?: boolean;
 }) {
   const available = useMemo(
     () =>
@@ -191,16 +189,13 @@ export function OwnerPricingCalendar({
           <h2 className="mt-1 text-3xl font-black text-[#112532]">
             Calendrier des prix
           </h2>
-          <p className="mt-1 text-sm font-black text-[#112532]/62">
-            {listing.name}
-          </p>
         </div>
       </div>
       <p className="mt-2 text-sm font-bold text-[#112532]/55">
         Touchez un prix pour comprendre son calcul.
       </p>
 
-      {showPropertySelector && available.length > 1 && (
+      {available.length > 1 && (
         <select
           value={listing.id}
           onChange={(e) => {

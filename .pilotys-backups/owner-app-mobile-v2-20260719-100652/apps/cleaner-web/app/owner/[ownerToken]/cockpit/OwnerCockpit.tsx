@@ -195,11 +195,8 @@ function ShellCard({ children, className = "" }: { children: ReactNode; classNam
 function PilotysMark() {
   return (
     <div className="flex items-center gap-3">
-      <img src="/pilotys-assets/pilotys-logo-mark.svg" alt="" className="h-11 w-11 shrink-0" />
-      <span className="leading-tight">
-        <span className="block text-lg font-black tracking-[0.28em] text-[#112532]">PILOTYS</span>
-        <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#112532]/42">espace propriétaire</span>
-      </span>
+      <img src="/pilotys-assets/logo-mark-p.svg" alt="Pilotys" className="h-12 w-12 rounded-[1.1rem] shadow-sm" />
+      <span className="text-xl font-black tracking-[0.28em] text-[#112532]">PILOTYS</span>
     </div>
   );
 }
@@ -560,7 +557,20 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
         </div>
       </div>
 
-
+      <div className="flex flex-wrap items-center gap-2 rounded-[1.25rem] bg-white/65 px-3 py-2 text-xs font-black text-[#112532]/55 ring-1 ring-[#112532]/6">
+        <span className="mr-1 uppercase tracking-[0.14em] text-[#80A5B7]">Légende planning</span>
+        {data.listings.map((listing) => (
+          <span key={`legend-${listing.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: listing.dot }} />
+            <span className="max-w-[10rem] truncate">{listing.name}</span>
+          </span>
+        ))}
+        <span className="mx-1 h-5 w-px bg-[#112532]/10" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Confirmé</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#F4B044]" />Proposé</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#E0680E]" />Action</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 ring-1 ring-[#112532]/6"><span className="h-2.5 w-2.5 rounded-full bg-[#80A5B7]" />Terminé</span>
+      </div>
     </section>
   );
 }
@@ -1001,60 +1011,6 @@ function Opportunities({ data }: { data: OwnerCockpitData }) {
 }
 
 
-function OccupancyTable({ data }: { data: OwnerCockpitData }) {
-  return (
-    <ShellCard className="overflow-hidden">
-      <div className="flex items-end justify-between gap-3 border-b border-[#112532]/8 px-5 py-5">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Occupation</p>
-          <h2 className="mt-1 text-2xl font-black text-[#112532]">Performance des logements</h2>
-        </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#112532]/38">année en cours</span>
-      </div>
-      <div className="divide-y divide-[#112532]/8">
-        {data.listings.map((listing) => (
-          <div key={listing.id} className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F4F8FA]">
-                {listing.image ? <img src={listing.image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center font-black text-[#112532]/40">{listing.short}</span>}
-                <span className="absolute left-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[#112532]">{listing.name}</p>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#112532]/7">
-                  <div className="h-full rounded-full bg-[#80A5B7]" style={{ width: `${Math.max(2, Math.min(100, listing.occupancy))}%` }} />
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-black text-[#112532]">{listing.occupancy}%</p>
-              <p className="mt-1 text-xs font-bold text-[#112532]/45">{formatMoney(listing.revenue)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </ShellCard>
-  );
-}
-
-function OutstandingPayment({ data }: { data: OwnerCockpitData }) {
-  const request = data.pendingPaymentRequest;
-  if (!request) return null;
-  return (
-    <a href={`/owner/payments/${encodeURIComponent(request.token)}`} className="flex items-center justify-between gap-4 rounded-[1.5rem] bg-[#FFF6EF] p-4 shadow-sm ring-1 ring-[#E0680E]/18">
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#E0680E]">Paiement à traiter</p>
-        <p className="mt-1 font-black text-[#112532]">{request.label}</p>
-        <p className="mt-1 text-xs font-bold text-[#112532]/50">{request.status === "overdue" ? "En retard" : "En attente de règlement"}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-2xl font-black text-[#112532]">{formatMoney(request.total)}</p>
-        <p className="mt-1 text-xs font-black text-[#E0680E]">Ouvrir →</p>
-      </div>
-    </a>
-  );
-}
-
 function ownerBaseFromPath(pathname: string | null) {
   const path = pathname || "";
   const match = path.match(/^\/owner\/([^/]+)/);
@@ -1071,13 +1027,13 @@ function BottomNav({ active }: { active: OwnerAppView }) {
     { key: "dashboard" as const, label: "Tableau de bord", short: "Dashboard", icon: "✦", href: `${ownerBase}/cockpit` },
     { key: "operations" as const, label: "Opérations", short: "Opérations", icon: "✓", href: `${ownerBase}/operations` },
     { key: "pricing" as const, label: "Tarification", short: "Prix", icon: "€", href: `${ownerBase}/pricing` },
-    { key: "admin" as const, label: "Compte", short: "Compte", icon: "●", href: `${ownerBase}/admin` },
+    { key: "admin" as const, label: "Réglages", short: "Réglages", icon: "⚙", href: `${ownerBase}/admin` },
   ];
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 xl:hidden">
-      <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-t-[1.65rem] border-x border-t border-[#112532]/10 bg-white/96 px-2 pt-2 shadow-[0_-10px_30px_rgba(17,37,50,0.10)] backdrop-blur-xl" style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}>
-        
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-3 xl:hidden">
+      <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-[1.7rem] bg-white/90 p-1.5 shadow-2xl shadow-[#112532]/18 ring-1 ring-[#112532]/10 backdrop-blur-xl">
+        <div className="absolute inset-x-8 top-0 h-0.5 rounded-full bg-gradient-to-r from-[#E0680E] via-[#F4B044] to-[#80A5B7]" />
         <div className="grid grid-cols-4 gap-1">
           {items.map((item) => {
             const selected = item.key === active;
@@ -1087,10 +1043,10 @@ function BottomNav({ active }: { active: OwnerAppView }) {
                 href={item.href}
                 aria-label={item.label}
                 className={[
-                  "relative flex min-h-[3.65rem] flex-col items-center justify-center rounded-[1.15rem] px-1 text-center transition",
+                  "relative flex min-h-[3.55rem] flex-col items-center justify-center rounded-[1.25rem] px-1 text-center transition",
                   selected
                     ? "bg-[#112532] text-white shadow-lg shadow-[#112532]/18"
-                    : "text-[#112532]/58 hover:bg-[#F4F8FA] hover:text-[#112532]",
+                    : "bg-white/78 text-[#112532]/62 hover:bg-white hover:text-[#112532]",
                 ].join(" ")}
               >
                 <span className={["grid h-6 w-6 place-items-center rounded-full text-[11px] font-black", selected ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50"].join(" ")}>
@@ -1131,14 +1087,7 @@ function SectionIntro({
 
 function ImportantActions({ data }: { data: OwnerCockpitData }) {
   const urgent = data.timelineEvents
-    .filter((event) => event.kind !== "arrival" && event.kind !== "departure")
-    .filter(
-      (event) =>
-        event.tone === "orange" ||
-        ["refused", "problem_reported", "overdue", "cleaning_overdue", "needs_manual_reassignment"].includes(
-          String(event.status ?? ""),
-        ),
-    )
+    .filter((event) => event.tone === "orange" || event.status)
     .slice(0, 6);
 
   return (
@@ -1204,7 +1153,7 @@ export function OwnerCockpit({
     <main className="min-h-screen bg-[#F4F8FA] pb-28 text-[#112532] xl:pb-10">
       <TopNav notificationCount={notificationCount} ownerBase={ownerBase} />
 
-      <div className={`mx-auto w-full max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8 ${view === "pricing" ? "py-3" : "py-5"}`}>
+      <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
         {view === "dashboard" ? (
           <>
             <SectionIntro
@@ -1214,7 +1163,8 @@ export function OwnerCockpit({
             />
             <MoneyHero data={data} />
             <SmartBrief data={data} />
-            <OccupancyTable data={data} />
+            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
+            <Planning data={data} selected={selected} operations={false} />
             <OwnerJournalHeadlines data={data} />
           </>
         ) : null}
@@ -1231,10 +1181,9 @@ export function OwnerCockpit({
                 </a>
               }
             />
-            <OutstandingPayment data={data} />
+            <ImportantActions data={data} />
             <PropertySelector data={data} selected={selected} setSelected={setSelected} />
             <Planning data={data} selected={selected} operations />
-            <ImportantActions data={data} />
             <ShellCard className="grid gap-3 p-5 sm:grid-cols-2">
               <a href={`${ownerBase}/operations/payments`} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8">
                 <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E0680E]">Paiements</p>
@@ -1252,13 +1201,18 @@ export function OwnerCockpit({
 
         {view === "pricing" ? (
           <>
-            <OwnerPricingCalendar data={data} selectedListingIds={selected} showPropertySelector={false} />
-            <div className="space-y-3">
-              <PropertySelector data={data} selected={selected} setSelected={setSelected} />
-              <a href={`${ownerBase}/pricing/settings`} className="flex w-full items-center justify-center rounded-full bg-[#112532] px-5 py-3.5 text-sm font-black text-white shadow-sm">
-                Modifier la stratégie
-              </a>
-            </div>
+            <SectionIntro
+              eyebrow="Tarification"
+              title="Vos prix, leur logique et leur évolution"
+              description="Le calendrier montre les prix disponibles, les réservations, les saisons et la tension du marché."
+              action={
+                <a href={`${ownerBase}/pricing/settings`} className="rounded-full bg-white px-5 py-3 text-sm font-black text-[#112532] ring-1 ring-[#112532]/12">
+                  Modifier la stratégie
+                </a>
+              }
+            />
+            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
+            <OwnerPricingCalendar data={data} selectedListingIds={selected} />
             <OwnerJournalHeadlines data={data} />
           </>
         ) : null}

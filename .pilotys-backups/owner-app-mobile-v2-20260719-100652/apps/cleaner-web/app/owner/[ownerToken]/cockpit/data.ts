@@ -1268,7 +1268,6 @@ export async function getOwnerCockpitData(
       pricingSeasons: [],
       pricingReservations: [],
       journalHeadlines: [],
-      pendingPaymentRequest: null,
     };
   }
 
@@ -1296,7 +1295,6 @@ export async function getOwnerCockpitData(
     pricingCalendarResult,
     pricingSeasonsResult,
     journalSituationsResult,
-    paymentRequestsResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1379,13 +1377,6 @@ export async function getOwnerCockpitData(
       .not("status", "in", "(suppressed,superseded)")
       .order("last_observed_at", { ascending: false })
       .limit(12),
-    supabase
-      .from("monthly_payment_requests")
-      .select("id,public_token,status,period_label,month,total_eur,created_at")
-      .eq("owner_id", owner.id)
-      .in("status", ["sent_to_owner", "overdue"])
-      .order("created_at", { ascending: false })
-      .limit(1),
   ]);
 
   for (const [label, result] of [
@@ -1401,7 +1392,6 @@ export async function getOwnerCockpitData(
     ["calendrier tarifaire", pricingCalendarResult],
     ["saisons tarifaires", pricingSeasonsResult],
     ["journal propriétaire", journalSituationsResult],
-    ["demandes de paiement", paymentRequestsResult],
   ] as const) {
     if ("error" in result && result.error) {
       throw new Error(
@@ -1574,20 +1564,6 @@ export async function getOwnerCockpitData(
       occurredAt: String(row.last_observed_at),
     }),
   );
-  const pendingPaymentRow = (paymentRequestsResult.data ?? [])[0] as Row | undefined;
-  const pendingPaymentRequest = pendingPaymentRow
-    ? {
-        id: String(pendingPaymentRow.id),
-        token: String(pendingPaymentRow.public_token || pendingPaymentRow.id),
-        label: String(
-          pendingPaymentRow.period_label ||
-            pendingPaymentRow.month ||
-            "Demande de paiement",
-        ),
-        total: Number(pendingPaymentRow.total_eur ?? 0),
-        status: String(pendingPaymentRow.status ?? ""),
-      }
-    : null;
 
   return {
     owner: {
@@ -1612,6 +1588,5 @@ export async function getOwnerCockpitData(
     pricingSeasons,
     pricingReservations,
     journalHeadlines,
-    pendingPaymentRequest,
   };
 }
