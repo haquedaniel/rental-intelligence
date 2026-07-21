@@ -92,8 +92,7 @@ export type DailyPrice = {
   price: number;
 };
 
-export type TimelineKind =
-  "arrival" | "departure" | "cleaning" | "intervention";
+export type TimelineKind = "arrival" | "departure" | "cleaning" | "intervention";
 
 export type TimelineEvent = {
   id: string;
@@ -120,6 +119,7 @@ export type Opportunity = {
   action: string;
   tone: Tone;
 };
+
 
 export type PricingCalendarDay = {
   listingId: string;
@@ -162,29 +162,6 @@ export type PendingPaymentRequest = {
   status: string;
 };
 
-export type ReviewRatingSummary = {
-  listingId: string;
-  reviewCount: number;
-  overallRating?: number | null;
-  locationRating?: number | null;
-  cleanlinessRating?: number | null;
-  checkinRating?: number | null;
-  accuracyRating?: number | null;
-  valueRating?: number | null;
-  communicationRating?: number | null;
-  snapshotDate?: string | null;
-  isAuthoritative: boolean;
-};
-
-export type OwnerReview = {
-  id: string;
-  listingId: string;
-  reviewDate: string;
-  overallRating?: number | null;
-  cleanlinessRating?: number | null;
-  reviewText?: string | null;
-};
-
 export type OwnerCockpitData = {
   owner: OwnerCockpitOwner;
   listings: OwnerCockpitListing[];
@@ -204,6 +181,4 @@ export type OwnerCockpitData = {
   pricingReservations: PricingReservation[];
   journalHeadlines: JournalHeadline[];
   pendingPaymentRequest?: PendingPaymentRequest | null;
-  reviewRatings: ReviewRatingSummary[];
-  recentReviews: OwnerReview[];
 };

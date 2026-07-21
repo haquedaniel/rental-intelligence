@@ -1,12 +1,14 @@
 "use client";
 
-
-function calendarDayIsBookable(day: Record<string, any> | null | undefined): boolean {
+function calendarDayIsBookable(
+  day: Record<string, any> | null | undefined,
+): boolean {
   if (!day) return false;
 
   if ("bookable" in day) {
     const value = day.bookable;
-    if (value === true || value === "true" || value === 1 || value === "1") return true;
+    if (value === true || value === "true" || value === 1 || value === "1")
+      return true;
     return false;
   }
 
@@ -16,14 +18,19 @@ function calendarDayIsBookable(day: Record<string, any> | null | undefined): boo
   }
 
   const status = String(day.status || "").toLowerCase();
-  if (status && !["success_available", "available", "bookable", "open"].includes(status)) {
+  if (
+    status &&
+    !["success_available", "available", "bookable", "open"].includes(status)
+  ) {
     return false;
   }
 
   return true;
 }
 
-function calendarDayPriceAmount(day: Record<string, any> | null | undefined): number | null {
+function calendarDayPriceAmount(
+  day: Record<string, any> | null | undefined,
+): number | null {
   if (!day) return null;
   if (!calendarDayIsBookable(day)) return null;
 
@@ -54,7 +61,9 @@ function calendarDayPriceAmount(day: Record<string, any> | null | undefined): nu
     "offer_price",
   ];
 
-  const nights = Number(day.nights || day.length_of_stay || day.stay_nights || 1);
+  const nights = Number(
+    day.nights || day.length_of_stay || day.stay_nights || 1,
+  );
 
   for (const field of totalFields) {
     const value = day[field];
@@ -62,14 +71,17 @@ function calendarDayPriceAmount(day: Record<string, any> | null | undefined): nu
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0) continue;
 
-    const nightly = Number.isFinite(nights) && nights > 0 ? parsed / nights : parsed;
+    const nightly =
+      Number.isFinite(nights) && nights > 0 ? parsed / nights : parsed;
     if (nightly >= 25) return nightly;
   }
 
   return null;
 }
 
-function calendarDayPriceLabel(day: Record<string, any> | null | undefined): string | null {
+function calendarDayPriceLabel(
+  day: Record<string, any> | null | undefined,
+): string | null {
   const amount = calendarDayPriceAmount(day);
   if (!amount) return null;
 
@@ -80,7 +92,9 @@ function calendarDayPriceLabel(day: Record<string, any> | null | undefined): str
   }).format(amount);
 }
 
-function isCalendarDayBooked(day: Record<string, any> | null | undefined): boolean {
+function isCalendarDayBooked(
+  day: Record<string, any> | null | undefined,
+): boolean {
   if (!day) return false;
 
   return Boolean(
@@ -107,7 +121,10 @@ import type {
   TimelineEvent,
 } from "./types";
 import { usePathname } from "next/navigation";
-import { OwnerJournalHeadlines, OwnerPricingCalendar } from "./OwnerPricingCalendar";
+import {
+  OwnerJournalHeadlines,
+  OwnerPricingCalendar,
+} from "./OwnerPricingCalendar";
 
 const MONTH_TARGET_FALLBACK = 4000;
 const PLANNING_DAY_GAP_PX = 4; // Tailwind gap-1 between day cells.
@@ -153,7 +170,6 @@ function listingById(listings: OwnerCockpitListing[], id: string) {
   return listings.find((listing) => listing.id === id);
 }
 
-
 function InitialsAvatar({
   image,
   initials,
@@ -172,7 +188,11 @@ function InitialsAvatar({
       title={title}
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-[10px] font-black text-[#112532] shadow-sm ring-3 ${statusRing(tone)} ${size}`}
     >
-      {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : initials || "?"}
+      {image ? (
+        <img src={image} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials || "?"
+      )}
     </span>
   );
 }
@@ -188,17 +208,37 @@ function statusRing(tone: Tone) {
   return classes[tone];
 }
 
-function ShellCard({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-[1.7rem] bg-white shadow-[0_10px_30px_rgba(17,37,50,0.06)] ring-1 ring-[#112532]/8 ${className}`}>{children}</section>;
+function ShellCard({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-[1.7rem] bg-white shadow-[0_10px_30px_rgba(17,37,50,0.06)] ring-1 ring-[#112532]/8 ${className}`}
+    >
+      {children}
+    </section>
+  );
 }
 
 function PilotysMark() {
   return (
     <div className="flex items-center gap-3">
-      <img src="/pilotys-assets/pilotys-logo-mark.svg" alt="" className="h-11 w-11 shrink-0" />
+      <img
+        src="/pilotys-assets/pilotys-logo-mark.svg"
+        alt=""
+        className="h-11 w-11 shrink-0"
+      />
       <span className="leading-tight">
-        <span className="block text-lg font-black tracking-[0.28em] text-[#112532]">PILOTYS</span>
-        <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#112532]/42">espace propriétaire</span>
+        <span className="block text-lg font-black tracking-[0.28em] text-[#112532]">
+          PILOTYS
+        </span>
+        <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#112532]/42">
+          espace propriétaire
+        </span>
       </span>
     </div>
   );
@@ -243,8 +283,11 @@ function TopNav({
   );
 }
 
-
-function LiveRealisedTicker({ financial }: { financial: OwnerCockpitData["financial"] }) {
+function LiveRealisedTicker({
+  financial,
+}: {
+  financial: OwnerCockpitData["financial"];
+}) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -266,7 +309,8 @@ function LiveRealisedTicker({ financial }: { financial: OwnerCockpitData["financ
 
   const liveValue = Math.min(
     financial.realisedAtStartOfToday + financial.activeDailyRevenue,
-    financial.realisedAtStartOfToday + (financial.activeDailyRevenue * secondsElapsed) / 86_400,
+    financial.realisedAtStartOfToday +
+      (financial.activeDailyRevenue * secondsElapsed) / 86_400,
   );
 
   return <>{formatMoney(liveValue, 2)}</>;
@@ -287,23 +331,44 @@ function MoneyHero({ data }: { data: OwnerCockpitData }) {
           metric === "realised" ? "ring-[#E0680E]/35" : "ring-[#112532]/8"
         }`}
       >
-        <img src="/pilotys-assets/pattern-routes.svg" alt="" className="absolute right-0 top-0 hidden h-full w-72 opacity-70 sm:block" />
+        <img
+          src="/pilotys-assets/pattern-routes.svg"
+          alt=""
+          className="absolute right-0 top-0 hidden h-full w-72 opacity-70 sm:block"
+        />
         <div className="relative">
-          <p className="text-sm font-black uppercase tracking-[0.17em] text-[#E0680E]">CA réalisé</p>
+          <p className="text-sm font-black uppercase tracking-[0.17em] text-[#E0680E]">
+            CA réalisé
+          </p>
           <p className="mt-2 text-6xl font-black tracking-tight text-[#112532] sm:text-7xl">
             <LiveRealisedTicker financial={data.financial} />
           </p>
           {data.financial.activeDailyRevenue > 0 && (
             <p className="mt-2 text-xs font-bold text-[#112532]/55">
-              Live · {formatMoney(data.financial.activeDailyRevenue)} / jour en cours
+              Live · {formatMoney(data.financial.activeDailyRevenue)} / jour en
+              cours
             </p>
           )}
         </div>
       </button>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <MetricButton active={metric === "gross"} onClick={() => setMetric("gross")} label="CA brut annuel" value={formatMoney(gross)} delta={data.financial.grossDeltaPct} tone="blue" />
-        <MetricButton active={metric === "net"} onClick={() => setMetric("net")} label="Après variables" value={formatMoney(net)} delta={data.financial.afterVariablesDeltaPct} tone="mustard" />
+        <MetricButton
+          active={metric === "gross"}
+          onClick={() => setMetric("gross")}
+          label="CA brut annuel"
+          value={formatMoney(gross)}
+          delta={data.financial.grossDeltaPct}
+          tone="blue"
+        />
+        <MetricButton
+          active={metric === "net"}
+          onClick={() => setMetric("net")}
+          label="Après variables"
+          value={formatMoney(net)}
+          delta={data.financial.afterVariablesDeltaPct}
+          tone="mustard"
+        />
       </div>
 
       <MetricPanel data={data} metric={metric} />
@@ -311,7 +376,286 @@ function MoneyHero({ data }: { data: OwnerCockpitData }) {
   );
 }
 
-function MetricButton({ active, onClick, label, value, delta, tone }: { active: boolean; onClick: () => void; label: string; value: string; delta?: number | null; tone: Tone }) {
+function ratingLabel(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(2).replace(/0$/, "");
+}
+
+function stars(value?: number | null) {
+  if (value == null) return "☆☆☆☆☆";
+
+  const rounded = Math.max(0, Math.min(5, Math.round(value)));
+  return `${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}`;
+}
+
+function AirbnbReviewsCard({ data }: { data: OwnerCockpitData }) {
+  const summaries = data.reviewRatings.filter((summary) =>
+    data.selectedListingIds.includes(summary.listingId),
+  );
+
+  if (summaries.length === 0) {
+    return null;
+  }
+
+  const totalReviews = summaries.reduce(
+    (total, summary) => total + summary.reviewCount,
+    0,
+  );
+
+  const ratedSummaries = summaries.filter(
+    (summary) => summary.overallRating != null && summary.reviewCount > 0,
+  );
+
+  const ratedReviewCount = ratedSummaries.reduce(
+    (total, summary) => total + summary.reviewCount,
+    0,
+  );
+
+  const weightedOverall =
+    ratedReviewCount > 0
+      ? ratedSummaries.reduce(
+          (total, summary) =>
+            total + Number(summary.overallRating) * summary.reviewCount,
+          0,
+        ) / ratedReviewCount
+      : null;
+
+  const recent = data.recentReviews
+    .filter((review) => data.selectedListingIds.includes(review.listingId))
+    .slice(0, 3);
+
+  const categoryRows = [
+    {
+      label: "Propreté",
+      field: "cleanlinessRating" as const,
+    },
+    {
+      label: "Communication",
+      field: "communicationRating" as const,
+    },
+    {
+      label: "Précision",
+      field: "accuracyRating" as const,
+    },
+    {
+      label: "Arrivée",
+      field: "checkinRating" as const,
+    },
+    {
+      label: "Emplacement",
+      field: "locationRating" as const,
+    },
+    {
+      label: "Rapport qualité-prix",
+      field: "valueRating" as const,
+    },
+  ];
+
+  function weightedCategory(
+    field:
+      | "cleanlinessRating"
+      | "communicationRating"
+      | "accuracyRating"
+      | "checkinRating"
+      | "locationRating"
+      | "valueRating",
+  ) {
+    const rows = summaries.filter(
+      (summary) => summary[field] != null && summary.reviewCount > 0,
+    );
+
+    const count = rows.reduce(
+      (total, summary) => total + summary.reviewCount,
+      0,
+    );
+
+    if (!count) return null;
+
+    return (
+      rows.reduce(
+        (total, summary) =>
+          total + Number(summary[field]) * summary.reviewCount,
+        0,
+      ) / count
+    );
+  }
+
+  return (
+    <ShellCard className="overflow-hidden">
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.17em] text-[#E0680E]">
+              Satisfaction voyageurs
+            </p>
+            <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">
+              Avis Airbnb
+            </h2>
+          </div>
+
+          <div className="rounded-full bg-[#FF385C]/10 px-3 py-2 text-sm font-black text-[#C82445]">
+            Airbnb
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[15rem_1fr]">
+          <div className="rounded-[1.5rem] bg-[#112532] p-5 text-white">
+            <p className="text-5xl font-black tracking-tight">
+              {ratingLabel(weightedOverall)}
+            </p>
+
+            <p className="mt-2 text-lg tracking-[0.08em] text-[#F4B044]">
+              {stars(weightedOverall)}
+            </p>
+
+            <p className="mt-3 text-sm font-bold text-white/65">
+              {totalReviews} avis importé
+              {totalReviews > 1 ? "s" : ""}
+            </p>
+
+            <p className="mt-4 text-[11px] font-bold leading-4 text-white/45">
+              Note calculée à partir des avis Airbnb importés. Elle peut
+              légèrement différer de la note affichée directement par Airbnb.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {categoryRows.map((category) => {
+              const value = weightedCategory(category.field);
+
+              return (
+                <div
+                  key={category.field}
+                  className="rounded-[1.25rem] bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/7"
+                >
+                  <p className="text-xs font-black text-[#112532]/52">
+                    {category.label}
+                  </p>
+
+                  <p className="mt-2 text-2xl font-black text-[#112532]">
+                    {ratingLabel(value)}
+                  </p>
+
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white">
+                    <div
+                      className="h-full rounded-full bg-[#E0680E]"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(100, ((value ?? 0) / 5) * 100),
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {summaries.length > 1 ? (
+          <div className="mt-5 border-t border-[#112532]/8 pt-5">
+            <p className="text-xs font-black uppercase tracking-[0.13em] text-[#112532]/45">
+              Par logement
+            </p>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {summaries.map((summary) => {
+                const listing = data.listings.find(
+                  (item) => item.id === summary.listingId,
+                );
+
+                return (
+                  <div
+                    key={summary.listingId}
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-[#F4F8FA] px-4 py-3 ring-1 ring-[#112532]/6"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-[#112532]">
+                        {listing?.name ?? "Logement"}
+                      </p>
+
+                      <p className="mt-1 text-xs font-bold text-[#112532]/45">
+                        {summary.reviewCount} avis
+                      </p>
+                    </div>
+
+                    <p className="shrink-0 text-xl font-black text-[#112532]">
+                      {ratingLabel(summary.overallRating)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {recent.length > 0 ? (
+          <div className="mt-5 border-t border-[#112532]/8 pt-5">
+            <p className="text-xs font-black uppercase tracking-[0.13em] text-[#112532]/45">
+              Derniers avis
+            </p>
+
+            <div className="mt-3 space-y-3">
+              {recent.map((review) => {
+                const listing = data.listings.find(
+                  (item) => item.id === review.listingId,
+                );
+
+                return (
+                  <article
+                    key={review.id}
+                    className="rounded-[1.25rem] bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-sm font-black text-[#112532]">
+                        {listing?.name ?? "Logement"}
+                      </p>
+
+                      <p className="shrink-0 text-sm font-black text-[#E0680E]">
+                        {ratingLabel(review.overallRating)} ★
+                      </p>
+                    </div>
+
+                    {review.reviewText ? (
+                      <p className="mt-2 line-clamp-3 text-sm font-bold leading-6 text-[#112532]/65">
+                        “{review.reviewText}”
+                      </p>
+                    ) : null}
+
+                    <p className="mt-2 text-[11px] font-bold text-[#112532]/38">
+                      {new Intl.DateTimeFormat("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }).format(new Date(review.reviewDate))}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </ShellCard>
+  );
+}
+
+function MetricButton({
+  active,
+  onClick,
+  label,
+  value,
+  delta,
+  tone,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  value: string;
+  delta?: number | null;
+  tone: Tone;
+}) {
   const wave = tone === "mustard" ? "#F4B044" : "#80A5B7";
   const icon = tone === "mustard" ? "€" : "▮▮▮";
 
@@ -319,37 +663,80 @@ function MetricButton({ active, onClick, label, value, delta, tone }: { active: 
     <button
       onClick={onClick}
       className={`relative min-h-[11.5rem] overflow-hidden rounded-[1.6rem] bg-white p-4 text-left shadow-[0_10px_28px_rgba(17,37,50,0.05)] ring-1 transition sm:min-h-[12rem] sm:p-5 ${
-        active ? "ring-[#E0680E]/36 shadow-[0_14px_34px_rgba(224,104,14,0.09)]" : "ring-[#112532]/8 hover:ring-[#112532]/15"
+        active
+          ? "ring-[#E0680E]/36 shadow-[0_14px_34px_rgba(224,104,14,0.09)]"
+          : "ring-[#112532]/8 hover:ring-[#112532]/15"
       }`}
     >
-      <svg viewBox="0 0 320 90" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25">
-        <path d="M0 48 C58 82 104 38 164 55 C222 72 262 25 320 45 V90 H0 Z" fill={wave} />
+      <svg
+        viewBox="0 0 320 90"
+        preserveAspectRatio="none"
+        className="absolute inset-x-0 bottom-0 h-14 w-full opacity-25"
+      >
+        <path
+          d="M0 48 C58 82 104 38 164 55 C222 72 262 25 320 45 V90 H0 Z"
+          fill={wave}
+        />
       </svg>
       <div className="relative flex items-center gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black ring-1 sm:h-12 sm:w-12 ${toneSoft(tone)}`}>{icon}</span>
-        <span className="text-[0.7rem] font-black uppercase leading-4 tracking-[0.05em] text-[#112532] sm:text-sm">{label}</span>
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black ring-1 sm:h-12 sm:w-12 ${toneSoft(tone)}`}
+        >
+          {icon}
+        </span>
+        <span className="text-[0.7rem] font-black uppercase leading-4 tracking-[0.05em] text-[#112532] sm:text-sm">
+          {label}
+        </span>
       </div>
-      <p className="relative mt-6 text-3xl font-black tracking-tight text-[#112532] sm:text-4xl">{value}</p>
-      {typeof delta === "number" ? <p className="relative mt-5 text-sm font-black text-emerald-500">vs N-1 · ↑ {Math.round(delta)} %</p> : null}
+      <p className="relative mt-6 text-3xl font-black tracking-tight text-[#112532] sm:text-4xl">
+        {value}
+      </p>
+      {typeof delta === "number" ? (
+        <p className="relative mt-5 text-sm font-black text-emerald-500">
+          vs N-1 · ↑ {Math.round(delta)} %
+        </p>
+      ) : null}
     </button>
   );
 }
 
-function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricId }) {
+function MetricPanel({
+  data,
+  metric,
+}: {
+  data: OwnerCockpitData;
+  metric: MetricId;
+}) {
   if (metric === "gross") {
-    const total = Math.max(1, data.listings.reduce((sum, listing) => sum + listing.revenue, 0));
+    const total = Math.max(
+      1,
+      data.listings.reduce((sum, listing) => sum + listing.revenue, 0),
+    );
 
     return (
       <ShellCard className="overflow-hidden p-5 sm:p-6">
-        <h2 className="text-3xl font-black tracking-tight text-[#112532]">CA brut par logement</h2>
+        <h2 className="text-3xl font-black tracking-tight text-[#112532]">
+          CA brut par logement
+        </h2>
         <div className="mt-5 space-y-4">
           {data.listings.map((listing) => (
-            <div key={listing.id} className="grid grid-cols-[8rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]">
+            <div
+              key={listing.id}
+              className="grid grid-cols-[8rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]"
+            >
               <span className="truncate text-[#112532]/70">{listing.name}</span>
               <div className="h-4 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
-                <div className="h-full rounded-full" style={{ width: `${Math.max(8, (listing.revenue / total) * 100)}%`, backgroundColor: listing.dot }} />
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.max(8, (listing.revenue / total) * 100)}%`,
+                    backgroundColor: listing.dot,
+                  }}
+                />
               </div>
-              <span className="text-right text-[#112532]">{formatMoney(listing.revenue)}</span>
+              <span className="text-right text-[#112532]">
+                {formatMoney(listing.revenue)}
+              </span>
             </div>
           ))}
         </div>
@@ -360,60 +747,115 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
   if (metric === "net") {
     const gross = data.financial.grossAnnualRevenue;
     const net = data.financial.afterVariables;
-    const variableCosts = data.financial.variableCosts ?? Math.max(0, gross - net);
+    const variableCosts =
+      data.financial.variableCosts ?? Math.max(0, gross - net);
     const expenseItems = data.financial.expenseBreakdownItems ?? [];
 
     const netPct = gross ? Math.max(0, Math.min(100, (net / gross) * 100)) : 0;
-    const costPct = gross ? Math.max(0, Math.min(100, (variableCosts / gross) * 100)) : 0;
+    const costPct = gross
+      ? Math.max(0, Math.min(100, (variableCosts / gross) * 100))
+      : 0;
     const rows = [
-      { label: "CA brut", value: gross, left: 0, width: 100, tone: "blue" as Tone, sign: "" },
-      { label: "Coûts variables", value: variableCosts, left: netPct, width: costPct, tone: "mustard" as Tone, sign: "-" },
-      { label: "Après variables", value: net, left: 0, width: netPct, tone: "orange" as Tone, sign: "" },
+      {
+        label: "CA brut",
+        value: gross,
+        left: 0,
+        width: 100,
+        tone: "blue" as Tone,
+        sign: "",
+      },
+      {
+        label: "Coûts variables",
+        value: variableCosts,
+        left: netPct,
+        width: costPct,
+        tone: "mustard" as Tone,
+        sign: "-",
+      },
+      {
+        label: "Après variables",
+        value: net,
+        left: 0,
+        width: netPct,
+        tone: "orange" as Tone,
+        sign: "",
+      },
     ];
 
     return (
       <ShellCard className="overflow-hidden p-5 sm:p-6">
-        <h2 className="text-3xl font-black tracking-tight text-[#112532]">Après variables</h2>
+        <h2 className="text-3xl font-black tracking-tight text-[#112532]">
+          Après variables
+        </h2>
         <div className="mt-5 space-y-4">
           {rows.map((row) => (
-            <div key={row.label} className="grid grid-cols-[8rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]">
+            <div
+              key={row.label}
+              className="grid grid-cols-[8rem_1fr_5.5rem] items-center gap-3 text-sm font-black sm:grid-cols-[12rem_1fr_7rem]"
+            >
               <span className="truncate text-[#112532]/70">{row.label}</span>
               <div className="relative h-4 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
                 <div
                   className={`absolute top-0 h-full rounded-full ${toneSolid(row.tone)}`}
-                  style={{ left: `${row.left}%`, width: `${Math.max(4, row.width)}%` }}
+                  style={{
+                    left: `${row.left}%`,
+                    width: `${Math.max(4, row.width)}%`,
+                  }}
                 />
               </div>
-              <span className="text-right text-[#112532]">{row.sign}{formatMoney(row.value)}</span>
+              <span className="text-right text-[#112532]">
+                {row.sign}
+                {formatMoney(row.value)}
+              </span>
             </div>
           ))}
         </div>
 
         <div className="mt-5 rounded-[1.35rem] bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/6">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-black uppercase tracking-[0.12em] text-[#80A5B7]">Détail des coûts variables</p>
-            <p className="text-sm font-black text-[#112532]">{formatMoney(variableCosts)}</p>
+            <p className="text-sm font-black uppercase tracking-[0.12em] text-[#80A5B7]">
+              Détail des coûts variables
+            </p>
+            <p className="text-sm font-black text-[#112532]">
+              {formatMoney(variableCosts)}
+            </p>
           </div>
 
           {expenseItems.length === 0 ? (
             <p className="mt-3 text-sm font-bold text-[#112532]/55">
-              Aucun détail de ligne détecté. Si le total existe, il vient probablement de lignes mensuelles sans catégorie reconnue.
+              Aucun détail de ligne détecté. Si le total existe, il vient
+              probablement de lignes mensuelles sans catégorie reconnue.
             </p>
           ) : (
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {expenseItems.map((item) => {
-                const pct = variableCosts ? Math.round((item.amount / variableCosts) * 100) : 0;
+                const pct = variableCosts
+                  ? Math.round((item.amount / variableCosts) * 100)
+                  : 0;
                 return (
-                  <div key={item.label} className="rounded-2xl bg-white p-3 ring-1 ring-[#112532]/6">
+                  <div
+                    key={item.label}
+                    className="rounded-2xl bg-white p-3 ring-1 ring-[#112532]/6"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-[#112532]">{item.label}</p>
-                        <p className="mt-0.5 text-[11px] font-bold text-[#112532]/45">{item.count} ligne{item.count > 1 ? "s" : ""} · {pct}% des coûts</p>
+                        <p className="truncate text-sm font-black text-[#112532]">
+                          {item.label}
+                        </p>
+                        <p className="mt-0.5 text-[11px] font-bold text-[#112532]/45">
+                          {item.count} ligne{item.count > 1 ? "s" : ""} · {pct}%
+                          des coûts
+                        </p>
                       </div>
-                      <p className="shrink-0 text-sm font-black text-[#112532]">{formatMoney(item.amount)}</p>
+                      <p className="shrink-0 text-sm font-black text-[#112532]">
+                        {formatMoney(item.amount)}
+                      </p>
                     </div>
                     <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#F4F8FA] ring-1 ring-[#112532]/6">
-                      <div className="h-full rounded-full bg-[#F4B044]" style={{ width: `${Math.max(4, pct)}%` }} />
+                      <div
+                        className="h-full rounded-full bg-[#F4B044]"
+                        style={{ width: `${Math.max(4, pct)}%` }}
+                      />
                     </div>
                   </div>
                 );
@@ -429,14 +871,30 @@ function MetricPanel({ data, metric }: { data: OwnerCockpitData; metric: MetricI
 }
 
 function MonthlyRevenueChart({ data }: { data: OwnerCockpitData }) {
-  const max = Math.max(1, ...data.monthlyRevenue.map((row) => row.realised + row.future, MONTH_TARGET_FALLBACK));
+  const max = Math.max(
+    1,
+    ...data.monthlyRevenue.map(
+      (row) => row.realised + row.future,
+      MONTH_TARGET_FALLBACK,
+    ),
+  );
   return (
     <ShellCard className="overflow-hidden p-5 sm:p-6">
-      <h2 className="text-3xl font-black tracking-tight text-[#112532]">Revenus mensuels</h2>
+      <h2 className="text-3xl font-black tracking-tight text-[#112532]">
+        Revenus mensuels
+      </h2>
       <div className="mt-5 flex flex-wrap gap-4 text-sm font-black text-[#112532]/65">
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-7 rounded-full bg-[#E0680E]" />Réalisé</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-7 rounded-full bg-[#80A5B7]" />À venir</span>
-        <span className="inline-flex items-center gap-2"><span className="h-0.5 w-7 border-t-2 border-dashed border-[#F4B044]" />Objectif</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-7 rounded-full bg-[#E0680E]" />
+          Réalisé
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-7 rounded-full bg-[#80A5B7]" />À venir
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-0.5 w-7 border-t-2 border-dashed border-[#F4B044]" />
+          Objectif
+        </span>
       </div>
       <div className="relative mt-5">
         <div className="absolute left-0 right-0 top-[43%] border-t-2 border-dashed border-[#F4B044]" />
@@ -447,14 +905,32 @@ function MonthlyRevenueChart({ data }: { data: OwnerCockpitData }) {
             const realisedPct = total ? (row.realised / total) * 100 : 0;
             const futurePct = total ? (row.future / total) * 100 : 0;
             return (
-              <div key={row.month} className="relative flex min-w-0 flex-col items-center gap-3">
+              <div
+                key={row.month}
+                className="relative flex min-w-0 flex-col items-center gap-3"
+              >
                 <div className="relative flex h-[196px] w-full items-end justify-center">
-                  <div className={`flex w-full max-w-[2.05rem] flex-col-reverse overflow-hidden rounded-t-[1rem] shadow-sm ${row.live ? "ring-2 ring-[#E0680E]/25" : ""}`} style={{ height: `${totalHeight}px` }}>
-                    {row.realised > 0 ? <div className="w-full bg-[#E0680E]" style={{ height: `${realisedPct}%` }} /> : null}
-                    {row.future > 0 ? <div className="w-full bg-[#80A5B7]" style={{ height: `${futurePct}%` }} /> : null}
+                  <div
+                    className={`flex w-full max-w-[2.05rem] flex-col-reverse overflow-hidden rounded-t-[1rem] shadow-sm ${row.live ? "ring-2 ring-[#E0680E]/25" : ""}`}
+                    style={{ height: `${totalHeight}px` }}
+                  >
+                    {row.realised > 0 ? (
+                      <div
+                        className="w-full bg-[#E0680E]"
+                        style={{ height: `${realisedPct}%` }}
+                      />
+                    ) : null}
+                    {row.future > 0 ? (
+                      <div
+                        className="w-full bg-[#80A5B7]"
+                        style={{ height: `${futurePct}%` }}
+                      />
+                    ) : null}
                   </div>
                 </div>
-                <span className="text-[0.65rem] font-black uppercase tracking-[-0.02em] text-[#477084] sm:text-xs">{row.month}</span>
+                <span className="text-[0.65rem] font-black uppercase tracking-[-0.02em] text-[#477084] sm:text-xs">
+                  {row.month}
+                </span>
               </div>
             );
           })}
@@ -464,7 +940,6 @@ function MonthlyRevenueChart({ data }: { data: OwnerCockpitData }) {
   );
 }
 
-
 function ActionMessage({ data }: { data: OwnerCockpitData }) {
   const actionEvent =
     data.timelineEvents.find(
@@ -472,7 +947,9 @@ function ActionMessage({ data }: { data: OwnerCockpitData }) {
         event.tone === "orange" &&
         (event.kind === "cleaning" || event.kind === "intervention"),
     ) ||
-    data.timelineEvents.find((event) => event.title.toLowerCase().includes("paiement"));
+    data.timelineEvents.find((event) =>
+      event.title.toLowerCase().includes("paiement"),
+    );
 
   if (!actionEvent) {
     return <>Tout est à jour.</>;
@@ -492,7 +969,9 @@ function ActionMessage({ data }: { data: OwnerCockpitData }) {
   return (
     <>
       {label}
-      {actionEvent.status ? <span className="text-[#E0680E]"> · {actionEvent.status}</span> : null}
+      {actionEvent.status ? (
+        <span className="text-[#E0680E]"> · {actionEvent.status}</span>
+      ) : null}
       <span className="text-[#112532]/70"> — {actionEvent.detail}</span>
     </>
   );
@@ -502,9 +981,13 @@ function SmartBrief({ data }: { data: OwnerCockpitData }) {
   return (
     <ShellCard className="overflow-hidden p-5 sm:p-6">
       <div className="flex items-start gap-4">
-        <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FFF6EF] text-xl text-[#E0680E] ring-1 ring-[#E0680E]/14">✦</span>
+        <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FFF6EF] text-xl text-[#E0680E] ring-1 ring-[#E0680E]/14">
+          ✦
+        </span>
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">À retenir</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">
+            À retenir
+          </p>
           <p className="mt-2 text-xl font-black leading-8 text-[#112532] sm:text-2xl">
             <ActionMessage data={data} />
           </p>
@@ -514,10 +997,19 @@ function SmartBrief({ data }: { data: OwnerCockpitData }) {
   );
 }
 
-function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitData; selected: string[]; setSelected: (next: string[]) => void }) {
+function PropertySelector({
+  data,
+  selected,
+  setSelected,
+}: {
+  data: OwnerCockpitData;
+  selected: string[];
+  setSelected: (next: string[]) => void;
+}) {
   function toggle(id: string) {
     if (selected.includes(id)) {
-      if (selected.length > 1) setSelected(selected.filter((item) => item !== id));
+      if (selected.length > 1)
+        setSelected(selected.filter((item) => item !== id));
       return;
     }
     setSelected([...selected, id]);
@@ -526,8 +1018,12 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">Opérations</p>
-        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Réservations, ménages et interventions</h2>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">
+          Opérations
+        </p>
+        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">
+          Réservations, ménages et interventions
+        </h2>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
@@ -544,27 +1040,37 @@ function PropertySelector({ data, selected, setSelected }: { data: OwnerCockpitD
               >
                 <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#F4F8FA]">
                   {listing.image ? (
-                    <img src={listing.image} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={listing.image}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center text-xl font-black text-[#112532]/45">{listing.short}</span>
+                    <span className="flex h-full w-full items-center justify-center text-xl font-black text-[#112532]/45">
+                      {listing.short}
+                    </span>
                   )}
-                  <span className="absolute left-2 top-2 h-3 w-3 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
+                  <span
+                    className="absolute left-2 top-2 h-3 w-3 rounded-full ring-2 ring-white"
+                    style={{ backgroundColor: listing.dot }}
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-[#112532]">{listing.name}</p>
-                  <p className="mt-1 text-xs font-bold text-[#112532]/50">{listing.occupancy}% · {formatMoney(listing.revenue)}</p>
+                  <p className="truncate text-sm font-black text-[#112532]">
+                    {listing.name}
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-[#112532]/50">
+                    {listing.occupancy}% · {formatMoney(listing.revenue)}
+                  </p>
                 </div>
               </button>
             );
           })}
         </div>
       </div>
-
-
     </section>
   );
 }
-
 
 function AutoScrollPlanningRail({
   children,
@@ -581,7 +1087,10 @@ function AutoScrollPlanningRail({
     const rail = ref.current;
     if (!rail) return;
 
-    const targetLeft = Math.max(0, todayOffset * dayWidthPx - rail.clientWidth * 0.35);
+    const targetLeft = Math.max(
+      0,
+      todayOffset * dayWidthPx - rail.clientWidth * 0.35,
+    );
     rail.scrollTo({ left: targetLeft, behavior: "instant" as ScrollBehavior });
   }, [dayWidthPx, todayOffset]);
 
@@ -592,9 +1101,6 @@ function AutoScrollPlanningRail({
   );
 }
 
-
-
-
 function planningDayPitchPx(dayWidthPx: number) {
   return dayWidthPx + PLANNING_DAY_GAP_PX;
 }
@@ -604,18 +1110,26 @@ function dayCenterLeftPx(day: number, dayWidthPx: number) {
   return (Math.max(1, day) - 1) * pitch + dayWidthPx / 2;
 }
 
-function reservationLeftPx(reservation: PlanningReservation, dayWidthPx: number) {
+function reservationLeftPx(
+  reservation: PlanningReservation,
+  dayWidthPx: number,
+) {
   // Check-in afternoon: start halfway through the check-in day.
   return dayCenterLeftPx(reservation.start, dayWidthPx);
 }
 
-function reservationWidthPx(reservation: PlanningReservation, dayWidthPx: number) {
+function reservationWidthPx(
+  reservation: PlanningReservation,
+  dayWidthPx: number,
+) {
   // Checkout morning: end halfway through the checkout day.
   // A stay with span N should run from the centre of day D to the centre of day D+N.
   return Math.max(44, reservation.span * planningDayPitchPx(dayWidthPx));
 }
 
-function reservationCleaningBorder(state: PlanningReservation["cleaningState"]) {
+function reservationCleaningBorder(
+  state: PlanningReservation["cleaningState"],
+) {
   if (state === "accepted") return "ring-2 ring-emerald-500/90";
   if (state === "planned") return "ring-2 ring-[#F4B044]/90";
   return "ring-2 ring-[#E05243]/90";
@@ -633,13 +1147,19 @@ function reservationCleaningTitle(state: PlanningReservation["cleaningState"]) {
   return "Aucune mission de ménage planifiée";
 }
 
-
-function ReservationTooltip({ reservation }: { reservation: PlanningReservation }) {
+function ReservationTooltip({
+  reservation,
+}: {
+  reservation: PlanningReservation;
+}) {
   return (
     <span className="absolute left-1/2 top-full z-[80] mt-2 hidden w-64 -translate-x-1/2 rounded-2xl bg-white p-3 text-left text-[#112532] shadow-[0_18px_48px_rgba(17,37,50,0.22)] ring-1 ring-[#112532]/10 group-hover:block">
-      <span className="block truncate text-sm font-black">{reservation.guest}</span>
+      <span className="block truncate text-sm font-black">
+        {reservation.guest}
+      </span>
       <span className="mt-1 block text-xs font-bold text-[#112532]/58">
-        {formatMoney(reservation.price)} · {reservation.span} nuit{reservation.span > 1 ? "s" : ""} · {reservation.nightly}€/nuit
+        {formatMoney(reservation.price)} · {reservation.span} nuit
+        {reservation.span > 1 ? "s" : ""} · {reservation.nightly}€/nuit
       </span>
       <span className="mt-2 inline-flex rounded-full bg-[#F4F8FA] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#112532]/55">
         {reservationCleaningTitle(reservation.cleaningState)}
@@ -654,7 +1174,11 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
 
   if (markers.length === 1) {
     return (
-      <a href={first.href} title={`${first.label} · ${first.statusLabel}`} className="relative transition hover:scale-105">
+      <a
+        href={first.href}
+        title={`${first.label} · ${first.statusLabel}`}
+        className="relative transition hover:scale-105"
+      >
         <InitialsAvatar
           image={first.avatarUrl}
           initials={first.avatarInitials}
@@ -688,10 +1212,20 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
           >
             <div className="mb-2 flex items-center justify-between px-2 py-1">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#80A5B7]">Choisir une mission</p>
-                <p className="mt-1 text-sm font-black text-[#112532]">{markers.length} missions ce jour</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#80A5B7]">
+                  Choisir une mission
+                </p>
+                <p className="mt-1 text-sm font-black text-[#112532]">
+                  {markers.length} missions ce jour
+                </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-full px-3 py-2 text-sm font-black text-[#112532]/45 hover:bg-[#F4F8FA]">×</button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-full px-3 py-2 text-sm font-black text-[#112532]/45 hover:bg-[#F4F8FA]"
+              >
+                ×
+              </button>
             </div>
 
             <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
@@ -709,8 +1243,12 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
                     size="h-9 w-9"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black text-[#112532]">{marker.label}</span>
-                    <span className="mt-0.5 block truncate text-xs font-bold text-[#112532]/50">{marker.statusLabel}</span>
+                    <span className="block truncate text-sm font-black text-[#112532]">
+                      {marker.label}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs font-bold text-[#112532]/50">
+                      {marker.statusLabel}
+                    </span>
                   </span>
                   <span className="text-sm font-black text-[#E0680E]">→</span>
                 </a>
@@ -723,11 +1261,24 @@ function MissionGroupPopover({ markers }: { markers: PlanningMarker[] }) {
   );
 }
 
-function Planning({ data, selected, operations = true }: { data: OwnerCockpitData; selected: string[]; operations?: boolean }) {
-  const selectedListings = data.listings.filter((listing) => selected.includes(listing.id));
+function Planning({
+  data,
+  selected,
+  operations = true,
+}: {
+  data: OwnerCockpitData;
+  selected: string[];
+  operations?: boolean;
+}) {
+  const selectedListings = data.listings.filter((listing) =>
+    selected.includes(listing.id),
+  );
   const dayWidthPx = 76;
   const dayWidth = `${dayWidthPx}px`;
-  const todayOffset = Math.max(0, data.planningDays.findIndex((day) => day.key === data.today));
+  const todayOffset = Math.max(
+    0,
+    data.planningDays.findIndex((day) => day.key === data.today),
+  );
   const gridTemplateColumns = `repeat(${data.planningDays.length}, ${dayWidth})`;
 
   const reservationsByListing = useMemo(() => {
@@ -744,18 +1295,25 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
 
   const coveredDaysByListing = useMemo(() => {
     const covered = new Map<string, Set<number>>();
-    for (const listing of data.listings) covered.set(listing.id, new Set<number>());
+    for (const listing of data.listings)
+      covered.set(listing.id, new Set<number>());
     for (const reservation of data.planningReservations) {
       const set = covered.get(reservation.listingId);
       if (!set) continue;
-      for (let day = reservation.start; day < reservation.start + reservation.span; day++) set.add(day);
+      for (
+        let day = reservation.start;
+        day < reservation.start + reservation.span;
+        day++
+      )
+        set.add(day);
     }
     return covered;
   }, [data.listings, data.planningReservations]);
 
   const dailyPriceByKey = useMemo(() => {
     const map = new Map<string, DailyPrice>();
-    for (const price of data.dailyPrices) map.set(`${price.listingId}:${price.day}`, price);
+    for (const price of data.dailyPrices)
+      map.set(`${price.listingId}:${price.day}`, price);
     return map;
   }, [data.dailyPrices]);
 
@@ -777,7 +1335,11 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
           <div className="space-y-2">
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.monthSpans.map((span) => (
-                <div key={`${span.month}-${span.start}`} className="rounded-2xl bg-[#F4F8FA] px-4 py-2 text-sm font-black text-[#477084]" style={{ gridColumn: `${span.start} / span ${span.span}` }}>
+                <div
+                  key={`${span.month}-${span.start}`}
+                  className="rounded-2xl bg-[#F4F8FA] px-4 py-2 text-sm font-black text-[#477084]"
+                  style={{ gridColumn: `${span.start} / span ${span.span}` }}
+                >
                   {span.month}
                 </div>
               ))}
@@ -785,7 +1347,10 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
 
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.planningDays.map((day) => (
-                <div key={day.key} className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-2 py-2 text-center text-[11px] font-black leading-4 text-[#112532]/60 ring-1 ring-[#112532]/5">
+                <div
+                  key={day.key}
+                  className="whitespace-pre-line rounded-2xl bg-[#F4F8FA] px-2 py-2 text-center text-[11px] font-black leading-4 text-[#112532]/60 ring-1 ring-[#112532]/5"
+                >
                   {day.label}
                 </div>
               ))}
@@ -793,30 +1358,50 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
 
             <div className="grid gap-1" style={{ gridTemplateColumns }}>
               {data.planningDays.map((day) => (
-                <div key={`tension-${day.key}`} className={`h-3 rounded-full ${tensionColor(day.tension)}`} style={{ opacity: 0.18 + day.tension * 0.38 }} />
+                <div
+                  key={`tension-${day.key}`}
+                  className={`h-3 rounded-full ${tensionColor(day.tension)}`}
+                  style={{ opacity: 0.18 + day.tension * 0.38 }}
+                />
               ))}
             </div>
           </div>
 
           <div className="mt-3 space-y-3">
             {selectedListings.map((listing) => {
-              const rowReservations = reservationsByListing.get(listing.id) ?? [];
-              const coveredDays = coveredDaysByListing.get(listing.id) ?? new Set<number>();
+              const rowReservations =
+                reservationsByListing.get(listing.id) ?? [];
+              const coveredDays =
+                coveredDaysByListing.get(listing.id) ?? new Set<number>();
 
               return (
                 <div key={listing.id} className="relative">
                   <div className="h-[5.6rem] rounded-[1.35rem] bg-[#F4F8FA]/72 p-2 ring-1 ring-[#112532]/5">
                     <div className="relative h-full overflow-hidden rounded-[1rem]">
-                      <div className="absolute bottom-2 left-2 top-2 z-40 w-1 rounded-full ring-1 ring-white/70" style={{ backgroundColor: listing.dot }} title={listing.name} />
+                      <div
+                        className="absolute bottom-2 left-2 top-2 z-40 w-1 rounded-full ring-1 ring-white/70"
+                        style={{ backgroundColor: listing.dot }}
+                        title={listing.name}
+                      />
 
-                      <div className="absolute inset-0 grid gap-1" style={{ gridTemplateColumns }}>
+                      <div
+                        className="absolute inset-0 grid gap-1"
+                        style={{ gridTemplateColumns }}
+                      >
                         {data.planningDays.map((_, index) => {
                           const day = index + 1;
                           const covered = coveredDays.has(day);
-                          const price = dailyPriceByKey.get(`${listing.id}:${day}`);
+                          const price = dailyPriceByKey.get(
+                            `${listing.id}:${day}`,
+                          );
                           return (
-                            <div key={`${listing.id}-cell-${day}`} className="relative rounded-xl bg-white/88 ring-1 ring-white/70">
-                              {!covered && price && calendarDayPriceLabel(price) ? (
+                            <div
+                              key={`${listing.id}-cell-${day}`}
+                              className="relative rounded-xl bg-white/88 ring-1 ring-white/70"
+                            >
+                              {!covered &&
+                              price &&
+                              calendarDayPriceLabel(price) ? (
                                 <div
                                   title="Prix jour libre"
                                   className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-black text-[#112532]/38 ring-1 ring-[#112532]/5"
@@ -830,24 +1415,35 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                       </div>
 
                       {operations ? (
-                      <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
-                        {rowReservations
-                          .filter((reservation) => reservation.cleaningDay)
-                          .map((reservation) => {
-                            const startPx = reservationLeftPx(reservation, dayWidthPx);
-                            const endPx = dayCenterLeftPx(reservation.cleaningDay ?? reservation.start, dayWidthPx);
-                            const left = Math.min(startPx, endPx);
-                            const width = Math.max(12, Math.abs(endPx - startPx));
-                            return (
-                              <div
-                                key={`${reservation.id}-cleaning-link`}
-                                className={`absolute top-0 h-0.5 rounded-full opacity-65 ${reservationCleaningLine(reservation.cleaningState)}`}
-                                style={{ left, width }}
-                                title={reservationCleaningTitle(reservation.cleaningState)}
-                              />
-                            );
-                          })}
-                      </div>
+                        <div className="absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2">
+                          {rowReservations
+                            .filter((reservation) => reservation.cleaningDay)
+                            .map((reservation) => {
+                              const startPx = reservationLeftPx(
+                                reservation,
+                                dayWidthPx,
+                              );
+                              const endPx = dayCenterLeftPx(
+                                reservation.cleaningDay ?? reservation.start,
+                                dayWidthPx,
+                              );
+                              const left = Math.min(startPx, endPx);
+                              const width = Math.max(
+                                12,
+                                Math.abs(endPx - startPx),
+                              );
+                              return (
+                                <div
+                                  key={`${reservation.id}-cleaning-link`}
+                                  className={`absolute top-0 h-0.5 rounded-full opacity-65 ${reservationCleaningLine(reservation.cleaningState)}`}
+                                  style={{ left, width }}
+                                  title={reservationCleaningTitle(
+                                    reservation.cleaningState,
+                                  )}
+                                />
+                              );
+                            })}
+                        </div>
                       ) : null}
 
                       <div className="absolute inset-0 z-20 pointer-events-auto">
@@ -858,14 +1454,19 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                             className={`group absolute top-1/2 block h-[2.75rem] -translate-y-1/2 overflow-visible rounded-2xl px-3 py-1 text-center text-white shadow-[0_6px_18px_rgba(17,37,50,0.10)] transition hover:translate-y-[-55%] hover:shadow-[0_10px_28px_rgba(17,37,50,0.18)] ${reservationCleaningBorder(reservation.cleaningState)}`}
                             style={{
                               left: reservationLeftPx(reservation, dayWidthPx),
-                              width: reservationWidthPx(reservation, dayWidthPx),
+                              width: reservationWidthPx(
+                                reservation,
+                                dayWidthPx,
+                              ),
                               backgroundColor: listing.dot,
                             }}
                           >
                             <span className="absolute inset-0 overflow-hidden rounded-2xl">
                               <span className="absolute inset-x-0 top-0 h-1/2 bg-white/8" />
                             </span>
-                            <span className="relative flex h-full items-center justify-center truncate px-3 text-xs font-black leading-5">{reservation.guest}</span>
+                            <span className="relative flex h-full items-center justify-center truncate px-3 text-xs font-black leading-5">
+                              {reservation.guest}
+                            </span>
                             <ReservationTooltip reservation={reservation} />
                           </a>
                         ))}
@@ -875,13 +1476,16 @@ function Planning({ data, selected, operations = true }: { data: OwnerCockpitDat
                         <div className="absolute inset-0 z-30 pointer-events-none">
                           {data.planningDays.map((_, index) => {
                             const day = index + 1;
-                            const markers = markerGroups.get(`${listing.id}:${day}`) ?? [];
+                            const markers =
+                              markerGroups.get(`${listing.id}:${day}`) ?? [];
                             if (markers.length === 0) return null;
                             return (
                               <div
                                 key={`${listing.id}-mission-${day}`}
                                 className="pointer-events-auto absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                style={{ left: dayCenterLeftPx(day, dayWidthPx) }}
+                                style={{
+                                  left: dayCenterLeftPx(day, dayWidthPx),
+                                }}
                               >
                                 <MissionGroupPopover markers={markers} />
                               </div>
@@ -908,38 +1512,69 @@ function TimelineBrowser({ data }: { data: OwnerCockpitData }) {
   return (
     <ShellCard className="overflow-hidden p-5">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Activité</p>
-        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">Timeline</h2>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">
+          Activité
+        </p>
+        <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">
+          Timeline
+        </h2>
       </div>
 
       <div className="relative mt-5 max-h-[34rem] overflow-y-auto pr-1">
         <div className="absolute bottom-0 left-[1.18rem] top-0 w-0.5 rounded-full bg-[#D8E6EC]" />
 
         <div className="space-y-3 pb-4">
-          {past.map((event) => <TimelineRow key={event.id} event={event} listings={data.listings} muted />)}
+          {past.map((event) => (
+            <TimelineRow
+              key={event.id}
+              event={event}
+              listings={data.listings}
+              muted
+            />
+          ))}
         </div>
 
         <div className="relative my-4 flex items-center gap-3">
-          <span className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#112532] text-xs font-black text-white ring-4 ring-white">auj.</span>
+          <span className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#112532] text-xs font-black text-white ring-4 ring-white">
+            auj.
+          </span>
           <div className="h-px flex-1 bg-[#112532]/12" />
-          <span className="rounded-full bg-[#112532]/6 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#112532]/55">Aujourd’hui</span>
+          <span className="rounded-full bg-[#112532]/6 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[#112532]/55">
+            Aujourd’hui
+          </span>
         </div>
 
         <div className="space-y-3 pt-1">
-          {future.map((event) => <TimelineRow key={event.id} event={event} listings={data.listings} />)}
+          {future.map((event) => (
+            <TimelineRow
+              key={event.id}
+              event={event}
+              listings={data.listings}
+            />
+          ))}
         </div>
       </div>
     </ShellCard>
   );
 }
 
-function TimelineRow({ event, listings, muted = false }: { event: TimelineEvent; listings: OwnerCockpitListing[]; muted?: boolean }) {
+function TimelineRow({
+  event,
+  listings,
+  muted = false,
+}: {
+  event: TimelineEvent;
+  listings: OwnerCockpitListing[];
+  muted?: boolean;
+}) {
   const listing = listingById(listings, event.listingId);
   const isMission = event.kind === "cleaning" || event.kind === "intervention";
   const avatarImage = isMission ? event.avatarUrl : listing?.image;
   const avatarInitials = isMission ? event.avatarInitials : listing?.short;
   const row = (
-    <span className={`relative grid w-full grid-cols-[52px_1fr_auto] items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F4F8FA] ${muted ? "opacity-72" : ""}`}>
+    <span
+      className={`relative grid w-full grid-cols-[52px_1fr_auto] items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F4F8FA] ${muted ? "opacity-72" : ""}`}
+    >
       <span className="absolute bottom-0 left-[1.58rem] top-0 w-0.5 bg-[#D8E6EC]" />
       <span className="relative z-10 flex items-center justify-center">
         <InitialsAvatar
@@ -952,19 +1587,40 @@ function TimelineRow({ event, listings, muted = false }: { event: TimelineEvent;
       </span>
       <span className="min-w-0">
         <span className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: listing?.dot ?? "#112532" }} />
-          <span className="truncate text-base font-black text-[#112532]">{event.title}</span>
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: listing?.dot ?? "#112532" }}
+          />
+          <span className="truncate text-base font-black text-[#112532]">
+            {event.title}
+          </span>
         </span>
-        <span className="mt-0.5 block truncate text-sm font-bold text-[#112532]/55">{listing?.name ?? "Logement"} · {event.detail}</span>
+        <span className="mt-0.5 block truncate text-sm font-bold text-[#112532]/55">
+          {listing?.name ?? "Logement"} · {event.detail}
+        </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-xs font-bold text-[#112532]/50">{event.time}</span>
-        {event.status ? <span className={`rounded-full px-2 py-1 text-[10px] font-black ring-1 ${toneSoft(event.tone)}`}>{event.status}</span> : null}
+        <span className="text-xs font-bold text-[#112532]/50">
+          {event.time}
+        </span>
+        {event.status ? (
+          <span
+            className={`rounded-full px-2 py-1 text-[10px] font-black ring-1 ${toneSoft(event.tone)}`}
+          >
+            {event.status}
+          </span>
+        ) : null}
       </span>
     </span>
   );
 
-  return event.href ? <a href={event.href} className="block">{row}</a> : <div>{row}</div>;
+  return event.href ? (
+    <a href={event.href} className="block">
+      {row}
+    </a>
+  ) : (
+    <div>{row}</div>
+  );
 }
 
 function Opportunities({ data }: { data: OwnerCockpitData }) {
@@ -972,25 +1628,46 @@ function Opportunities({ data }: { data: OwnerCockpitData }) {
     <ShellCard className="overflow-hidden p-5">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Opportunités</p>
-          <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">À tester</h2>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">
+            Opportunités
+          </p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">
+            À tester
+          </h2>
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.opportunities.map((item) => (
-          <div key={item.id} className="rounded-[1.45rem] bg-white p-4 shadow-[0_8px_22px_rgba(17,37,50,0.04)] ring-1 ring-[#112532]/8">
+          <div
+            key={item.id}
+            className="rounded-[1.45rem] bg-white p-4 shadow-[0_8px_22px_rgba(17,37,50,0.04)] ring-1 ring-[#112532]/8"
+          >
             <div className="flex items-center gap-2">
-              <span className={`flex h-9 w-9 items-center justify-center rounded-full ring-1 ${toneSoft(item.tone)}`}>↗</span>
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-full ring-1 ${toneSoft(item.tone)}`}
+              >
+                ↗
+              </span>
               <p className="text-lg font-black text-[#112532]">{item.title}</p>
             </div>
-            <p className="mt-3 text-sm font-black text-[#112532]">{item.listing}</p>
-            <p className="mt-1 text-sm font-bold text-[#112532]/58">{item.period}</p>
+            <p className="mt-3 text-sm font-black text-[#112532]">
+              {item.listing}
+            </p>
+            <p className="mt-1 text-sm font-bold text-[#112532]/58">
+              {item.period}
+            </p>
             <div className="mt-4">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#112532]/45">Potentiel estimé</p>
-              <p className="mt-1 text-3xl font-black tracking-tight text-[#E0680E]">{formatMoney(item.potential)}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#112532]/45">
+                Potentiel estimé
+              </p>
+              <p className="mt-1 text-3xl font-black tracking-tight text-[#E0680E]">
+                {formatMoney(item.potential)}
+              </p>
             </div>
-            <button className={`mt-5 w-full rounded-full px-4 py-3 text-sm font-black ${item.tone === "orange" ? "bg-[#E0680E] text-white" : item.tone === "mustard" ? "border border-[#F4B044] bg-white text-[#D58908]" : "border border-[#80A5B7] bg-white text-[#477084]"}`}>
+            <button
+              className={`mt-5 w-full rounded-full px-4 py-3 text-sm font-black ${item.tone === "orange" ? "bg-[#E0680E] text-white" : item.tone === "mustard" ? "border border-[#F4B044] bg-white text-[#D58908]" : "border border-[#80A5B7] bg-white text-[#477084]"}`}
+            >
               {item.action}
             </button>
           </div>
@@ -1000,35 +1677,67 @@ function Opportunities({ data }: { data: OwnerCockpitData }) {
   );
 }
 
-
 function OccupancyTable({ data }: { data: OwnerCockpitData }) {
   return (
     <ShellCard className="overflow-hidden">
       <div className="flex items-end justify-between gap-3 border-b border-[#112532]/8 px-5 py-5">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">Occupation</p>
-          <h2 className="mt-1 text-2xl font-black text-[#112532]">Performance des logements</h2>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#80A5B7]">
+            Occupation
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-[#112532]">
+            Performance des logements
+          </h2>
         </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#112532]/38">année en cours</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#112532]/38">
+          année en cours
+        </span>
       </div>
       <div className="divide-y divide-[#112532]/8">
         {data.listings.map((listing) => (
-          <div key={listing.id} className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4">
+          <div
+            key={listing.id}
+            className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4"
+          >
             <div className="flex min-w-0 items-center gap-3">
               <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F4F8FA]">
-                {listing.image ? <img src={listing.image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center font-black text-[#112532]/40">{listing.short}</span>}
-                <span className="absolute left-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white" style={{ backgroundColor: listing.dot }} />
+                {listing.image ? (
+                  <img
+                    src={listing.image}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="grid h-full place-items-center font-black text-[#112532]/40">
+                    {listing.short}
+                  </span>
+                )}
+                <span
+                  className="absolute left-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white"
+                  style={{ backgroundColor: listing.dot }}
+                />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[#112532]">{listing.name}</p>
+                <p className="truncate text-sm font-black text-[#112532]">
+                  {listing.name}
+                </p>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#112532]/7">
-                  <div className="h-full rounded-full bg-[#80A5B7]" style={{ width: `${Math.max(2, Math.min(100, listing.occupancy))}%` }} />
+                  <div
+                    className="h-full rounded-full bg-[#80A5B7]"
+                    style={{
+                      width: `${Math.max(2, Math.min(100, listing.occupancy))}%`,
+                    }}
+                  />
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-black text-[#112532]">{listing.occupancy}%</p>
-              <p className="mt-1 text-xs font-bold text-[#112532]/45">{formatMoney(listing.revenue)}</p>
+              <p className="text-xl font-black text-[#112532]">
+                {listing.occupancy}%
+              </p>
+              <p className="mt-1 text-xs font-bold text-[#112532]/45">
+                {formatMoney(listing.revenue)}
+              </p>
             </div>
           </div>
         ))}
@@ -1041,14 +1750,25 @@ function OutstandingPayment({ data }: { data: OwnerCockpitData }) {
   const request = data.pendingPaymentRequest;
   if (!request) return null;
   return (
-    <a href={`/owner/payments/${encodeURIComponent(request.token)}`} className="flex items-center justify-between gap-4 rounded-[1.5rem] bg-[#FFF6EF] p-4 shadow-sm ring-1 ring-[#E0680E]/18">
+    <a
+      href={`/owner/payments/${encodeURIComponent(request.token)}`}
+      className="flex items-center justify-between gap-4 rounded-[1.5rem] bg-[#FFF6EF] p-4 shadow-sm ring-1 ring-[#E0680E]/18"
+    >
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#E0680E]">Paiement à traiter</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#E0680E]">
+          Paiement à traiter
+        </p>
         <p className="mt-1 font-black text-[#112532]">{request.label}</p>
-        <p className="mt-1 text-xs font-bold text-[#112532]/50">{request.status === "overdue" ? "En retard" : "En attente de règlement"}</p>
+        <p className="mt-1 text-xs font-bold text-[#112532]/50">
+          {request.status === "overdue"
+            ? "En retard"
+            : "En attente de règlement"}
+        </p>
       </div>
       <div className="text-right">
-        <p className="text-2xl font-black text-[#112532]">{formatMoney(request.total)}</p>
+        <p className="text-2xl font-black text-[#112532]">
+          {formatMoney(request.total)}
+        </p>
         <p className="mt-1 text-xs font-black text-[#E0680E]">Ouvrir →</p>
       </div>
     </a>
@@ -1068,16 +1788,42 @@ function BottomNav({ active }: { active: OwnerAppView }) {
   const ownerBase = ownerBaseFromPath(pathname);
 
   const items = [
-    { key: "dashboard" as const, label: "Tableau de bord", short: "Dashboard", icon: "✦", href: `${ownerBase}/cockpit` },
-    { key: "operations" as const, label: "Opérations", short: "Opérations", icon: "✓", href: `${ownerBase}/operations` },
-    { key: "pricing" as const, label: "Tarification", short: "Prix", icon: "€", href: `${ownerBase}/pricing` },
-    { key: "admin" as const, label: "Compte", short: "Compte", icon: "●", href: `${ownerBase}/admin` },
+    {
+      key: "dashboard" as const,
+      label: "Tableau de bord",
+      short: "Dashboard",
+      icon: "✦",
+      href: `${ownerBase}/cockpit`,
+    },
+    {
+      key: "operations" as const,
+      label: "Opérations",
+      short: "Opérations",
+      icon: "✓",
+      href: `${ownerBase}/operations`,
+    },
+    {
+      key: "pricing" as const,
+      label: "Tarification",
+      short: "Prix",
+      icon: "€",
+      href: `${ownerBase}/pricing`,
+    },
+    {
+      key: "admin" as const,
+      label: "Compte",
+      short: "Compte",
+      icon: "●",
+      href: `${ownerBase}/admin`,
+    },
   ];
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 xl:hidden">
-      <nav className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-t-[1.65rem] border-x border-t border-[#112532]/10 bg-white/96 px-2 pt-2 shadow-[0_-10px_30px_rgba(17,37,50,0.10)] backdrop-blur-xl" style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}>
-        
+      <nav
+        className="pointer-events-auto relative mx-auto max-w-md overflow-hidden rounded-t-[1.65rem] border-x border-t border-[#112532]/10 bg-white/96 px-2 pt-2 shadow-[0_-10px_30px_rgba(17,37,50,0.10)] backdrop-blur-xl"
+        style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="grid grid-cols-4 gap-1">
           {items.map((item) => {
             const selected = item.key === active;
@@ -1093,10 +1839,19 @@ function BottomNav({ active }: { active: OwnerAppView }) {
                     : "text-[#112532]/58 hover:bg-[#F4F8FA] hover:text-[#112532]",
                 ].join(" ")}
               >
-                <span className={["grid h-6 w-6 place-items-center rounded-full text-[11px] font-black", selected ? "bg-white/16 text-white" : "bg-[#112532]/6 text-[#112532]/50"].join(" ")}>
+                <span
+                  className={[
+                    "grid h-6 w-6 place-items-center rounded-full text-[11px] font-black",
+                    selected
+                      ? "bg-white/16 text-white"
+                      : "bg-[#112532]/6 text-[#112532]/50",
+                  ].join(" ")}
+                >
                   {item.icon}
                 </span>
-                <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">{item.short}</span>
+                <span className="mt-1 max-w-full truncate text-[10px] font-black leading-none">
+                  {item.short}
+                </span>
               </a>
             );
           })}
@@ -1120,9 +1875,15 @@ function SectionIntro({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">{eyebrow}</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-[#112532]/55">{description}</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">
+          {eyebrow}
+        </p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight text-[#112532]">
+          {title}
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-[#112532]/55">
+          {description}
+        </p>
       </div>
       {action}
     </div>
@@ -1135,9 +1896,13 @@ function ImportantActions({ data }: { data: OwnerCockpitData }) {
     .filter(
       (event) =>
         event.tone === "orange" ||
-        ["refused", "problem_reported", "overdue", "cleaning_overdue", "needs_manual_reassignment"].includes(
-          String(event.status ?? ""),
-        ),
+        [
+          "refused",
+          "problem_reported",
+          "overdue",
+          "cleaning_overdue",
+          "needs_manual_reassignment",
+        ].includes(String(event.status ?? "")),
     )
     .slice(0, 6);
 
@@ -1145,15 +1910,27 @@ function ImportantActions({ data }: { data: OwnerCockpitData }) {
     <ShellCard className="p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">À traiter</p>
-          <h2 className="mt-1 text-2xl font-black text-[#112532]">Actions importantes</h2>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#E0680E]">
+            À traiter
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-[#112532]">
+            Actions importantes
+          </h2>
         </div>
-        <span className="rounded-full bg-[#E0680E]/10 px-3 py-1 text-sm font-black text-[#B6520A]">{urgent.length}</span>
+        <span className="rounded-full bg-[#E0680E]/10 px-3 py-1 text-sm font-black text-[#B6520A]">
+          {urgent.length}
+        </span>
       </div>
       <div className="mt-4 divide-y divide-[#112532]/8">
-        {urgent.length ? urgent.map((event) => (
-          <TimelineRow key={event.id} event={event} listings={data.listings} />
-        )) : (
+        {urgent.length ? (
+          urgent.map((event) => (
+            <TimelineRow
+              key={event.id}
+              event={event}
+              listings={data.listings}
+            />
+          ))
+        ) : (
           <p className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-bold text-emerald-800">
             Rien d’urgent pour le moment.
           </p>
@@ -1162,7 +1939,6 @@ function ImportantActions({ data }: { data: OwnerCockpitData }) {
     </ShellCard>
   );
 }
-
 
 export function OwnerCockpit({
   data,
@@ -1187,7 +1963,8 @@ export function OwnerCockpit({
           <ShellCard className="p-6">
             <h1 className="text-3xl font-black">Aucun logement lié</h1>
             <p className="mt-2 font-bold text-[#112532]/55">
-              Ce lien propriétaire est actif, mais aucun bien n’est encore associé.
+              Ce lien propriétaire est actif, mais aucun bien n’est encore
+              associé.
             </p>
           </ShellCard>
         </div>
@@ -1204,7 +1981,9 @@ export function OwnerCockpit({
     <main className="min-h-screen bg-[#F4F8FA] pb-28 text-[#112532] xl:pb-10">
       <TopNav notificationCount={notificationCount} ownerBase={ownerBase} />
 
-      <div className={`mx-auto w-full max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8 ${view === "pricing" ? "py-3" : "py-5"}`}>
+      <div
+        className={`mx-auto w-full max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8 ${view === "pricing" ? "py-3" : "py-5"}`}
+      >
         {view === "dashboard" ? (
           <>
             <SectionIntro
@@ -1213,6 +1992,7 @@ export function OwnerCockpit({
               description="Revenus, occupation et dernières évolutions utiles, sans détails opérationnels inutiles."
             />
             <MoneyHero data={data} />
+            <AirbnbReviewsCard data={data} />
             <SmartBrief data={data} />
             <OccupancyTable data={data} />
             <OwnerJournalHeadlines data={data} />
@@ -1226,25 +2006,52 @@ export function OwnerCockpit({
               title="Ce qui doit être fait et suivi"
               description="Ménages, interventions, incidents, demandes de paiement et actions nécessitant votre attention."
               action={
-                <a href={`${ownerBase}/operations/payments`} className="rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white">
+                <a
+                  href={`${ownerBase}/operations/payments`}
+                  className="rounded-full bg-[#112532] px-5 py-3 text-sm font-black text-white"
+                >
                   Paiements →
                 </a>
               }
             />
             <OutstandingPayment data={data} />
-            <PropertySelector data={data} selected={selected} setSelected={setSelected} />
+            <PropertySelector
+              data={data}
+              selected={selected}
+              setSelected={setSelected}
+            />
             <Planning data={data} selected={selected} operations />
             <ImportantActions data={data} />
             <ShellCard className="grid gap-3 p-5 sm:grid-cols-2">
-              <a href={`${ownerBase}/operations/payments`} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8">
-                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E0680E]">Paiements</p>
-                <h2 className="mt-1 text-xl font-black">À payer et historique</h2>
-                <p className="mt-2 text-sm font-bold text-[#112532]/55">Consulter les demandes des intervenantes, les échéances et les paiements passés.</p>
+              <a
+                href={`${ownerBase}/operations/payments`}
+                className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8"
+              >
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#E0680E]">
+                  Paiements
+                </p>
+                <h2 className="mt-1 text-xl font-black">
+                  À payer et historique
+                </h2>
+                <p className="mt-2 text-sm font-bold text-[#112532]/55">
+                  Consulter les demandes des intervenantes, les échéances et les
+                  paiements passés.
+                </p>
               </a>
-              <a href={`${ownerBase}/activity`} className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8">
-                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#80A5B7]">Historique</p>
-                <h2 className="mt-1 text-xl font-black">Journal opérationnel</h2>
-                <p className="mt-2 text-sm font-bold text-[#112532]/55">Retrouver les incidents, changements, décisions et événements importants.</p>
+              <a
+                href={`${ownerBase}/activity`}
+                className="rounded-2xl bg-[#F4F8FA] p-4 ring-1 ring-[#112532]/8"
+              >
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-[#80A5B7]">
+                  Historique
+                </p>
+                <h2 className="mt-1 text-xl font-black">
+                  Journal opérationnel
+                </h2>
+                <p className="mt-2 text-sm font-bold text-[#112532]/55">
+                  Retrouver les incidents, changements, décisions et événements
+                  importants.
+                </p>
               </a>
             </ShellCard>
           </>
@@ -1252,10 +2059,21 @@ export function OwnerCockpit({
 
         {view === "pricing" ? (
           <>
-            <OwnerPricingCalendar data={data} selectedListingIds={selected} showPropertySelector={false} />
+            <OwnerPricingCalendar
+              data={data}
+              selectedListingIds={selected}
+              showPropertySelector={false}
+            />
             <div className="space-y-3">
-              <PropertySelector data={data} selected={selected} setSelected={setSelected} />
-              <a href={`${ownerBase}/pricing/settings`} className="flex w-full items-center justify-center rounded-full bg-[#112532] px-5 py-3.5 text-sm font-black text-white shadow-sm">
+              <PropertySelector
+                data={data}
+                selected={selected}
+                setSelected={setSelected}
+              />
+              <a
+                href={`${ownerBase}/pricing/settings`}
+                className="flex w-full items-center justify-center rounded-full bg-[#112532] px-5 py-3.5 text-sm font-black text-white shadow-sm"
+              >
                 Modifier la stratégie
               </a>
             </div>
@@ -1268,4 +2086,3 @@ export function OwnerCockpit({
     </main>
   );
 }
-

@@ -1269,8 +1269,6 @@ export async function getOwnerCockpitData(
       pricingReservations: [],
       journalHeadlines: [],
       pendingPaymentRequest: null,
-      reviewRatings: [],
-      recentReviews: [],
     };
   }
 
@@ -1299,8 +1297,6 @@ export async function getOwnerCockpitData(
     pricingSeasonsResult,
     journalSituationsResult,
     paymentRequestsResult,
-    reviewSnapshotsResult,
-    recentReviewsResult,
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -1385,51 +1381,11 @@ export async function getOwnerCockpitData(
       .limit(12),
     supabase
       .from("monthly_payment_requests")
-      .select(
-        "id,public_token,status,period_start,period_end,total_eur,created_at",
-      )
+      .select("id,public_token,status,period_start,period_end,total_eur,created_at")
       .eq("owner_id", owner.id)
       .in("status", ["sent_to_owner", "overdue"])
       .order("created_at", { ascending: false })
       .limit(1),
-    supabase
-      .from("review_rating_snapshots")
-      .select(
-        [
-          "property_id",
-          "snapshot_date",
-          "review_count",
-          "overall_rating",
-          "location_rating",
-          "cleanliness_rating",
-          "checkin_rating",
-          "accuracy_rating",
-          "value_rating",
-          "communication_rating",
-          "is_authoritative",
-        ].join(","),
-      )
-      .in("property_id", propertyIds)
-      .eq("source_system", "beds24")
-      .eq("channel", "airbnb")
-      .order("snapshot_date", { ascending: false }),
-    supabase
-      .from("guest_reviews")
-      .select(
-        [
-          "id",
-          "property_id",
-          "review_date",
-          "overall_rating",
-          "cleanliness_rating",
-          "review_text",
-        ].join(","),
-      )
-      .in("property_id", propertyIds)
-      .eq("source_system", "beds24")
-      .eq("channel", "airbnb")
-      .order("review_date", { ascending: false })
-      .limit(8),
   ]);
 
   for (const [label, result] of [
@@ -1446,8 +1402,6 @@ export async function getOwnerCockpitData(
     ["saisons tarifaires", pricingSeasonsResult],
     ["journal propriétaire", journalSituationsResult],
     ["demandes de paiement", paymentRequestsResult],
-    ["notes Airbnb", reviewSnapshotsResult],
-    ["avis Airbnb", recentReviewsResult],
   ] as const) {
     if ("error" in result && result.error) {
       throw new Error(
@@ -1620,8 +1574,7 @@ export async function getOwnerCockpitData(
       occurredAt: String(row.last_observed_at),
     }),
   );
-  const pendingPaymentRow = (paymentRequestsResult.data ?? [])[0] as
-    Row | undefined;
+  const pendingPaymentRow = (paymentRequestsResult.data ?? [])[0] as Row | undefined;
   const pendingPaymentRequest = pendingPaymentRow
     ? {
         id: String(pendingPaymentRow.id),
@@ -1631,77 +1584,19 @@ export async function getOwnerCockpitData(
             ? `${new Intl.DateTimeFormat("fr-FR", {
                 day: "numeric",
                 month: "short",
-              }).format(
-                new Date(String(pendingPaymentRow.period_start)),
-              )} – ${new Intl.DateTimeFormat("fr-FR", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }).format(new Date(String(pendingPaymentRow.period_end)))}`
+              }).format(new Date(String(pendingPaymentRow.period_start)))} – ${new Intl.DateTimeFormat(
+                "fr-FR",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                },
+              ).format(new Date(String(pendingPaymentRow.period_end)))}`
             : "Demande de paiement",
         total: Number(pendingPaymentRow.total_eur ?? 0),
         status: String(pendingPaymentRow.status ?? ""),
       }
     : null;
-
-  const reviewSnapshotRows = (reviewSnapshotsResult.data ?? []) as Row[];
-
-  const recentReviewRows = (recentReviewsResult.data ?? []) as Row[];
-
-  const latestSnapshotByProperty = new Map<string, Row>();
-
-  for (const row of reviewSnapshotRows) {
-    const propertyId = String(row.property_id ?? "");
-
-    if (!propertyId || latestSnapshotByProperty.has(propertyId)) {
-      continue;
-    }
-
-    latestSnapshotByProperty.set(propertyId, row as Row);
-  }
-
-  const reviewRatings = listings.flatMap((listing) => {
-    const row = latestSnapshotByProperty.get(listing.id);
-
-    if (!row) return [];
-
-    return [
-      {
-        listingId: listing.id,
-        reviewCount: Number(row.review_count ?? 0),
-        overallRating:
-          row.overall_rating == null ? null : Number(row.overall_rating),
-        locationRating:
-          row.location_rating == null ? null : Number(row.location_rating),
-        cleanlinessRating:
-          row.cleanliness_rating == null
-            ? null
-            : Number(row.cleanliness_rating),
-        checkinRating:
-          row.checkin_rating == null ? null : Number(row.checkin_rating),
-        accuracyRating:
-          row.accuracy_rating == null ? null : Number(row.accuracy_rating),
-        valueRating: row.value_rating == null ? null : Number(row.value_rating),
-        communicationRating:
-          row.communication_rating == null
-            ? null
-            : Number(row.communication_rating),
-        snapshotDate: row.snapshot_date ? String(row.snapshot_date) : null,
-        isAuthoritative: Boolean(row.is_authoritative),
-      },
-    ];
-  });
-
-  const recentReviews = recentReviewRows.map((row: Row) => ({
-    id: String(row.id),
-    listingId: String(row.property_id),
-    reviewDate: String(row.review_date),
-    overallRating:
-      row.overall_rating == null ? null : Number(row.overall_rating),
-    cleanlinessRating:
-      row.cleanliness_rating == null ? null : Number(row.cleanliness_rating),
-    reviewText: row.review_text ? String(row.review_text) : null,
-  }));
 
   return {
     owner: {
@@ -1727,7 +1622,5 @@ export async function getOwnerCockpitData(
     pricingReservations,
     journalHeadlines,
     pendingPaymentRequest,
-    reviewRatings,
-    recentReviews,
   };
 }
