@@ -234,6 +234,32 @@ class Beds24Client:
 
         return self.get("/inventory/rooms/availability", params=params)
 
+    def get_airbnb_reviews(
+        self,
+        property_id: Optional[int] = None,
+        room_id: Optional[int] = None,
+        modified_from: Optional[str] = None,
+        modified_to: Optional[str] = None,
+        page: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Fetch Airbnb reviews imported by Beds24.
+
+        The raw payload is deliberately preserved by the importer because Beds24
+        and Airbnb may add category fields without notice.
+        """
+        params: Dict[str, Any] = {}
+        if property_id is not None:
+            params["propertyId"] = property_id
+        if room_id is not None:
+            params["roomId"] = room_id
+        if modified_from:
+            params["modifiedFrom"] = modified_from
+        if modified_to:
+            params["modifiedTo"] = modified_to
+        if page is not None:
+            params["page"] = page
+        return self.get("/channels/airbnb/reviews", params=params)
+
     def get_booking_messages(
         self,
         booking_id: Optional[int | str] = None,
