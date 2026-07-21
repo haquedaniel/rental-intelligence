@@ -258,6 +258,7 @@ class Beds24Client:
             params["modifiedTo"] = modified_to
         if page is not None:
             params["page"] = page
+        print(params)
         return self.get("/channels/airbnb/reviews", params=params)
 
     def get_booking_messages(
