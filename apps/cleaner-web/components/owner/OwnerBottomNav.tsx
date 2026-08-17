@@ -7,6 +7,7 @@ export type OwnerNavActive =
   | "dashboard"
   | "operations"
   | "pricing"
+  | "properties"
   | "admin"
   | "activity"
   // Legacy values retained while older owner/admin pages are migrated.
@@ -17,7 +18,12 @@ export type OwnerNavActive =
   | "reservations"
   | "settings";
 
-type PrimaryOwnerSection = "dashboard" | "operations" | "pricing" | "admin";
+type PrimaryOwnerSection =
+  | "dashboard"
+  | "operations"
+  | "pricing"
+  | "properties"
+  | "admin";
 
 type NavItem = {
   key: PrimaryOwnerSection;
@@ -38,6 +44,7 @@ function itemsFor(pathname: string | null): NavItem[] {
     { key: "dashboard", label: "Tableau de bord", short: "Dashboard", href: `${base}/cockpit`, icon: "✦" },
     { key: "operations", label: "Opérations", short: "Opérations", href: `${base}/operations`, icon: "✓" },
     { key: "pricing", label: "Tarification", short: "Prix", href: `${base}/pricing`, icon: "€" },
+    { key: "properties", label: "Logements", short: "Logements", href: `${base}/properties`, icon: "⌂" },
     { key: "admin", label: "Compte", short: "Compte", href: `${base}/admin`, icon: "●" },
   ];
 }
@@ -61,6 +68,7 @@ function normalizeActive(active: OwnerNavActive): OwnerNavActive {
 function inferActive(pathname: string | null): OwnerNavActive {
   const path = pathname || "";
   if (path.includes("/activity")) return "activity";
+  if (path.includes("/properties")) return "properties";
   if (path.includes("/operations") || path.includes("/payments") || path.includes("/missions") || path.includes("/issues")) return "operations";
   if (path.includes("/pricing")) return "pricing";
   if (path.includes("/admin")) return "admin";
@@ -108,7 +116,7 @@ export default function OwnerBottomNav({ active }: { active?: OwnerNavActive }) 
         className="pointer-events-auto mx-auto max-w-md rounded-t-[1.65rem] border-x border-t border-[#112532]/10 bg-white/96 px-2 pt-2 shadow-[0_-10px_30px_rgba(17,37,50,0.10)] backdrop-blur-xl"
         style={{ paddingBottom: "max(0.45rem, env(safe-area-inset-bottom))" }}
       >
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {navItems.map((item) => {
             const selected = current === item.key;
             return (
@@ -125,7 +133,7 @@ export default function OwnerBottomNav({ active }: { active?: OwnerNavActive }) 
                 <span className={["grid h-7 w-7 place-items-center rounded-full text-xs font-black", selected ? "bg-white/14 text-white" : "bg-[#112532]/6 text-[#112532]/55"].join(" ")}>
                   {item.icon}
                 </span>
-                <span className="mt-1 text-[10px] font-black leading-none">{item.short}</span>
+                <span className="mt-1 text-[9px] font-black leading-none">{item.short}</span>
               </Link>
             );
           })}
